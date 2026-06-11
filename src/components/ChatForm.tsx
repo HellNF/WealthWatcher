@@ -15,12 +15,22 @@ export default function ChatForm({ onSent }: Props) {
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(AUTHOR_KEY)
     if (saved) setAuthor(saved)
+    else setEditingName(true)
   }, [])
+
+  // Auto-grow textarea
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+  }, [content])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,7 +39,7 @@ export default function ChatForm({ onSent }: Props) {
     const trimmedAuthor = author.trim()
     const trimmedContent = content.trim()
 
-    if (!trimmedAuthor) { setError('Inserisci il tuo nome'); return }
+    if (!trimmedAuthor) { setEditingName(true); setError('Inserisci il tuo nome'); return }
     if (!trimmedContent) { setError('Scrivi un messaggio'); return }
 
     setSending(true)
@@ -49,6 +59,7 @@ export default function ChatForm({ onSent }: Props) {
       const message: Message = await res.json()
       localStorage.setItem(AUTHOR_KEY, trimmedAuthor)
       setContent('')
+      setEditingName(false)
       onSent(message)
       contentRef.current?.focus()
     } catch {
@@ -66,38 +77,60 @@ export default function ChatForm({ onSent }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-zinc-800 px-4 py-3 flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="border-t border-zinc-800 px-4 pt-3 pb-4 flex flex-col gap-2">
       {error && (
-        <p className="text-red-400 text-xs">{error}</p>
+        <p className="text-red-400 text-xs px-1">{error}</p>
       )}
-      <div className="flex gap-2 items-end">
-        <input
-          type="text"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          placeholder="Il tuo nome"
-          maxLength={50}
-          className="w-28 shrink-0 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600 transition-colors"
-        />
-        <textarea
-          ref={contentRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Proponi una modifica o nuova feature… (Invio per inviare)"
-          maxLength={1000}
-          rows={1}
-          className="flex-1 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600 transition-colors resize-none"
-        />
+
+      {/* Textarea auto-growing */}
+      <textarea
+        ref={contentRef}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Proponi una modifica o nuova feature…"
+        maxLength={1000}
+        rows={3}
+        className="w-full rounded-xl bg-zinc-800 border border-zinc-700 px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600 transition-colors resize-none leading-relaxed"
+      />
+
+      {/* Bottom bar: nome + counter + invio */}
+      <div className="flex items-center gap-2">
+        {editingName ? (
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            onBlur={() => { if (author.trim()) setEditingName(false) }}
+            placeholder="Il tuo nome"
+            maxLength={50}
+            autoFocus
+            className="flex-1 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600 transition-colors"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingName(true)}
+            className="flex-1 text-left text-xs text-zinc-500 hover:text-zinc-300 transition-colors truncate px-1"
+          >
+            <span className="text-zinc-600">come</span>{' '}
+            <span className="text-zinc-400 font-medium">{author}</span>
+            <span className="text-zinc-700 ml-1">· cambia</span>
+          </button>
+        )}
+
+        <span className="text-xs text-zinc-700 shrink-0">{content.length}/1000</span>
+
         <button
           type="submit"
           disabled={sending}
-          className="shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="shrink-0 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium text-white transition-colors"
         >
           {sending ? '…' : 'Invia'}
         </button>
       </div>
-      <p className="text-xs text-zinc-600 text-right">{content.length}/1000</p>
+
+      <p className="text-xs text-zinc-700 px-1">Invio per inviare · Shift+Invio per andare a capo</p>
     </form>
   )
 }
