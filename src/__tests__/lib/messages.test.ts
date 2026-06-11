@@ -32,8 +32,8 @@ test('getMessages con since filtra messaggi più vecchi', () => {
   // Use explicit timestamps to avoid flakiness when both inserts happen within the same second
   const oldTs = Math.floor(Date.now() / 1000) - 10
   const newTs = Math.floor(Date.now() / 1000)
-  db.exec(`INSERT INTO messages (author, content, created_at) VALUES ('Mario', 'Vecchio', ${oldTs})`)
-  db.exec(`INSERT INTO messages (author, content, created_at) VALUES ('Nicol', 'Nuovo', ${newTs})`)
+  db.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Mario', 'Vecchio', oldTs)
+  db.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Nicol', 'Nuovo', newTs)
   const messages = getMessages(oldTs)
   expect(messages).toHaveLength(1)
   expect(messages[0].content).toBe('Nuovo')
