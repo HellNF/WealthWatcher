@@ -15,7 +15,7 @@ function slugify(text: string): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .trim()
+    .replace(/^-+|-+$/g, '')
 }
 
 export function readSpec(): { html: string; headings: Heading[] } {
