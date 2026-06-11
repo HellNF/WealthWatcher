@@ -56,3 +56,18 @@ test('GET con since filtra messaggi precedenti', async () => {
   expect(data).toHaveLength(1)
   expect(data[0].content).toBe('Secondo')
 })
+
+test('GET con since non valido restituisce 400', async () => {
+  const res = await GET(makeRequest('GET', undefined, { since: 'notanumber' }))
+  expect(res.status).toBe(400)
+})
+
+test('POST rifiuta author più lungo di 50 caratteri', async () => {
+  const res = await POST(makeRequest('POST', { author: 'a'.repeat(51), content: 'Testo valido' }))
+  expect(res.status).toBe(400)
+})
+
+test('POST rifiuta content più lungo di 1000 caratteri', async () => {
+  const res = await POST(makeRequest('POST', { author: 'Mario', content: 'x'.repeat(1001) }))
+  expect(res.status).toBe(400)
+})
