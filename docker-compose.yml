@@ -1,0 +1,11 @@
+services:
+  wealthwatcher-spec:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+      - ./SPEC.md:/app/SPEC.md:ro
+    restart: unless-stopped
+    environment:
+      - DATABASE_PATH=/data/chat.db
