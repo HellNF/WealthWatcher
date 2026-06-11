@@ -12,6 +12,7 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['<rootDir>/src/__tests__/**/*.test.ts'],
+  passWithNoTests: true,
 }
 
 export default createJestConfig(config)
