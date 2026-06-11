@@ -10,6 +10,7 @@ const config: Config = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^marked$': '<rootDir>/node_modules/marked/lib/marked.umd.js',
   },
   testMatch: ['<rootDir>/src/__tests__/**/*.test.ts'],
   passWithNoTests: true,
