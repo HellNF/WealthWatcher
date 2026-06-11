@@ -18,6 +18,11 @@ export default function ChatFeed({ messages, ownAuthor, onNewMessages }: Props) 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const onNewMessagesRef = useRef(onNewMessages)
+  useEffect(() => {
+    onNewMessagesRef.current = onNewMessages
+  }, [onNewMessages])
+
   useEffect(() => {
     const poll = async () => {
       const last = messages[messages.length - 1]
@@ -26,12 +31,12 @@ export default function ChatFeed({ messages, ownAuthor, onNewMessages }: Props) 
         const res = await fetch(`/api/messages?since=${since}`)
         if (!res.ok) return
         const newMsgs: Message[] = await res.json()
-        if (newMsgs.length > 0) onNewMessages(newMsgs)
+        if (newMsgs.length > 0) onNewMessagesRef.current(newMsgs)
       } catch { /* silent fail */ }
     }
     const interval = setInterval(poll, 10_000)
     return () => clearInterval(interval)
-  }, [messages, onNewMessages])
+  }, [messages])
 
   if (messages.length === 0) {
     return (
