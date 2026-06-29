@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
-import { listTransactions } from '@/lib/transactions'
-import { fromMinor } from '@/lib/money'
+import { listTransactions, listAllCategories } from '@/lib/transactions'
+import TransactionTable from './TransactionTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +28,7 @@ export default async function AccountPage({ params }: Props) {
 
   const institution = getInstitutionForUser(user.id, account.institution_id)
   const transactions = listTransactions(user.id, id)
+  const categories = listAllCategories()
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -95,47 +96,7 @@ export default async function AccountPage({ params }: Props) {
             Ultimi movimenti
           </h2>
 
-          {transactions.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-              Nessun movimento. Importa un file Excel da Intesa Sanpaolo.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-zinc-800">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-950">
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Descrizione</th>
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Categoria</th>
-                    <th className="text-right px-4 py-2 text-zinc-500 font-medium">Importo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/50">
-                  {transactions.map((txn) => (
-                    <tr key={txn.id} className="bg-zinc-900 hover:bg-zinc-800 transition">
-                      <td className="px-4 py-2.5 text-zinc-400 tabular-nums text-xs">
-                        {formatDate(txn.booked_date)}
-                      </td>
-                      <td className="px-4 py-2.5 text-zinc-200 max-w-xs truncate">
-                        {txn.description_raw}
-                      </td>
-                      <td className="px-4 py-2.5 text-zinc-500 text-xs">
-                        {txn.category_name ?? '—'}
-                      </td>
-                      <td
-                        className={`px-4 py-2.5 text-right tabular-nums font-mono ${
-                          txn.amount_minor < 0 ? 'text-red-400' : 'text-emerald-400'
-                        }`}
-                      >
-                        {txn.amount_minor >= 0 ? '+' : ''}
-                        {fromMinor(txn.amount_minor, txn.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <TransactionTable transactions={transactions} categories={categories} />
         </section>
       </main>
     </div>
