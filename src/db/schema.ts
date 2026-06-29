@@ -75,9 +75,117 @@ export const bankAccounts = sqliteTable(
   ],
 )
 
+// ── categories ────────────────────────────────────────────────────────────────
+// Global, seeded (src/db/seed.ts). User-visible labels for transactions.
+export const categories = sqliteTable('categories', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  name:       text('name').notNull().unique(),
+  kind:       text('kind', { enum: ['expense', 'income', 'transfer'] as const })
+                .notNull()
+                .default('expense'),
+  color:      text('color').notNull().default('#6b7280'),
+  created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
+})
+
+// ── merchants ─────────────────────────────────────────────────────────────────
+// Global, seeded. Canonical merchant names → default category. (SPEC §8.1)
+export const merchants = sqliteTable('merchants', {
+  id:                  integer('id').primaryKey({ autoIncrement: true }),
+  canonical_name:      text('canonical_name').notNull().unique(),
+  default_category_id: integer('default_category_id').references(
+    () => categories.id,
+    { onDelete: 'set null' },
+  ),
+  created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
+})
+
+// ── merchant_aliases ──────────────────────────────────────────────────────────
+// Lowercase substring patterns → canonical merchant. Seeded + user-expandable.
+// Match: normalised(description).includes(pattern). (SPEC §8.1)
+export const merchantAliases = sqliteTable('merchant_aliases', {
+  id:          integer('id').primaryKey({ autoIncrement: true }),
+  pattern:     text('pattern').notNull().unique(), // lowercased
+  merchant_id: integer('merchant_id')
+                 .notNull()
+                 .references(() => merchants.id, { onDelete: 'cascade' }),
+  created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+})
+
+// ── import_batches ────────────────────────────────────────────────────────────
+// Audit trail for every CSV import: provenance + dedup counts (SPEC §5.1.2).
+export const importBatches = sqliteTable(
+  'import_batches',
+  {
+    id:              integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:        integer('owner_id')
+                       .notNull()
+                       .references(() => users.id, { onDelete: 'cascade' }),
+    bank_account_id: integer('bank_account_id')
+                       .notNull()
+                       .references(() => bankAccounts.id, { onDelete: 'cascade' }),
+    source:          text('source').notNull(),      // e.g. 'intesa_csv'
+    filename:        text('filename').notNull(),
+    row_count:       integer('row_count').notNull(),
+    inserted_count:  integer('inserted_count').notNull(),
+    duplicate_count: integer('duplicate_count').notNull(),
+    created_at:      integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_import_batches_owner').on(t.owner_id),
+  ],
+)
+
+// ── transactions ──────────────────────────────────────────────────────────────
+// Bank account movements. amount_minor is signed (negative = outflow). (SPEC §8)
+// Dedup key: UNIQUE(bank_account_id, dedup_hash) — hash of raw fields + in-file
+// occurrence index, so two legitimately identical rows are preserved. (SPEC §5.1)
+export const transactions = sqliteTable(
+  'transactions',
+  {
+    id:               integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:         integer('owner_id')
+                        .notNull()
+                        .references(() => users.id, { onDelete: 'cascade' }),
+    bank_account_id:  integer('bank_account_id')
+                        .notNull()
+                        .references(() => bankAccounts.id, { onDelete: 'cascade' }),
+    booked_date:      text('booked_date').notNull(),     // ISO YYYY-MM-DD
+    value_date:       text('value_date'),                // nullable
+    amount_minor:     integer('amount_minor').notNull(), // signed, see money.ts
+    currency:         text('currency').notNull().default('EUR'),
+    description_raw:  text('description_raw').notNull(),
+    counterparty_raw: text('counterparty_raw'),
+    external_id:      text('external_id'),               // bank-provided id if any
+    dedup_hash:       text('dedup_hash').notNull(),
+    import_batch_id:  integer('import_batch_id').references(
+                        () => importBatches.id,
+                        { onDelete: 'set null' },
+                      ),
+    merchant_id:      integer('merchant_id').references(
+                        () => merchants.id,
+                        { onDelete: 'set null' },
+                      ),
+    category_id:      integer('category_id').references(
+                        () => categories.id,
+                        { onDelete: 'set null' },
+                      ),
+    created_at:       integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('txn_account_dedup_uniq').on(t.bank_account_id, t.dedup_hash),
+    index('idx_transactions_owner_date').on(t.owner_id, t.booked_date),
+    index('idx_transactions_account').on(t.bank_account_id),
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
-export type AllowedEmail = InferSelectModel<typeof allowedEmails>
-export type User         = InferSelectModel<typeof users>
-export type Share        = InferSelectModel<typeof shares>
-export type Institution  = InferSelectModel<typeof institutions>
-export type BankAccount  = InferSelectModel<typeof bankAccounts>
+export type AllowedEmail  = InferSelectModel<typeof allowedEmails>
+export type User          = InferSelectModel<typeof users>
+export type Share         = InferSelectModel<typeof shares>
+export type Institution   = InferSelectModel<typeof institutions>
+export type BankAccount   = InferSelectModel<typeof bankAccounts>
+export type Category      = InferSelectModel<typeof categories>
+export type Merchant      = InferSelectModel<typeof merchants>
+export type MerchantAlias = InferSelectModel<typeof merchantAliases>
+export type ImportBatch   = InferSelectModel<typeof importBatches>
+export type Transaction   = InferSelectModel<typeof transactions>

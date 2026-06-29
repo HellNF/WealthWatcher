@@ -10,6 +10,7 @@ import fs from 'fs'
 import path from 'path'
 
 import * as schema from './schema'
+import { runSeed } from './seed'
 
 function initDb() {
   const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'chat.db')
@@ -41,6 +42,7 @@ function initDb() {
   `)
 
   seedAdmin(sqlite)
+  runSeed(sqlite)
   return { sqlite, db }
 }
 
