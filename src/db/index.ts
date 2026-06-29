@@ -27,22 +27,30 @@ function initDb() {
 
   const db = drizzle(sqlite, { schema })
 
-  // Apply versioned SQL migrations from drizzle/ (idempotent, ordered by filename).
-  // drizzle-kit generate produces these; commit them alongside schema changes.
-  migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle') })
+  // Skip all data operations during `next build` — multiple parallel workers
+  // would race on migrate() causing "table already exists" errors. Migrations
+  // and seeds run at first real request (dev/prod server startup).
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build'
 
-  // Legacy spec-discussion chat — kept on raw driver, not in Drizzle schema.
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      author     TEXT    NOT NULL CHECK(length(author) <= 50),
-      content    TEXT    NOT NULL CHECK(length(content) <= 1000),
-      created_at INTEGER NOT NULL DEFAULT (unixepoch())
-    )
-  `)
+  if (!isBuild) {
+    // Apply versioned SQL migrations from drizzle/ (idempotent, ordered by filename).
+    // drizzle-kit generate produces these; commit them alongside schema changes.
+    migrate(db, { migrationsFolder: path.join(process.cwd(), 'drizzle') })
 
-  seedAdmin(sqlite)
-  runSeed(sqlite)
+    // Legacy spec-discussion chat — kept on raw driver, not in Drizzle schema.
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        author     TEXT    NOT NULL CHECK(length(author) <= 50),
+        content    TEXT    NOT NULL CHECK(length(content) <= 1000),
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `)
+
+    seedAdmin(sqlite)
+    runSeed(sqlite)
+  }
+
   return { sqlite, db }
 }
 

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { requireUser } from '@/lib/dal'
 import { listInstitutions } from '@/lib/institutions'
 import { signOutAction } from './actions'
@@ -51,12 +52,17 @@ export default async function DashboardPage() {
           ) : (
             <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 overflow-hidden">
               {institutions.map((inst) => (
-                <li
-                  key={inst.id}
-                  className="flex items-center justify-between px-4 py-3 bg-zinc-900"
-                >
-                  <span className="text-zinc-100">{inst.name}</span>
-                  <span className="text-xs text-zinc-500">{KIND_LABEL[inst.kind] ?? inst.kind}</span>
+                <li key={inst.id} className="bg-zinc-900">
+                  <Link
+                    href={`/dashboard/institutions/${inst.id}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800 transition"
+                  >
+                    <span className="text-zinc-100">{inst.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-500">{KIND_LABEL[inst.kind] ?? inst.kind}</span>
+                      <span className="text-zinc-600 text-xs">→</span>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>
