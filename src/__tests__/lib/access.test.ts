@@ -1,5 +1,5 @@
 // src/__tests__/lib/access.test.ts
-import { db } from '@/lib/db'
+import { sqlite } from '@/db'
 import { isEmailAllowed, getAllowedRole, upsertUser } from '@/lib/users'
 import {
   createInstitution,
@@ -8,11 +8,11 @@ import {
 } from '@/lib/institutions'
 
 function allow(email: string, role: 'admin' | 'member' = 'member') {
-  db.prepare('INSERT INTO allowed_emails (email, role) VALUES (?, ?)').run(email, role)
+  sqlite.prepare('INSERT INTO allowed_emails (email, role) VALUES (?, ?)').run(email, role)
 }
 
 beforeEach(() => {
-  db.exec(
+  sqlite.exec(
     'DELETE FROM shares; DELETE FROM bank_accounts; DELETE FROM institutions; DELETE FROM users; DELETE FROM allowed_emails;',
   )
 })
@@ -31,7 +31,7 @@ describe('allowlist', () => {
 
   test('upsertUser rifiuta chi non è in allowlist', () => {
     expect(upsertUser({ email: 'stranger@example.com' })).toBeUndefined()
-    expect(db.prepare('SELECT COUNT(*) c FROM users').get()).toEqual({ c: 0 })
+    expect(sqlite.prepare('SELECT COUNT(*) c FROM users').get()).toEqual({ c: 0 })
   })
 
   test('upsertUser rispecchia il ruolo della allowlist e aggiorna al re-login', () => {
@@ -41,7 +41,7 @@ describe('allowlist', () => {
     expect(created?.email).toBe('bob@example.com')
 
     // promosso ad admin nella allowlist -> ruolo aggiornato al prossimo login
-    db.prepare("UPDATE allowed_emails SET role='admin' WHERE email='bob@example.com'").run()
+    sqlite.prepare("UPDATE allowed_emails SET role='admin' WHERE email='bob@example.com'").run()
     const refreshed = upsertUser({ email: 'bob@example.com' })
     expect(refreshed?.id).toBe(created?.id)
     expect(refreshed?.role).toBe('admin')
@@ -70,7 +70,7 @@ describe('ownership isolation', () => {
     const eve = upsertUser({ email: 'eve@example.com' })!
     const inst = createInstitution(alice.id, 'Revolut', 'bank')
 
-    db.prepare(
+    sqlite.prepare(
       "INSERT INTO shares (entity_type, entity_id, user_id, role) VALUES ('institution', ?, ?, 'viewer')",
     ).run(inst.id, eve.id)
 

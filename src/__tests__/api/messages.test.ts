@@ -1,10 +1,10 @@
 // src/__tests__/api/messages.test.ts
 import { GET, POST } from '@/app/api/messages/route'
 import { NextRequest } from 'next/server'
-import { db } from '@/lib/db'
+import { sqlite } from '@/db'
 
 beforeEach(() => {
-  db.exec('DELETE FROM messages')
+  sqlite.exec('DELETE FROM messages')
 })
 
 function makeRequest(method: string, body?: object, params?: Record<string, string>): NextRequest {
@@ -48,8 +48,8 @@ test('GET con since filtra messaggi precedenti', async () => {
   // Use explicit timestamps to avoid flakiness with SQLite unixepoch 1-second resolution
   const oldTs = Math.floor(Date.now() / 1000) - 10
   const newTs = Math.floor(Date.now() / 1000)
-  db.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Mario', 'Primo', oldTs)
-  db.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Nicol', 'Secondo', newTs)
+  sqlite.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Mario', 'Primo', oldTs)
+  sqlite.prepare('INSERT INTO messages (author, content, created_at) VALUES (?, ?, ?)').run('Nicol', 'Secondo', newTs)
 
   const filtered = await GET(makeRequest('GET', undefined, { since: String(oldTs) }))
   const data = await filtered.json()

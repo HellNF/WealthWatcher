@@ -1,50 +1,59 @@
-// src/lib/institutions.ts
-import { db } from './db'
+// src/lib/institutions.ts — Institution repository (banks, brokers).
+import { and, desc, eq, exists, or, sql } from 'drizzle-orm'
+import { db } from '@/db'
+import { institutions, shares } from '@/db/schema'
+import type { Institution } from '@/db/schema'
 
 export type InstitutionKind = 'bank' | 'broker' | 'both'
+export type { Institution }
 
-export interface Institution {
-  id: number
-  owner_id: number
-  name: string
-  kind: InstitutionKind
-  created_at: number
-}
-
-// An institution is visible to its owner OR to any user it is shared with
-// (SPEC §2.1). All reads funnel through this predicate so access control is
-// applied uniformly.
-const VISIBLE_WHERE = `(
-  i.owner_id = @uid
-  OR EXISTS (
-    SELECT 1 FROM shares s
-    WHERE s.entity_type = 'institution' AND s.entity_id = i.id AND s.user_id = @uid
+/**
+ * Visibility predicate: institution visible to its owner OR to any user it is
+ * explicitly shared with (SPEC §2.1). All reads funnel through here so access
+ * control is applied uniformly — no scattered WHERE clauses.
+ */
+function visibleTo(userId: number) {
+  return or(
+    eq(institutions.owner_id, userId),
+    exists(
+      db
+        .select({ _: sql<number>`1` })
+        .from(shares)
+        .where(
+          and(
+            eq(shares.entity_type, 'institution'),
+            // Correlated reference to the outer institutions.id:
+            eq(shares.entity_id, institutions.id),
+            eq(shares.user_id, userId),
+          ),
+        ),
+    ),
   )
-)`
+}
 
 export function listInstitutions(userId: number): Institution[] {
   return db
-    .prepare(
-      `SELECT i.* FROM institutions i WHERE ${VISIBLE_WHERE}
-       ORDER BY i.created_at DESC, i.id DESC`,
-    )
-    .all({ uid: userId }) as Institution[]
+    .select()
+    .from(institutions)
+    .where(visibleTo(userId))
+    .orderBy(desc(institutions.created_at), desc(institutions.id))
+    .all()
 }
 
 export function getInstitutionForUser(userId: number, id: number): Institution | undefined {
   return db
-    .prepare(`SELECT i.* FROM institutions i WHERE i.id = @id AND ${VISIBLE_WHERE}`)
-    .get({ uid: userId, id }) as Institution | undefined
+    .select()
+    .from(institutions)
+    .where(and(eq(institutions.id, id), visibleTo(userId)))
+    .get()
 }
 
-export function createInstitution(
-  userId: number,
-  name: string,
-  kind: InstitutionKind,
-): Institution {
-  return db
-    .prepare(
-      `INSERT INTO institutions (owner_id, name, kind) VALUES (?, ?, ?) RETURNING *`,
-    )
-    .get(userId, name, kind) as Institution
+export function createInstitution(userId: number, name: string, kind: InstitutionKind): Institution {
+  const row = db
+    .insert(institutions)
+    .values({ owner_id: userId, name, kind })
+    .returning()
+    .get()
+  // SQLite INSERT RETURNING * always returns the row on success; the cast is safe.
+  return row as Institution
 }

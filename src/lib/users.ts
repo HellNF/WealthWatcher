@@ -1,16 +1,11 @@
-// src/lib/users.ts
-import { db } from './db'
+// src/lib/users.ts — Allowlist gate + user record management.
+import { eq } from 'drizzle-orm'
+import { db, sqlite } from '@/db'
+import { allowedEmails, users } from '@/db/schema'
+import type { User } from '@/db/schema'
 
 export type Role = 'admin' | 'member'
-
-export interface User {
-  id: number
-  email: string
-  name: string | null
-  image: string | null
-  role: Role
-  created_at: number
-}
+export type { User }
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
@@ -19,8 +14,10 @@ export function normalizeEmail(email: string): string {
 /** Allowlist gate: only known emails may authenticate (SPEC §2). */
 export function getAllowedRole(email: string): Role | null {
   const row = db
-    .prepare('SELECT role FROM allowed_emails WHERE email = ?')
-    .get(normalizeEmail(email)) as { role: Role } | undefined
+    .select({ role: allowedEmails.role })
+    .from(allowedEmails)
+    .where(eq(allowedEmails.email, normalizeEmail(email)))
+    .get()
   return row?.role ?? null
 }
 
@@ -29,9 +26,11 @@ export function isEmailAllowed(email: string): boolean {
 }
 
 export function getUserByEmail(email: string): User | undefined {
-  return db.prepare('SELECT * FROM users WHERE email = ?').get(normalizeEmail(email)) as
-    | User
-    | undefined
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.email, normalizeEmail(email)))
+    .get()
 }
 
 /**
@@ -39,21 +38,28 @@ export function getUserByEmail(email: string): User | undefined {
  * the allowlist, so promoting/demoting in `allowed_emails` takes effect on the
  * next login. Returns undefined if the email is not allowed.
  */
-export function upsertUser(input: { email: string; name?: string | null; image?: string | null }):
-  | User
-  | undefined {
+export function upsertUser(input: {
+  email: string
+  name?: string | null
+  image?: string | null
+}): User | undefined {
   const email = normalizeEmail(input.email)
   const role = getAllowedRole(email)
   if (role === null) return undefined
 
-  db.prepare(
-    `INSERT INTO users (email, name, image, role)
-     VALUES (@email, @name, @image, @role)
-     ON CONFLICT(email) DO UPDATE SET
-       name  = COALESCE(excluded.name, users.name),
-       image = COALESCE(excluded.image, users.image),
-       role  = excluded.role`,
-  ).run({ email, name: input.name ?? null, image: input.image ?? null, role })
+  // COALESCE: preserve existing name/image when the new OAuth value is null.
+  // Expressed via raw SQL because Drizzle's onConflictDoUpdate.set doesn't
+  // natively support referencing the current row value (COALESCE(excluded.x, x)).
+  sqlite
+    .prepare(
+      `INSERT INTO users (email, name, image, role)
+       VALUES (@email, @name, @image, @role)
+       ON CONFLICT(email) DO UPDATE SET
+         name  = COALESCE(excluded.name, users.name),
+         image = COALESCE(excluded.image, users.image),
+         role  = excluded.role`,
+    )
+    .run({ email, name: input.name ?? null, image: input.image ?? null, role })
 
   return getUserByEmail(email)
 }

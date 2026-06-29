@@ -1,5 +1,5 @@
-// src/lib/messages.ts
-import { db } from './db'
+// src/lib/messages.ts — Legacy spec-discussion chat (raw SQLite, not Drizzle schema).
+import { sqlite } from '@/db'
 
 export interface Message {
   id: number
@@ -10,15 +10,15 @@ export interface Message {
 
 export function getMessages(since?: number): Message[] {
   if (since !== undefined) {
-    return db
+    return sqlite
       .prepare('SELECT * FROM messages WHERE created_at > ? ORDER BY created_at ASC')
       .all(since) as Message[]
   }
-  return db.prepare('SELECT * FROM messages ORDER BY created_at ASC').all() as Message[]
+  return sqlite.prepare('SELECT * FROM messages ORDER BY created_at ASC').all() as Message[]
 }
 
 export function insertMessage(author: string, content: string): Message {
-  return db
+  return sqlite
     .prepare('INSERT INTO messages (author, content) VALUES (?, ?) RETURNING *')
     .get(author, content) as Message
 }
