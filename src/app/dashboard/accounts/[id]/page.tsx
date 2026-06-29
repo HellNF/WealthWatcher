@@ -3,11 +3,18 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
+import { listTransactions } from '@/lib/transactions'
+import { fromMinor } from '@/lib/money'
 
 export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ id: string }>
+}
+
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
 }
 
 export default async function AccountPage({ params }: Props) {
@@ -20,6 +27,7 @@ export default async function AccountPage({ params }: Props) {
   if (!account) notFound()
 
   const institution = getInstitutionForUser(user.id, account.institution_id)
+  const transactions = listTransactions(user.id, id)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -52,12 +60,16 @@ export default async function AccountPage({ params }: Props) {
             <p className="text-lg font-semibold text-zinc-100">{account.currency}</p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-            <p className="text-xs text-zinc-500 mb-1">Movimenti</p>
-            <p className="text-lg font-semibold text-zinc-100">—</p>
+            <p className="text-xs text-zinc-500 mb-1">Movimenti importati</p>
+            <p className="text-lg font-semibold text-zinc-100">{transactions.length}</p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-            <p className="text-xs text-zinc-500 mb-1">Ultimo import</p>
-            <p className="text-lg font-semibold text-zinc-100">—</p>
+            <p className="text-xs text-zinc-500 mb-1">Periodo</p>
+            <p className="text-lg font-semibold text-zinc-100">
+              {transactions.length > 0
+                ? `${formatDate(transactions[transactions.length - 1].booked_date)} – ${formatDate(transactions[0].booked_date)}`
+                : '—'}
+            </p>
           </div>
         </section>
 
@@ -67,7 +79,7 @@ export default async function AccountPage({ params }: Props) {
             href={`/dashboard/accounts/${id}/import`}
             className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-4 py-2 text-sm hover:bg-emerald-400 transition"
           >
-            Importa CSV
+            Importa movimenti
           </Link>
           <Link
             href={`/dashboard/reports?account=${id}`}
@@ -77,14 +89,53 @@ export default async function AccountPage({ params }: Props) {
           </Link>
         </section>
 
-        {/* Transactions placeholder — filled in Fase C */}
+        {/* Transactions */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
             Ultimi movimenti
           </h2>
-          <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-            Nessun movimento. Importa un CSV per iniziare.
-          </p>
+
+          {transactions.length === 0 ? (
+            <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
+              Nessun movimento. Importa un file Excel da Intesa Sanpaolo.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-zinc-800">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-zinc-950">
+                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
+                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Descrizione</th>
+                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Categoria</th>
+                    <th className="text-right px-4 py-2 text-zinc-500 font-medium">Importo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50">
+                  {transactions.map((txn) => (
+                    <tr key={txn.id} className="bg-zinc-900 hover:bg-zinc-800 transition">
+                      <td className="px-4 py-2.5 text-zinc-400 tabular-nums text-xs">
+                        {formatDate(txn.booked_date)}
+                      </td>
+                      <td className="px-4 py-2.5 text-zinc-200 max-w-xs truncate">
+                        {txn.description_raw}
+                      </td>
+                      <td className="px-4 py-2.5 text-zinc-500 text-xs">
+                        {txn.category_name ?? '—'}
+                      </td>
+                      <td
+                        className={`px-4 py-2.5 text-right tabular-nums font-mono ${
+                          txn.amount_minor < 0 ? 'text-red-400' : 'text-emerald-400'
+                        }`}
+                      >
+                        {txn.amount_minor >= 0 ? '+' : ''}
+                        {fromMinor(txn.amount_minor, txn.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </main>
     </div>
