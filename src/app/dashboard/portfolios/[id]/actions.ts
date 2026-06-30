@@ -7,6 +7,7 @@ import { getOrCreateInstrument } from '@/lib/instruments'
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
+import { getInstrumentDetails, type InstrumentDetails } from '@/lib/prices/yahoo'
 import { toMinor } from '@/lib/money'
 
 export type ActionState = { error?: string } | undefined
@@ -23,6 +24,7 @@ const txnSchema = z.object({
   currency:        z.string().trim().length(3).toUpperCase(),
   price_source:    z.enum(SOURCE_VALUES).default('yahoo'),
   isin:            z.string().trim().optional(),
+  ter:             z.string().trim().transform((v) => v.replace(',', '.')).optional(),
   // buy/sell — normalize Italian comma decimal separator at parse time
   quantity:        z.string().trim().transform((v) => v.replace(',', '.')).optional(),
   unit_price:      z.string().trim().transform((v) => v.replace(',', '.')).optional(),
@@ -48,6 +50,7 @@ export async function addTxnAction(
     currency:        formData.get('currency'),
     price_source:    formData.get('price_source') || 'yahoo',
     isin:            formData.get('isin') || undefined,
+    ter:             formData.get('ter') || undefined,
     quantity:        formData.get('quantity') || undefined,
     unit_price:      formData.get('unit_price') || undefined,
     fee:             formData.get('fee') || undefined,
@@ -70,7 +73,8 @@ export async function addTxnAction(
       cluster:      d.cluster,
       currency:     d.currency,
       price_source: d.price_source,
-      isin:         d.isin ?? null,
+      isin:         d.isin  ?? null,
+      ter:          d.ter   ?? null,
     })
 
     // Convert fee string to minor units
@@ -109,6 +113,11 @@ export async function deleteTxnAction(
 export async function lookupIsinAction(isin: string): Promise<IsinResult[]> {
   await requireUser()
   return lookupIsin(isin)
+}
+
+export async function fetchInstrumentDetailsAction(symbol: string): Promise<InstrumentDetails> {
+  await requireUser()
+  return getInstrumentDetails(symbol)
 }
 
 export async function refreshPricesAction(portfolioId: number): Promise<void> {

@@ -1,6 +1,6 @@
 'use client'
 import { useActionState, useState, useTransition } from 'react'
-import { addTxnAction, lookupIsinAction, type ActionState } from './actions'
+import { addTxnAction, lookupIsinAction, fetchInstrumentDetailsAction, type ActionState } from './actions'
 import type { IsinResult } from '@/lib/isin'
 
 const CLUSTER_LABELS: Record<string, string> = {
@@ -10,7 +10,6 @@ const SOURCE_LABELS: Record<string, string> = {
   yahoo: 'Yahoo Finance', coingecko: 'CoinGecko', alphavantage: 'Alpha Vantage', manual: 'Manuale',
 }
 
-// Controlled instrument fields pre-fillable via ISIN lookup
 interface InstrFields {
   isin:         string
   symbol:       string
@@ -18,19 +17,22 @@ interface InstrFields {
   cluster:      string
   currency:     string
   price_source: string
+  ter:          string
 }
-const EMPTY_INSTR: InstrFields = {
-  isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo',
+const EMPTY: InstrFields = {
+  isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo', ter: '',
 }
 
 export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
-  const [open, setOpen]     = useState(false)
-  const [type, setType]     = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
-  const [instr, setInstr]   = useState<InstrFields>(EMPTY_INSTR)
-  const [hits, setHits]     = useState<IsinResult[]>([])
+  const [open, setOpen]         = useState(false)
+  const [type, setType]         = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
+  const [instr, setInstr]       = useState<InstrFields>(EMPTY)
+  const [unitPrice, setUnitPrice] = useState('')
+  const [hits, setHits]         = useState<IsinResult[]>([])
   const [lookupErr, setLookupErr] = useState<string | null>(null)
 
-  const [isLooking, startLookup] = useTransition()
+  const [isLooking,  startLookup]  = useTransition()
+  const [isFetching, startFetch]   = useTransition()
 
   const boundAction = addTxnAction.bind(null, portfolioId)
   const [state, action, pending] = useActionState<ActionState, FormData>(boundAction, undefined)
@@ -38,9 +40,32 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   const isBuySell  = type === 'buy' || type === 'sell'
   const isDivOrFee = type === 'dividend' || type === 'fee'
 
-  function set(key: keyof InstrFields) {
+  function setField(key: keyof InstrFields) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setInstr((prev) => ({ ...prev, [key]: e.target.value }))
+      setInstr((p) => ({ ...p, [key]: e.target.value }))
+  }
+
+  // After ISIN lookup selects an instrument, also fetch price + TER from Yahoo
+  function applyResult(r: IsinResult) {
+    setInstr((p) => ({
+      ...p,
+      symbol:       r.yahooSymbol,
+      name:         r.name,
+      cluster:      r.cluster,
+      price_source: r.priceSource,
+    }))
+    setHits([])
+    fetchDetails(r.yahooSymbol)
+  }
+
+  function fetchDetails(symbol: string) {
+    if (!symbol) return
+    startFetch(async () => {
+      const det = await fetchInstrumentDetailsAction(symbol)
+      if (det.price)    setUnitPrice(det.price)
+      if (det.currency) setInstr((p) => ({ ...p, currency: det.currency! }))
+      if (det.ter)      setInstr((p) => ({ ...p, ter: det.ter! }))
+    })
   }
 
   function handleLookup() {
@@ -60,20 +85,10 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     })
   }
 
-  function applyResult(r: IsinResult) {
-    setInstr((prev) => ({
-      ...prev,
-      symbol:       r.yahooSymbol,
-      name:         r.name,
-      cluster:      r.cluster,
-      price_source: r.priceSource,
-    }))
-    setHits([])
-  }
-
   function handleClose() {
     setOpen(false)
-    setInstr(EMPTY_INSTR)
+    setInstr(EMPTY)
+    setUnitPrice('')
     setHits([])
     setLookupErr(null)
   }
@@ -98,13 +113,13 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
 
       <form action={action} className="space-y-5">
 
-        {/* ISIN lookup */}
+        {/* ── ISIN lookup ─────────────────────────────────────────────────── */}
         <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/40 p-4 space-y-3">
           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Cerca per ISIN (opzionale)</p>
           <div className="flex gap-2">
             <input
               value={instr.isin}
-              onChange={set('isin')}
+              onChange={setField('isin')}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleLookup())}
               placeholder="es. IE00B3RBWM25"
               maxLength={12}
@@ -122,16 +137,11 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             </button>
           </div>
 
-          {lookupErr && (
-            <p className="text-xs text-amber-400">{lookupErr}</p>
-          )}
+          {lookupErr && <p className="text-xs text-amber-400">{lookupErr}</p>}
 
-          {/* Multi-exchange picker */}
           {hits.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs text-zinc-500">
-                Trovate {hits.length} quotazioni — scegli la borsa:
-              </p>
+              <p className="text-xs text-zinc-500">Trovate {hits.length} quotazioni — scegli la borsa:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {hits.map((r) => (
                   <button
@@ -150,7 +160,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           )}
         </div>
 
-        {/* Type + date */}
+        {/* ── Tipo + data ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-500">Tipo</label>
@@ -177,17 +187,16 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </div>
         </div>
 
-        {/* Hidden ISIN for server action */}
         <input type="hidden" name="isin" value={instr.isin} />
 
-        {/* Instrument fields (pre-filled by ISIN lookup) */}
+        {/* ── Strumento (auto-filled) ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-500">Simbolo (ticker)</label>
             <input
               name="symbol"
               value={instr.symbol}
-              onChange={set('symbol')}
+              onChange={setField('symbol')}
               required
               placeholder="es. VWCE.DE"
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -199,7 +208,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <input
               name="instrument_name"
               value={instr.name}
-              onChange={set('name')}
+              onChange={setField('name')}
               required
               placeholder="es. Vanguard FTSE All-World"
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -208,13 +217,13 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-500">Tipo strumento</label>
             <select
               name="cluster"
               value={instr.cluster}
-              onChange={set('cluster')}
+              onChange={setField('cluster')}
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(CLUSTER_LABELS).map(([v, l]) => (
@@ -227,7 +236,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <input
               name="currency"
               value={instr.currency}
-              onChange={set('currency')}
+              onChange={setField('currency')}
               maxLength={3}
               required
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -239,7 +248,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <select
               name="price_source"
               value={instr.price_source}
-              onChange={set('price_source')}
+              onChange={setField('price_source')}
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(SOURCE_LABELS).map(([v, l]) => (
@@ -247,9 +256,20 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
               ))}
             </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-zinc-500">TER % / anno</label>
+            <input
+              name="ter"
+              value={instr.ter}
+              onChange={setField('ter')}
+              placeholder="es. 0.22"
+              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
+                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+            />
+          </div>
         </div>
 
-        {/* Buy/Sell fields */}
+        {/* ── Campi buy/sell ────────────────────────────────────────────────── */}
         {isBuySell && (
           <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
@@ -263,13 +283,30 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Prezzo unitario</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-zinc-500">Prezzo unitario</label>
+                {isFetching && (
+                  <span className="text-xs text-zinc-600 animate-pulse">aggiorno…</span>
+                )}
+                {!isFetching && instr.symbol && (
+                  <button
+                    type="button"
+                    onClick={() => fetchDetails(instr.symbol)}
+                    className="text-xs text-zinc-600 hover:text-emerald-400 transition"
+                    title="Ricarica prezzo corrente"
+                  >
+                    ↻
+                  </button>
+                )}
+              </div>
               <input
                 name="unit_price"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
                 required
                 placeholder="es. 95.42"
                 className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                           placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+                           placeholder:text-zinc-600 focus:border-emerald-500 outline-none font-mono"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -284,7 +321,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </div>
         )}
 
-        {/* Dividend/fee amount */}
+        {/* ── Importo dividend/fee ─────────────────────────────────────────── */}
         {isDivOrFee && (
           <div className="flex flex-col gap-1 max-w-xs">
             <label className="text-xs text-zinc-500">
@@ -322,9 +359,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </button>
         </div>
 
-        {state?.error && (
-          <p className="text-sm text-red-400">{state.error}</p>
-        )}
+        {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       </form>
     </div>
   )
