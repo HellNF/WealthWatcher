@@ -3,12 +3,15 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
 import { getPortfolioForUser } from '@/lib/portfolios'
-import { getOrCreateInstrument } from '@/lib/instruments'
+import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from '@/lib/instruments'
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { getInstrumentDetails, type InstrumentDetails } from '@/lib/prices/yahoo'
-import { toMinor } from '@/lib/money'
+import { toMinor, dec } from '@/lib/money'
+import { getOpenAiKey } from '@/lib/userSettings'
+import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
+import { sqlite } from '@/db'
 
 export type ActionState = { error?: string } | undefined
 
@@ -126,4 +129,97 @@ export async function refreshPricesAction(portfolioId: number): Promise<void> {
   if (!portfolio) return
   await refreshPortfolioPrices(user.id, portfolioId)
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+}
+
+// ── KID extraction ────────────────────────────────────────────────────────────
+
+export type KidActionState =
+  | { error: string }
+  | { data: KidExtraction; model: string }
+  | undefined
+
+export async function extractKidAction(
+  _prev: KidActionState,
+  formData: FormData,
+): Promise<KidActionState> {
+  const user = await requireUser()
+
+  const apiKey = getOpenAiKey(user.id)
+  if (!apiKey) {
+    return { error: 'Imposta la tua chiave OpenAI nelle Impostazioni prima di importare un KID' }
+  }
+
+  const file = formData.get('kid_pdf')
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Seleziona un file PDF' }
+  }
+
+  let text: string
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    text = await extractKidText(buffer)
+  } catch {
+    return { error: 'Impossibile leggere il PDF — verifica che il file non sia corrotto' }
+  }
+
+  const result = await extractKidData(text, apiKey)
+  if (!result.ok) return { error: result.error }
+
+  return { data: result.data, model: result.model }
+}
+
+// ── KID confirm (writes to DB) ────────────────────────────────────────────────
+
+const confirmSchema = z.object({
+  instrument_id:    z.coerce.number().int().positive(),
+  filename:         z.string().min(1),
+  model:            z.string().min(1),
+  extracted_json:   z.string().min(1),
+  // Reviewed/corrected fields — all optional, use null to clear
+  name:             z.string().trim().optional(),
+  ter:              z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  entry_cost:       z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  exit_cost:        z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  sri:              z.coerce.number().int().min(1).max(7).nullable().optional(),
+})
+
+export type ConfirmKidState = { error?: string; success?: string } | undefined
+
+export async function confirmKidAction(
+  _prev: ConfirmKidState,
+  formData: FormData,
+): Promise<ConfirmKidState> {
+  const user = await requireUser()
+
+  const raw: Record<string, unknown> = {}
+  for (const [k, v] of formData.entries()) raw[k] = v
+  // treat empty string sri as null
+  if (raw.sri === '') raw.sri = null
+
+  const parse = confirmSchema.safeParse(raw)
+  if (!parse.success) return { error: parse.error.issues[0].message }
+
+  const { instrument_id, filename, model, extracted_json, name, ter, entry_cost, exit_cost, sri } = parse.data
+
+  // Verify instrument exists
+  const instr = getInstrument(instrument_id)
+  if (!instr) return { error: 'Strumento non trovato' }
+
+  // Update instrument with confirmed KID fields
+  updateInstrumentKidFields(instrument_id, {
+    ...(name       !== undefined ? { name }       : {}),
+    ...(ter        !== undefined ? { ter }        : {}),
+    ...(entry_cost !== undefined ? { entry_cost } : {}),
+    ...(exit_cost  !== undefined ? { exit_cost }  : {}),
+    ...(sri        !== undefined ? { sri }        : {}),
+  })
+
+  // Audit record
+  sqlite.prepare(`
+    INSERT INTO kid_documents (owner_id, instrument_id, filename, extracted_json, status, model)
+    VALUES (?, ?, ?, ?, 'confirmed', ?)
+  `).run(user.id, instrument_id, filename, extracted_json, model)
+
+  revalidatePath(`/dashboard/portfolios`, 'page')
+  return { success: 'Dati KID salvati' }
 }

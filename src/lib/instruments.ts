@@ -69,3 +69,24 @@ export function updateInstrumentPrice(
     )
     .run(price, asOfEpoch, id)
 }
+
+export interface KidFields {
+  name?:       string | null
+  ter?:        string | null  // decimal string, e.g. "0.20" for 0.20%
+  entry_cost?: string | null
+  exit_cost?:  string | null
+  sri?:        number | null
+}
+
+export function updateInstrumentKidFields(id: number, fields: KidFields): void {
+  const sets: string[] = []
+  const args: (string | number | null)[] = []
+  if (fields.name       !== undefined) { sets.push('name = ?');       args.push(fields.name ?? null) }
+  if (fields.ter        !== undefined) { sets.push('ter = ?');        args.push(fields.ter ?? null) }
+  if (fields.entry_cost !== undefined) { sets.push('entry_cost = ?'); args.push(fields.entry_cost ?? null) }
+  if (fields.exit_cost  !== undefined) { sets.push('exit_cost = ?');  args.push(fields.exit_cost ?? null) }
+  if (fields.sri        !== undefined) { sets.push('sri = ?');        args.push(fields.sri ?? null) }
+  if (sets.length === 0) return
+  args.push(id)
+  sqlite.prepare(`UPDATE instruments SET ${sets.join(', ')} WHERE id = ?`).run(...args)
+}
