@@ -151,19 +151,35 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           {lookupErr && <p className="text-xs text-amber-400">{lookupErr}</p>}
 
           {hits.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-zinc-500">Trovate {hits.length} quotazioni — scegli la borsa:</p>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-zinc-400 font-medium">
+                  Lo stesso ETF/strumento è quotato su {hits.length} borse — scegli quella su cui hai comprato:
+                </p>
+                <p className="text-xs text-zinc-600 mt-0.5">
+                  Per un broker italiano tipicamente Borsa Italiana o Xetra.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {hits.map((r) => (
                   <button
                     key={r.figi}
                     type="button"
                     onClick={() => applyResult(r)}
-                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left
-                               hover:border-emerald-500 hover:bg-zinc-800 transition"
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-left
+                               hover:border-emerald-500 hover:bg-zinc-800 transition group"
                   >
-                    <p className="text-sm font-mono font-medium text-zinc-100">{r.yahooSymbol}</p>
-                    <p className="text-xs text-zinc-500">{r.exchLabel} · {r.name}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-mono font-semibold text-zinc-100 group-hover:text-emerald-400 transition">
+                        {r.yahooSymbol}
+                      </p>
+                      {(r.exchCode === 'IM' || r.exchCode === 'GY') && (
+                        <span className="text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800 rounded px-1.5 py-0.5">
+                          consigliato
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-0.5">{r.exchLabel}</p>
                   </button>
                 ))}
               </div>

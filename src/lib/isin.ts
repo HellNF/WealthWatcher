@@ -12,23 +12,24 @@ export interface IsinResult {
   priceSource: 'yahoo' | 'coingecko' | 'alphavantage' | 'manual'
 }
 
-// OpenFIGI exchCode → suffisso Yahoo Finance + etichetta leggibile
-const EXCH_MAP: Record<string, { suffix: string; label: string }> = {
-  GY: { suffix: '.DE', label: 'Xetra (DE)'    },
-  LN: { suffix: '.L',  label: 'London (UK)'   },
-  FP: { suffix: '.PA', label: 'Euronext Paris' },
-  IM: { suffix: '.MI', label: 'Milano (IT)'   },
-  SM: { suffix: '.MC', label: 'Madrid (ES)'   },
-  SW: { suffix: '.SW', label: 'Swiss (CH)'    },
-  NA: { suffix: '.AS', label: 'Amsterdam (NL)'},
-  BB: { suffix: '.BR', label: 'Brussels (BE)' },
-  HK: { suffix: '.HK', label: 'Hong Kong'     },
-  AU: { suffix: '.AX', label: 'ASX (AU)'      },
-  JT: { suffix: '.T',  label: 'Tokyo (JP)'    },
-  UN: { suffix: '',    label: 'NYSE (US)'      },
-  UQ: { suffix: '',    label: 'NASDAQ (US)'    },
-  UA: { suffix: '',    label: 'AMEX (US)'      },
-  US: { suffix: '',    label: 'USA'            },
+// OpenFIGI exchCode → suffisso Yahoo Finance + etichetta + priorità (più basso = prima)
+// Le borse non presenti qui vengono filtrate (troppo esotiche o non supportate da Yahoo).
+const EXCH_MAP: Record<string, { suffix: string; label: string; priority: number }> = {
+  IM: { suffix: '.MI', label: 'Borsa Italiana (Milano)',  priority: 1 },
+  GY: { suffix: '.DE', label: 'Xetra (Francoforte)',     priority: 2 },
+  NA: { suffix: '.AS', label: 'Euronext Amsterdam',       priority: 3 },
+  FP: { suffix: '.PA', label: 'Euronext Parigi',          priority: 4 },
+  LN: { suffix: '.L',  label: 'London Stock Exchange',    priority: 5 },
+  SM: { suffix: '.MC', label: 'Borsa Madrid',             priority: 6 },
+  SW: { suffix: '.SW', label: 'SIX Swiss Exchange',       priority: 7 },
+  BB: { suffix: '.BR', label: 'Euronext Bruxelles',       priority: 8 },
+  UN: { suffix: '',    label: 'NYSE',                     priority: 9 },
+  UQ: { suffix: '',    label: 'NASDAQ',                   priority: 10 },
+  UA: { suffix: '',    label: 'AMEX',                     priority: 11 },
+  US: { suffix: '',    label: 'USA (generico)',            priority: 12 },
+  HK: { suffix: '.HK', label: 'Hong Kong',                priority: 13 },
+  AU: { suffix: '.AX', label: 'ASX (Australia)',          priority: 14 },
+  JT: { suffix: '.T',  label: 'Tokyo',                   priority: 15 },
 }
 
 function toCluster(secType: string, secType2 = ''): IsinResult['cluster'] {
@@ -40,17 +41,16 @@ function toCluster(secType: string, secType2 = ''): IsinResult['cluster'] {
 }
 
 interface FigiEntry {
-  figi:          string
-  name:          string
-  ticker:        string
-  exchCode:      string
-  securityType:  string
+  figi:           string
+  name:           string
+  ticker:         string
+  exchCode:       string
+  securityType:   string
   securityType2?: string
 }
 
 export async function lookupIsin(isin: string): Promise<IsinResult[]> {
   const normalized = isin.trim().toUpperCase()
-  // Basic ISIN format check (2 letters + 10 alphanumeric)
   if (!/^[A-Z]{2}[A-Z0-9]{10}$/.test(normalized)) return []
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -68,10 +68,11 @@ export async function lookupIsin(isin: string): Promise<IsinResult[]> {
     const json = await res.json() as [{ data?: FigiEntry[]; error?: string }]
     const entries = json[0]?.data ?? []
 
-    return entries
-      .filter((e) => e.ticker && e.exchCode)
+    // 1. Costruisci risultati solo per le borse presenti in EXCH_MAP
+    const mapped = entries
+      .filter((e) => e.ticker && e.exchCode && e.exchCode in EXCH_MAP)
       .map((e) => {
-        const exch = EXCH_MAP[e.exchCode] ?? { suffix: '', label: e.exchCode }
+        const exch = EXCH_MAP[e.exchCode]
         return {
           figi:        e.figi,
           name:        e.name,
@@ -81,8 +82,23 @@ export async function lookupIsin(isin: string): Promise<IsinResult[]> {
           yahooSymbol: (e.ticker + exch.suffix).toUpperCase(),
           cluster:     toCluster(e.securityType, e.securityType2),
           priceSource: 'yahoo' as const,
+          _priority:   exch.priority,
         }
       })
+
+    // 2. Deduplicazione: stesso simbolo Yahoo = stessa listing, tieni il primo per priorità
+    const seen = new Set<string>()
+    const deduped = mapped
+      .sort((a, b) => a._priority - b._priority)
+      .filter((r) => {
+        if (seen.has(r.yahooSymbol)) return false
+        seen.add(r.yahooSymbol)
+        return true
+      })
+
+    // 3. Rimuovi il campo interno e limita a 8 risultati
+    return deduped.slice(0, 8).map(({ _priority: _, ...r }) => r)
+
   } catch {
     return []
   }
