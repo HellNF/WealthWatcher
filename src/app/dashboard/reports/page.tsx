@@ -3,7 +3,11 @@ import { requireUser } from '@/lib/dal'
 import { listAccounts } from '@/lib/accounts'
 import { monthlyReport, availableMonths } from '@/lib/reports'
 import { fromMinor, formatMoney } from '@/lib/money'
-import { Breadcrumb } from '@/components/ui'
+import { FileBarChart2 } from 'lucide-react'
+import {
+  Breadcrumb, Card, EmptyState,
+  TableWrapper, Table, TableBody, Tr, Td,
+} from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +24,30 @@ function MonthLabel(m: string): string {
 function pct(part: number, total: number): number {
   if (total === 0) return 0
   return Math.round((part / total) * 100)
+}
+
+function FilterPill({
+  href,
+  active,
+  children,
+}: {
+  href: string
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        'px-3 py-1.5 rounded-lg text-sm transition-all duration-150 whitespace-nowrap',
+        active
+          ? 'bg-[--brand] text-[--brand-fg] font-medium shadow-sm'
+          : 'text-[--muted] hover:text-[--ink]',
+      ].join(' ')}
+    >
+      {children}
+    </Link>
+  )
 }
 
 export default async function ReportsPage({ searchParams }: Props) {
@@ -41,114 +69,106 @@ export default async function ReportsPage({ searchParams }: Props) {
         { label: 'Report mensile' },
       ]} />
 
-      {/* Filters */}
-      <section className="flex flex-wrap gap-4 items-center">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-500 whitespace-nowrap">Conto</label>
-          <div className="flex gap-1 flex-wrap">
-            <Link
+      {/* Filtri */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-[--muted] whitespace-nowrap w-10 shrink-0">Conto</span>
+          <div className="flex gap-0.5 flex-wrap p-1 bg-[--surface-2] rounded-xl">
+            <FilterPill
               href={`/dashboard/reports${month ? `?month=${month}` : ''}`}
-              className={`px-3 py-1 rounded-lg text-sm transition ${
-                !accountId
-                  ? 'bg-zinc-100 text-zinc-950 font-medium'
-                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-              }`}
+              active={!accountId}
             >
               Tutti
-            </Link>
+            </FilterPill>
             {accounts.map((acc) => (
-              <Link
+              <FilterPill
                 key={acc.id}
                 href={`/dashboard/reports?account=${acc.id}${month ? `&month=${month}` : ''}`}
-                className={`px-3 py-1 rounded-lg text-sm transition ${
-                  accountId === acc.id
-                    ? 'bg-zinc-100 text-zinc-950 font-medium'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-                }`}
+                active={accountId === acc.id}
               >
                 {acc.name}
-              </Link>
+              </FilterPill>
             ))}
           </div>
         </div>
 
         {months.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-zinc-500 whitespace-nowrap">Mese</label>
-            <div className="flex gap-1 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-[--muted] whitespace-nowrap w-10 shrink-0">Mese</span>
+            <div className="flex gap-0.5 flex-wrap p-1 bg-[--surface-2] rounded-xl">
               {months.map((m) => (
-                <Link
+                <FilterPill
                   key={m}
                   href={`/dashboard/reports?month=${m}${accountId ? `&account=${accountId}` : ''}`}
-                  className={`px-3 py-1 rounded-lg text-sm transition ${
-                    m === month
-                      ? 'bg-zinc-100 text-zinc-950 font-medium'
-                      : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-                  }`}
+                  active={m === month}
                 >
                   {MonthLabel(m)}
-                </Link>
+                </FilterPill>
               ))}
             </div>
           </div>
         )}
-      </section>
+      </div>
 
       {!report || months.length === 0 ? (
-        <p className="text-sm text-zinc-500 py-12 text-center border border-dashed border-zinc-800 rounded-xl">
-          Nessun dato disponibile. Importa movimenti da un conto bancario.
-        </p>
+        <EmptyState
+          icon={FileBarChart2}
+          title="Nessun dato disponibile"
+          description="Importa movimenti da un conto bancario per visualizzare il report mensile."
+        />
       ) : (
         <>
-          {/* Totals */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4">
-              <p className="text-xs text-[--muted] mb-1">Uscite</p>
-              <p className="text-2xl font-semibold text-[--danger] tabular-nums font-mono">
+          {/* Totali */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card>
+              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide mb-1.5">Uscite</p>
+              <p className="text-2xl font-semibold text-[--danger] tabular-nums font-mono leading-none">
                 {formatMoney(report.totalOutflow, 'EUR')}
               </p>
-            </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4">
-              <p className="text-xs text-[--muted] mb-1">Entrate</p>
-              <p className="text-2xl font-semibold text-[--brand] tabular-nums font-mono">
+            </Card>
+            <Card>
+              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide mb-1.5">Entrate</p>
+              <p className="text-2xl font-semibold text-[--brand] tabular-nums font-mono leading-none">
                 +{formatMoney(report.totalInflow, 'EUR')}
               </p>
-            </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4">
-              <p className="text-xs text-[--muted] mb-1">Saldo periodo</p>
-              <p className={`text-2xl font-semibold tabular-nums font-mono ${
-                report.totalOutflow + report.totalInflow >= 0 ? 'text-[--brand]' : 'text-[--danger]'
-              }`}>
+            </Card>
+            <Card>
+              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide mb-1.5">Saldo periodo</p>
+              <p className={[
+                'text-2xl font-semibold tabular-nums font-mono leading-none',
+                report.totalOutflow + report.totalInflow >= 0 ? 'text-[--brand]' : 'text-[--danger]',
+              ].join(' ')}>
                 {report.totalOutflow + report.totalInflow >= 0 ? '+' : ''}
                 {fromMinor(report.totalOutflow + report.totalInflow, 'EUR')}
               </p>
-            </div>
-          </section>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* By category */}
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-[--muted]">Per categoria</h2>
+            {/* Per categoria */}
+            <Card>
+              <h2 className="text-sm font-semibold text-[--ink] mb-4">Per categoria</h2>
               {report.byCategory.length === 0 ? (
                 <p className="text-sm text-[--faint]">Nessuna uscita</p>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-3.5">
                   {report.byCategory.map((cat, i) => {
                     const abs = Math.abs(cat.total_minor)
                     const totalAbs = Math.abs(report.totalOutflow)
                     return (
-                      <div key={i} className="group">
-                        <div className="flex justify-between text-sm mb-0.5">
-                          <span className="text-[--ink]">
+                      <div key={i}>
+                        <div className="flex justify-between items-baseline text-sm mb-1.5">
+                          <span className="text-[--ink] truncate mr-2">
                             {cat.category_name ?? 'Senza categoria'}
                           </span>
-                          <span className="text-[--danger] tabular-nums font-mono text-xs">
-                            {fromMinor(cat.total_minor, 'EUR')} ({pct(abs, totalAbs)}%)
+                          <span className="text-[--danger] tabular-nums font-mono text-xs shrink-0">
+                            {fromMinor(cat.total_minor, 'EUR')}
+                            <span className="text-[--faint] ml-1">·&thinsp;{pct(abs, totalAbs)}%</span>
                           </span>
                         </div>
                         <div className="h-1.5 bg-[--surface-2] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[--danger]/50 rounded-full transition-all"
+                            className="h-full bg-[--danger]/60 rounded-full transition-all duration-500"
                             style={{ width: `${pct(abs, totalAbs)}%` }}
                           />
                         </div>
@@ -157,38 +177,40 @@ export default async function ReportsPage({ searchParams }: Props) {
                   })}
                 </div>
               )}
-            </section>
+            </Card>
 
-            {/* By merchant */}
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold text-[--muted]">Per merchant (top 20)</h2>
+            {/* Top merchant */}
+            <Card noPadding>
+              <h2 className="text-sm font-semibold text-[--ink] px-5 pt-5 pb-3">Top merchant</h2>
               {report.byMerchant.length === 0 ? (
-                <p className="text-sm text-[--faint]">Nessuna uscita</p>
+                <p className="text-sm text-[--faint] px-5 pb-5">Nessuna uscita</p>
               ) : (
-                <div className="rounded-xl border border-[--border] overflow-hidden">
-                  <table className="w-full text-sm">
-                    <tbody className="divide-y divide-[--border]">
+                <TableWrapper>
+                  <Table>
+                    <TableBody>
                       {report.byMerchant.map((m, i) => (
-                        <tr key={i} className="bg-[--surface] hover:bg-[--surface-2] transition-colors duration-100">
-                          <td className="px-3 py-2 text-[--ink]">
-                            {m.merchant_name ?? <span className="text-[--faint] italic">sconosciuto</span>}
-                          </td>
-                          <td className="px-3 py-2 text-[--muted] text-xs">
+                        <Tr key={i}>
+                          <Td className="text-[--ink]">
+                            {m.merchant_name ?? (
+                              <span className="text-[--faint] italic">sconosciuto</span>
+                            )}
+                          </Td>
+                          <Td className="text-[--muted] text-xs">
                             {m.category_name ?? '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right text-xs text-[--faint] tabular-nums">
+                          </Td>
+                          <Td className="text-[--faint] text-xs tabular-nums">
                             ×{m.count}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums font-mono text-[--danger] text-xs">
+                          </Td>
+                          <Td numeric className="text-[--danger] text-xs">
                             {fromMinor(m.total_minor, 'EUR')}
-                          </td>
-                        </tr>
+                          </Td>
+                        </Tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </TableBody>
+                  </Table>
+                </TableWrapper>
               )}
-            </section>
+            </Card>
           </div>
         </>
       )}
