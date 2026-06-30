@@ -55,7 +55,7 @@ export function Th({ className, children, ...props }: ThProps) {
     <th
       className={cn(
         'px-3 py-2.5 text-left text-xs font-medium text-[--muted] uppercase tracking-wide',
-        'border-b border-[--border] whitespace-nowrap',
+        'bg-[--surface-2] border-b border-[--border] whitespace-nowrap',
         className,
       )}
       {...props}

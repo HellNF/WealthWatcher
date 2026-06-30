@@ -166,9 +166,9 @@ export default async function ReportsPage({ searchParams }: Props) {
                             <span className="text-[--faint] ml-1">·&thinsp;{pct(abs, totalAbs)}%</span>
                           </span>
                         </div>
-                        <div className="h-1.5 bg-[--surface-2] rounded-full overflow-hidden">
+                        <div className="h-2 bg-[--surface-2] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[--danger]/60 rounded-full transition-all duration-500"
+                            className="h-full bg-[--danger] rounded-full transition-all duration-500"
                             style={{ width: `${pct(abs, totalAbs)}%` }}
                           />
                         </div>

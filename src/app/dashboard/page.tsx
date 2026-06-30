@@ -53,6 +53,7 @@ export default async function DashboardPage() {
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
       <Card noPadding className="overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-[--brand] to-[--brand-subtle]" />
         <div className="p-6 pb-4">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             {/* Valore principale */}

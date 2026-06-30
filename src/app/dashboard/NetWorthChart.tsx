@@ -44,20 +44,20 @@ export default function NetWorthChart({ snapshots }: Props) {
   // Token values matched to OKLCH definitions in globals.css
   const colors = isDark
     ? {
-        brand:    '#34d399', // emerald-400
-        grid:     'oklch(0.26 0.01 160)',
-        axis:     'oklch(0.42 0.01 160)',
-        tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-        tooltipLabel:  'oklch(0.62 0.01 160)',
+        brand:    '#34d399', // emerald-400 ≈ --brand dark
+        grid:     'oklch(0.290 0.020 160)', // --border dark
+        axis:     'oklch(0.42 0.014 160)',  // --faint dark
+        tooltipBg:     '#141e18',           // ≈ --surface dark
+        tooltipBorder: 'oklch(0.290 0.020 160)',
+        tooltipLabel:  'oklch(0.60 0.022 160)', // --muted dark
       }
     : {
-        brand:    '#059669', // emerald-600
-        grid:     'oklch(0.88 0.005 160)',
-        axis:     'oklch(0.65 0.008 160)',
+        brand:    '#059669', // emerald-600 ≈ --brand light
+        grid:     'oklch(0.836 0.012 160)', // --border light
+        axis:     'oklch(0.56 0.014 160)',  // --faint light
         tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-        tooltipLabel:  'oklch(0.45 0.01 160)',
+        tooltipBorder: 'oklch(0.836 0.012 160)',
+        tooltipLabel:  'oklch(0.40 0.022 160)', // --muted light
       }
 
   return (
