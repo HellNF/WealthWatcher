@@ -1,42 +1,28 @@
-// src/lib/prices/yahoo.ts — yahoo-finance2 adapter.
+// src/lib/prices/yahoo.ts — yahoo-finance2 v3 adapter.
 // Primary provider: covers ETF, stocks, crypto, FX pairs (unofficial, no API key).
 // SPEC §6.1 risk: wrapped behind PriceProvider so it's replaceable without
 // touching the domain.
+//
+// yahoo-finance2 v3 breaking change: non si può chiamare yf.quote() direttamente
+// sull'import; bisogna istanziare la classe con `new YahooFinance()`.
+// yfInstance è un singleton lazy per non reimportare il modulo ad ogni chiamata.
 import type { PriceProvider, Quote } from './provider'
 
-export const yahooProvider: PriceProvider = {
-  async getQuote(symbol: string): Promise<Quote | null> {
-    try {
-      // Dynamic import keeps the module server-side only and allows mocking in tests.
-      const yf = await import('yahoo-finance2')
-      const result = await yf.default.quote(symbol)
-      const price    = (result as { regularMarketPrice?: number })?.regularMarketPrice
-      const currency = (result as { currency?: string })?.currency
-      if (!price || !currency) return null
+// Istanza singleton — inizializzata al primo uso (dynamic import rimane server-side).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let yfInstance: any = null
 
-      return {
-        price:    price.toFixed(6).replace(/\.?0+$/, '') || price.toString(),
-        currency: currency.toUpperCase(),
-        asOf:     Math.floor(Date.now() / 1000),
-      }
-    } catch {
-      return null
-    }
-  },
+async function getYf() {
+  if (!yfInstance) {
+    const mod = await import('yahoo-finance2')
+    const YahooFinance = mod.default
+    yfInstance = new YahooFinance({ suppressNotices: ['yahooSurvey'] })
+  }
+  return yfInstance
 }
 
-export interface InstrumentDetails {
-  price:    string | null   // current market price as decimal string
-  currency: string | null
-  ter:      string | null   // annual expense ratio as percentage string, e.g. "0.22"
-}
-
-/**
- * Fetch current price + TER (fund expense ratio, ETFs only) for an instrument.
- * Never throws — returns nulls on any failure.
- */
 // Yahoo Finance restituisce alcuni prezzi in subunità (es. azioni LSE in GBp = pence).
-// Normalizza: GBp → GBP dividendo per 100; ILA → ILS, ZAc → ZAR, etc.
+// Normalizza: GBp → GBP /100, ILA → ILS /100, ZAc → ZAR /100.
 const SUBUNIT_MAP: Record<string, { major: string; factor: number }> = {
   GBp: { major: 'GBP', factor: 100 },
   ILA: { major: 'ILS', factor: 100 },
@@ -52,9 +38,36 @@ function normalizeCurrencyAndPrice(
   return { price: rawPrice, currency: rawCurrency.toUpperCase() }
 }
 
+export const yahooProvider: PriceProvider = {
+  async getQuote(symbol: string): Promise<Quote | null> {
+    try {
+      const yf     = await getYf()
+      const result = await yf.quote(symbol)
+      const price    = result?.regularMarketPrice as number | undefined
+      const currency = result?.currency as string | undefined
+      if (!price || !currency) return null
+
+      const norm = normalizeCurrencyAndPrice(currency, price)
+      return {
+        price:    norm.price.toFixed(6).replace(/\.?0+$/, ''),
+        currency: norm.currency,
+        asOf:     Math.floor(Date.now() / 1000),
+      }
+    } catch {
+      return null
+    }
+  },
+}
+
+export interface InstrumentDetails {
+  price:    string | null   // prezzo corrente come stringa decimale
+  currency: string | null
+  ter:      string | null   // TER annuo come percentuale, es. "0.2" (= 0.20%)
+}
+
 /**
- * Fetch current price + TER (fund expense ratio, ETFs only) for an instrument.
- * Never throws — returns nulls on any failure.
+ * Recupera prezzo corrente + TER per un simbolo Yahoo Finance.
+ * Non lancia mai eccezioni — ritorna null sui campi non disponibili.
  */
 export async function getInstrumentDetails(symbol: string): Promise<InstrumentDetails> {
   let price:    string | null = null
@@ -62,43 +75,42 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
   let ter:      string | null = null
 
   try {
-    const yf = await import('yahoo-finance2')
+    const yf = await getYf()
 
     // Strategia 1: quote() — funziona per ETF, azioni, crypto
     try {
-      const quote = await yf.default.quote(symbol)
-      const q = quote as { regularMarketPrice?: number; currency?: string }
-      if (q.regularMarketPrice && q.currency) {
-        const norm = normalizeCurrencyAndPrice(q.currency, q.regularMarketPrice)
+      const q = await yf.quote(symbol)
+      if (q?.regularMarketPrice && q?.currency) {
+        const norm = normalizeCurrencyAndPrice(q.currency as string, q.regularMarketPrice as number)
         price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
         currency = norm.currency
       }
     } catch { /* quote() non disponibile per questo ticker */ }
 
-    // Strategia 2: quoteSummary[price] — necessario per fondi comuni (0P... tickers)
-    // dove regularMarketPrice è null/0 nel modulo quote standard
+    // Strategia 2: quoteSummary[price] — necessario per fondi comuni (ticker 0P...)
+    // dove quote() restituisce regularMarketPrice null/0
     if (!price) {
       try {
-        const summary = await yf.default.quoteSummary(symbol, { modules: ['price'] })
-        const p = (summary as {
-          price?: { regularMarketPrice?: number; currency?: string }
-        }).price
+        const summary = await yf.quoteSummary(symbol, { modules: ['price'] })
+        const p = summary?.price
         if (p?.regularMarketPrice && p?.currency) {
-          const norm = normalizeCurrencyAndPrice(p.currency, p.regularMarketPrice)
+          const norm = normalizeCurrencyAndPrice(p.currency as string, p.regularMarketPrice as number)
           price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
           currency = norm.currency
         }
-      } catch { /* anche quoteSummary fallito */ }
+      } catch { /* anche quoteSummary[price] fallito */ }
     }
 
     // TER via fundProfile (ETF e fondi comuni)
+    // In yahoo-finance2 v3: il TER è in fundProfile.feesExpensesInvestment.annualReportExpenseRatio
     try {
-      const summary = await yf.default.quoteSummary(symbol, { modules: ['fundProfile'] })
-      const fp = (summary as { fundProfile?: { annualReportExpenseRatio?: number } }).fundProfile
-      if (fp?.annualReportExpenseRatio != null) {
-        ter = (fp.annualReportExpenseRatio * 100).toFixed(4).replace(/\.?0+$/, '')
+      const summary = await yf.quoteSummary(symbol, { modules: ['fundProfile'] })
+      const fee = summary?.fundProfile?.feesExpensesInvestment
+      if (fee?.annualReportExpenseRatio != null) {
+        // Yahoo restituisce decimale (0.002 = 0.20%) → convertiamo in percentuale
+        ter = (fee.annualReportExpenseRatio * 100).toFixed(4).replace(/\.?0+$/, '')
       }
-    } catch { /* non-fund o campo non disponibile */ }
+    } catch { /* non è un fondo o campo non disponibile */ }
 
   } catch { /* provider down o simbolo non valido */ }
 
