@@ -90,7 +90,10 @@ export function formatMoney(minor: number, currency: string): string {
  * @example dec("1.23456789").times(dec("100")).toString() → "123.45678900"
  */
 export function dec(value: string | number): Decimal {
-  return new Decimal(value)
+  // Normalize Italian decimal separator (comma → dot) for user-entered strings.
+  // "45,496" → "45.496". Plain numbers and already-normalized strings are unaffected.
+  const normalized = typeof value === 'string' ? value.replace(',', '.') : value
+  return new Decimal(normalized)
 }
 
 export { Decimal }

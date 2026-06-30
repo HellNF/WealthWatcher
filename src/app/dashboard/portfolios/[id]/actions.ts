@@ -23,12 +23,12 @@ const txnSchema = z.object({
   currency:        z.string().trim().length(3).toUpperCase(),
   price_source:    z.enum(SOURCE_VALUES).default('yahoo'),
   isin:            z.string().trim().optional(),
-  // buy/sell
-  quantity:        z.string().trim().optional(),
-  unit_price:      z.string().trim().optional(),
-  fee:             z.string().trim().optional(),   // decimal string in currency
+  // buy/sell — normalize Italian comma decimal separator at parse time
+  quantity:        z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  unit_price:      z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  fee:             z.string().trim().transform((v) => v.replace(',', '.')).optional(),
   // dividend/fee
-  amount:          z.string().trim().optional(),   // decimal string in currency
+  amount:          z.string().trim().transform((v) => v.replace(',', '.')).optional(),
   note:            z.string().trim().optional(),
 })
 
