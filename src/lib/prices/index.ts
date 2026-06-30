@@ -5,6 +5,7 @@ import { updateInstrumentPrice } from '@/lib/instruments'
 import { getPortfolioForUser } from '@/lib/portfolios'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { getInstrument } from '@/lib/instruments'
+import { appendPriceHistory } from '@/lib/priceHistory'
 import { yahooProvider }         from './yahoo'
 import { coingeckoProvider }     from './coingecko'
 import { alphaVantageProvider }  from './alphavantage'
@@ -81,6 +82,8 @@ export async function refreshInstrumentPrice(
   const quote = await resolveQuote(instrument)
   if (quote) {
     updateInstrumentPrice(instrument.id, quote.price, quote.asOf)
+    const today = new Date().toISOString().slice(0, 10)
+    appendPriceHistory(instrument.id, today, quote.price, quote.currency, instrument.price_source)
     return { quote, stale: false, source: instrument.price_source }
   }
 

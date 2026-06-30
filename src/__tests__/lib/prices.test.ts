@@ -27,6 +27,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
+  sqlite.exec("DELETE FROM price_history WHERE instrument_id = (SELECT id FROM instruments WHERE symbol='TEST.DE')")
   sqlite.exec("DELETE FROM instruments WHERE symbol='TEST.DE'")
 })
 
