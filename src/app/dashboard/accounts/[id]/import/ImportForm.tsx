@@ -1,17 +1,29 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { previewImportAction, commitImportAction, type PreviewResult, type CommitResult } from './actions'
+import Link from 'next/link'
+import {
+  previewImportAction,
+  commitImportAction,
+  type PreviewResult,
+  type CommitResult,
+} from './actions'
 import { fromMinor } from '@/lib/money'
+import {
+  Button, Badge,
+  TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
+  Card,
+} from '@/components/ui'
+import { Upload, CheckCircle2, AlertCircle } from 'lucide-react'
 
 type Step =
   | { kind: 'pick' }
   | { kind: 'preview'; result: PreviewResult; file: File }
   | { kind: 'done'; result: CommitResult }
 
-const STATUS_BADGE: Record<string, string> = {
-  new:       'bg-emerald-950 text-emerald-400',
-  duplicate: 'bg-zinc-800 text-zinc-500',
-  suspect:   'bg-amber-950 text-amber-400',
+const STATUS_VARIANT: Record<string, 'success' | 'neutral' | 'warning'> = {
+  new:       'success',
+  duplicate: 'neutral',
+  suspect:   'warning',
 }
 const STATUS_LABEL: Record<string, string> = {
   new:       'Nuovo',
@@ -24,21 +36,9 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-function formatAmount(minor: number, currency: string): string {
-  return fromMinor(minor, currency)
-}
-
 export default function ImportForm({ accountId }: { accountId: number }) {
-  const [step, setStep]         = useState<Step>({ kind: 'pick' })
+  const [step, setStep] = useState<Step>({ kind: 'pick' })
   const [isPending, startTransition] = useTransition()
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setStep({ kind: 'pick' })
-    // reset if new file chosen after a preview
-    const file = e.target.files?.[0]
-    if (!file) return
-    // store nothing yet — user must click preview
-  }
 
   function handlePreview(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -70,113 +70,123 @@ export default function ImportForm({ accountId }: { accountId: number }) {
     })
   }
 
-  // ── Step: pick file ────────────────────────────────────────────────────────
+  /* ── Step: pick + preview ─────────────────────────────────────────────── */
   if (step.kind === 'pick' || step.kind === 'preview') {
     const preview = step.kind === 'preview' ? step.result : null
 
     return (
       <div className="space-y-6">
-        <form onSubmit={handlePreview} className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <input
-            type="file"
-            name="file"
-            accept=".xlsx,.xls"
-            required
-            onChange={handleFileChange}
-            className="flex-1 text-sm text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 transition"
-          />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-zinc-800 text-zinc-200 font-medium px-4 py-2 text-sm hover:bg-zinc-700 disabled:opacity-50 transition whitespace-nowrap"
-          >
-            {isPending && step.kind === 'pick' ? 'Analisi in corso…' : 'Analizza file'}
-          </button>
-        </form>
+        {/* File picker */}
+        <Card>
+          <form onSubmit={handlePreview} className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-sm font-medium text-[--ink]">
+                File Excel (.xlsx)
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  name="file"
+                  accept=".xlsx,.xls"
+                  required
+                  onChange={() => setStep({ kind: 'pick' })}
+                  className="w-full text-sm text-[--muted]
+                    file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                    file:text-sm file:font-medium file:cursor-pointer
+                    file:bg-[--surface-2] file:text-[--ink]
+                    hover:file:bg-[--border]
+                    transition-colors"
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              variant="secondary"
+              loading={isPending && step.kind === 'pick'}
+              className="shrink-0 self-end"
+            >
+              <Upload className="size-4" />
+              Analizza file
+            </Button>
+          </form>
+        </Card>
 
+        {/* Error */}
         {preview?.error && (
-          <div className="rounded-lg bg-red-950 border border-red-800 text-red-300 px-4 py-3 text-sm">
+          <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
             {preview.error}
           </div>
         )}
 
+        {/* Preview result */}
         {preview && !preview.error && (
           <div className="space-y-4">
-            {/* Summary bar */}
-            <div className="flex flex-wrap gap-3 text-sm">
-              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-400">
-                {preview.newCount} nuovi
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-400">
-                {preview.duplicateCount} duplicati
-              </span>
+            {/* Summary badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="success">{preview.newCount} nuovi</Badge>
+              <Badge variant="neutral">{preview.duplicateCount} duplicati</Badge>
               {preview.suspectCount > 0 && (
-                <span className="px-2.5 py-1 rounded-md bg-amber-950 text-amber-400">
-                  {preview.suspectCount} sospetti
-                </span>
+                <Badge variant="warning">{preview.suspectCount} sospetti</Badge>
               )}
-              <span className="text-zinc-600 self-center">
-                — {preview.filename}
-              </span>
+              <span className="text-xs text-[--faint] ml-1">{preview.filename}</span>
             </div>
 
             {/* Preview table */}
-            <div className="overflow-x-auto rounded-xl border border-zinc-800">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-950">
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Stato</th>
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Descrizione</th>
-                    <th className="text-left px-4 py-2 text-zinc-500 font-medium">Categoria</th>
-                    <th className="text-right px-4 py-2 text-zinc-500 font-medium">Importo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/50">
+            <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+              <Table>
+                <TableHead>
+                  <Tr>
+                    <Th>Stato</Th>
+                    <Th>Data</Th>
+                    <Th>Descrizione</Th>
+                    <Th>Categoria</Th>
+                    <Th className="text-right">Importo</Th>
+                  </Tr>
+                </TableHead>
+                <TableBody>
                   {preview.rows.map((row, i) => (
-                    <tr
+                    <Tr
                       key={i}
-                      className={`bg-zinc-900 ${row.status === 'duplicate' ? 'opacity-50' : ''}`}
+                      className={row.status === 'duplicate' ? 'opacity-40' : undefined}
                     >
-                      <td className="px-4 py-2.5">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_BADGE[row.status]}`}>
+                      <Td>
+                        <Badge variant={STATUS_VARIANT[row.status] ?? 'neutral'}>
                           {STATUS_LABEL[row.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-zinc-400 tabular-nums">
+                        </Badge>
+                      </Td>
+                      <Td className="text-[--muted] text-xs tabular-nums">
                         {formatDate(row.bookedDate)}
-                      </td>
-                      <td className="px-4 py-2.5 text-zinc-200 max-w-xs truncate">
-                        {row.descriptionRaw}
-                      </td>
-                      <td className="px-4 py-2.5 text-zinc-500 text-xs">
-                        {row.categoryName ?? '—'}
-                      </td>
-                      <td
-                        className={`px-4 py-2.5 text-right tabular-nums font-mono text-sm ${
-                          row.amountMinor < 0 ? 'text-red-400' : 'text-emerald-400'
-                        }`}
-                      >
-                        {row.amountMinor >= 0 ? '+' : ''}
-                        {formatAmount(row.amountMinor, row.currency)} {row.currency}
-                      </td>
-                    </tr>
+                      </Td>
+                      <Td className="max-w-xs">
+                        <span className="truncate block text-[--ink]">
+                          {row.descriptionRaw}
+                        </span>
+                      </Td>
+                      <Td className="text-[--muted] text-xs">{row.categoryName ?? '—'}</Td>
+                      <Td numeric>
+                        <Badge variant={row.amountMinor < 0 ? 'loss' : 'gain'}>
+                          {row.amountMinor >= 0 ? '+' : ''}
+                          {fromMinor(row.amountMinor, row.currency)} {row.currency}
+                        </Badge>
+                      </Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </TableWrapper>
 
-            {/* Confirm */}
+            {/* Confirm or empty */}
             {preview.newCount > 0 ? (
-              <button
+              <Button
                 onClick={handleCommit}
                 disabled={isPending}
-                className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-5 py-2 text-sm hover:bg-emerald-400 disabled:opacity-50 transition"
+                loading={isPending && step.kind === 'preview'}
               >
-                {isPending ? 'Importazione in corso…' : `Importa ${preview.newCount} movimenti`}
-              </button>
+                Importa {preview.newCount} movimenti
+              </Button>
             ) : (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-[--muted]">
                 Nessun movimento nuovo da importare.
               </p>
             )}
@@ -186,34 +196,38 @@ export default function ImportForm({ accountId }: { accountId: number }) {
     )
   }
 
-  // ── Step: done ─────────────────────────────────────────────────────────────
+  /* ── Step: done ──────────────────────────────────────────────────────── */
   const { result } = step
 
   return (
     <div className="space-y-4">
       {result.error ? (
-        <div className="rounded-lg bg-red-950 border border-red-800 text-red-300 px-4 py-3 text-sm">
+        <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" />
           {result.error}
         </div>
       ) : (
-        <div className="rounded-lg bg-emerald-950 border border-emerald-800 text-emerald-300 px-4 py-3 text-sm space-y-1">
-          <p className="font-semibold">Importazione completata</p>
-          <p>{result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati</p>
+        <div className="flex items-start gap-3 rounded-xl border border-[--brand]/30 bg-[--brand-subtle] px-4 py-3 text-sm text-[--brand-text]">
+          <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Importazione completata</p>
+            <p className="text-[--muted] mt-0.5">
+              {result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati
+            </p>
+          </div>
         </div>
       )}
+
       <div className="flex gap-3">
-        <a
+        <Link
           href={`/dashboard/accounts/${accountId}`}
-          className="rounded-lg bg-zinc-800 text-zinc-200 px-4 py-2 text-sm hover:bg-zinc-700 transition"
+          className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-all duration-150"
         >
           Torna al conto
-        </a>
-        <button
-          onClick={() => setStep({ kind: 'pick' })}
-          className="rounded-lg border border-zinc-700 text-zinc-400 px-4 py-2 text-sm hover:border-zinc-500 hover:text-zinc-200 transition"
-        >
+        </Link>
+        <Button variant="ghost" onClick={() => setStep({ kind: 'pick' })}>
           Importa un altro file
-        </button>
+        </Button>
       </div>
     </div>
   )

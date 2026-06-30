@@ -5,7 +5,9 @@ import { getAccountForUser } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { listTransactions, listAllCategories } from '@/lib/transactions'
 import TransactionTable from './TransactionTable'
-import { Breadcrumb } from '@/components/ui'
+import { Breadcrumb, Card, Stat } from '@/components/ui'
+import { fromMinor } from '@/lib/money'
+import { Upload, BarChart3 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +33,15 @@ export default async function AccountPage({ params }: Props) {
   const transactions = listTransactions(user.id, id)
   const categories = listAllCategories()
 
+  // Saldo calcolato dalla somma dei movimenti importati
+  const balanceMinor = transactions.reduce((sum, t) => sum + t.amount_minor, 0)
+  const hasTxns = transactions.length > 0
+
+  const firstDate = hasTxns
+    ? formatDate(transactions[transactions.length - 1].booked_date)
+    : null
+  const lastDate = hasTxns ? formatDate(transactions[0].booked_date) : null
+
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
       <Breadcrumb items={[
@@ -39,47 +50,53 @@ export default async function AccountPage({ params }: Props) {
         { label: account.name },
       ]} />
 
-      {/* Quick stats */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-          <p className="text-xs text-zinc-500 mb-1">Valuta</p>
-          <p className="text-lg font-semibold text-zinc-100">{account.currency}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-          <p className="text-xs text-zinc-500 mb-1">Movimenti importati</p>
-          <p className="text-lg font-semibold text-zinc-100">{transactions.length}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-          <p className="text-xs text-zinc-500 mb-1">Periodo</p>
-          <p className="text-lg font-semibold text-zinc-100">
-            {transactions.length > 0
-              ? `${formatDate(transactions[transactions.length - 1].booked_date)} – ${formatDate(transactions[0].booked_date)}`
-              : '—'}
-          </p>
-        </div>
-      </section>
+      {/* Stats */}
+      <Card className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+        <Stat
+          label="Saldo movimenti"
+          value={fromMinor(balanceMinor, account.currency)}
+          delta={hasTxns ? balanceMinor : null}
+          deltaLabel={balanceMinor >= 0 ? 'positivo' : 'negativo'}
+          size="sm"
+        />
+        <Stat
+          label="Valuta"
+          value={account.currency}
+          size="sm"
+        />
+        <Stat
+          label="Movimenti"
+          value={transactions.length.toLocaleString('it-IT')}
+          size="sm"
+        />
+        <Stat
+          label="Periodo"
+          value={hasTxns ? `${firstDate} – ${lastDate}` : '—'}
+          size="sm"
+        />
+      </Card>
 
-      {/* Actions */}
-      <section className="flex gap-3">
+      {/* Azioni */}
+      <div className="flex gap-3">
         <Link
           href={`/dashboard/accounts/${id}/import`}
-          className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-4 py-2 text-sm hover:bg-emerald-400 transition"
+          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-[--brand] text-[--brand-fg] hover:bg-[--brand-hover] transition-all duration-150"
         >
+          <Upload className="size-4" />
           Importa movimenti
         </Link>
         <Link
           href={`/dashboard/reports?account=${id}`}
-          className="rounded-lg border border-zinc-700 text-zinc-300 px-4 py-2 text-sm hover:border-zinc-500 hover:text-zinc-100 transition"
+          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-all duration-150"
         >
+          <BarChart3 className="size-4" />
           Report mensile
         </Link>
-      </section>
+      </div>
 
-      {/* Transactions */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
-          Ultimi movimenti
-        </h2>
+      {/* Transazioni */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-[--ink]">Movimenti</h2>
         <TransactionTable transactions={transactions} categories={categories} />
       </section>
     </main>

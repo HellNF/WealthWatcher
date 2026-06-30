@@ -3,12 +3,14 @@ import { useTransition } from 'react'
 import { updateCategoryAction } from './actions'
 import { fromMinor } from '@/lib/money'
 import type { TransactionRow } from '@/lib/transactions'
+import {
+  TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
+  Badge, EmptyState,
+} from '@/components/ui'
+import { cn } from '@/lib/cn'
+import { ReceiptText } from 'lucide-react'
 
-interface Category {
-  id: number
-  name: string
-  kind: string
-}
+interface Category { id: number; name: string; kind: string }
 
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-')
@@ -37,15 +39,16 @@ function CategorySelect({
       defaultValue={currentCategoryId ?? ''}
       onChange={handleChange}
       disabled={isPending}
-      className="text-xs bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 text-zinc-300
-                 hover:border-zinc-500 focus:outline-none focus:border-zinc-400
-                 disabled:opacity-50 transition max-w-[160px]"
+      className={cn(
+        'text-xs bg-[--surface-2] border border-[--border] rounded-md px-2 py-1',
+        'text-[--ink] hover:border-[--brand] focus:outline-none focus:border-[--brand]',
+        'focus:ring-1 focus:ring-[--ring] disabled:opacity-50 transition-colors duration-100',
+        'max-w-[160px] cursor-pointer',
+      )}
     >
       <option value="">— nessuna —</option>
       {categories.map((cat) => (
-        <option key={cat.id} value={cat.id}>
-          {cat.name}
-        </option>
+        <option key={cat.id} value={cat.id}>{cat.name}</option>
       ))}
     </select>
   )
@@ -60,58 +63,60 @@ export default function TransactionTable({
 }) {
   if (transactions.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-        Nessun movimento. Importa un file Excel da Intesa Sanpaolo.
-      </p>
+      <EmptyState
+        icon={ReceiptText}
+        title="Nessun movimento"
+        description="Importa un file Excel da Intesa Sanpaolo per vedere i movimenti qui."
+      />
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-800">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-zinc-800 bg-zinc-950">
-            <th className="text-left px-4 py-2 text-zinc-500 font-medium">Data</th>
-            <th className="text-left px-4 py-2 text-zinc-500 font-medium">Descrizione</th>
-            <th className="text-left px-4 py-2 text-zinc-500 font-medium">Categoria</th>
-            <th className="text-right px-4 py-2 text-zinc-500 font-medium">Importo</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-800/50">
+    <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+      <Table>
+        <TableHead>
+          <Tr>
+            <Th>Data</Th>
+            <Th>Descrizione</Th>
+            <Th>Categoria</Th>
+            <Th className="text-right">Importo</Th>
+          </Tr>
+        </TableHead>
+        <TableBody>
           {transactions.map((txn) => (
-            <tr key={txn.id} className="bg-zinc-900 hover:bg-zinc-800/60 transition">
-              <td className="px-4 py-2.5 text-zinc-400 tabular-nums text-xs whitespace-nowrap">
+            <Tr key={txn.id}>
+              <Td className="text-[--muted] text-xs whitespace-nowrap">
                 {formatDate(txn.booked_date)}
-              </td>
-              <td className="px-4 py-2.5 text-zinc-200 max-w-xs truncate">
-                {txn.merchant_name ? (
-                  <>
-                    <span className="font-medium">{txn.merchant_name}</span>
-                    <span className="text-zinc-500 ml-2 text-xs">{txn.description_raw}</span>
-                  </>
-                ) : (
-                  txn.description_raw
-                )}
-              </td>
-              <td className="px-4 py-2.5">
+              </Td>
+              <Td className="max-w-xs">
+                <div className="truncate">
+                  {txn.merchant_name ? (
+                    <>
+                      <span className="font-medium text-[--ink]">{txn.merchant_name}</span>
+                      <span className="text-[--faint] ml-2 text-xs">{txn.description_raw}</span>
+                    </>
+                  ) : (
+                    <span className="text-[--ink]">{txn.description_raw}</span>
+                  )}
+                </div>
+              </Td>
+              <Td>
                 <CategorySelect
                   txnId={txn.id}
                   currentCategoryId={txn.category_id}
                   categories={categories}
                 />
-              </td>
-              <td
-                className={`px-4 py-2.5 text-right tabular-nums font-mono ${
-                  txn.amount_minor < 0 ? 'text-red-400' : 'text-emerald-400'
-                }`}
-              >
-                {txn.amount_minor >= 0 ? '+' : ''}
-                {fromMinor(txn.amount_minor, txn.currency)}
-              </td>
-            </tr>
+              </Td>
+              <Td numeric>
+                <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
+                  {txn.amount_minor >= 0 ? '+' : ''}
+                  {fromMinor(txn.amount_minor, txn.currency)}
+                </Badge>
+              </Td>
+            </Tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableWrapper>
   )
 }
