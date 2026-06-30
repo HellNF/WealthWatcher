@@ -263,6 +263,70 @@ export const investmentTxns = sqliteTable(
   ],
 )
 
+// ── fx_history ────────────────────────────────────────────────────────────────
+// Daily ECB exchange rates (base EUR). Source: Frankfurter API.
+// rate means: 1 EUR = rate × quote (e.g. rate=1.08 for USD).
+export const fxHistory = sqliteTable(
+  'fx_history',
+  {
+    id:         integer('id').primaryKey({ autoIncrement: true }),
+    date:       text('date').notNull(),       // ISO YYYY-MM-DD
+    base:       text('base').notNull().default('EUR'),
+    quote:      text('quote').notNull(),      // target currency, e.g. 'USD'
+    rate:       text('rate').notNull(),       // decimal string
+    created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('fx_history_date_base_quote_uniq').on(t.date, t.base, t.quote),
+  ],
+)
+
+// ── price_history ─────────────────────────────────────────────────────────────
+// Append-only daily price series per instrument. One row per (instrument, date).
+// history is immutable — no cascade on instrument FK.
+export const priceHistory = sqliteTable(
+  'price_history',
+  {
+    id:            integer('id').primaryKey({ autoIncrement: true }),
+    instrument_id: integer('instrument_id')
+                     .notNull()
+                     .references(() => instruments.id),  // no cascade — history is immutable
+    date:          text('date').notNull(),                // ISO YYYY-MM-DD
+    price:         text('price').notNull(),               // decimal string, in instrument currency
+    currency:      text('currency').notNull(),
+    source:        text('source'),                        // 'yahoo' | 'coingecko' | etc.
+    created_at:    integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('price_history_instrument_date_uniq').on(t.instrument_id, t.date),
+    index('idx_price_history_instrument').on(t.instrument_id),
+  ],
+)
+
+// ── valuation_snapshots ───────────────────────────────────────────────────────
+// Daily net-worth snapshot per user. Computed lazily on dashboard load.
+// breakdown is a JSON string: { portfolios:[...], accounts:[...] }.
+export const valuationSnapshots = sqliteTable(
+  'valuation_snapshots',
+  {
+    id:                    integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:              integer('owner_id')
+                             .notNull()
+                             .references(() => users.id, { onDelete: 'cascade' }),
+    date:                  text('date').notNull(),          // ISO YYYY-MM-DD
+    net_worth_eur_minor:   integer('net_worth_eur_minor').notNull(),
+    investments_eur_minor: integer('investments_eur_minor').notNull(),
+    accounts_eur_minor:    integer('accounts_eur_minor').notNull(),
+    breakdown:             text('breakdown'),               // JSON
+    stale:                 integer('stale').notNull().default(0), // 1 if any value couldn't be converted
+    created_at:            integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('valuation_snapshots_owner_date_uniq').on(t.owner_id, t.date),
+    index('idx_valuation_snapshots_owner_date').on(t.owner_id, t.date),
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -277,3 +341,6 @@ export type Transaction         = InferSelectModel<typeof transactions>
 export type Instrument          = InferSelectModel<typeof instruments>
 export type InvestmentPortfolio = InferSelectModel<typeof investmentPortfolios>
 export type InvestmentTxn       = InferSelectModel<typeof investmentTxns>
+export type FxHistory           = InferSelectModel<typeof fxHistory>
+export type PriceHistory        = InferSelectModel<typeof priceHistory>
+export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
