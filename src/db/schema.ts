@@ -199,6 +199,10 @@ export const instruments = sqliteTable(
     provider_symbol: text('provider_symbol'),            // CoinGecko id or override if different from symbol
     last_price:      text('last_price'),                 // decimal string, in `currency`
     last_price_at:   integer('last_price_at'),           // unix epoch of last fetch
+    // KID-sourced fields (populated after human review of extracted KID document)
+    sri:             integer('sri'),                     // Summary Risk Indicator 1–7
+    entry_cost:      text('entry_cost'),                 // decimal string, one-off entry cost %
+    exit_cost:       text('exit_cost'),                  // decimal string, one-off exit cost %
     created_at:      integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
@@ -327,6 +331,35 @@ export const valuationSnapshots = sqliteTable(
   ],
 )
 
+// ── user_settings ─────────────────────────────────────────────────────────────
+// Per-user preferences and encrypted secrets. Separate from `users` (auth row).
+export const userSettings = sqliteTable('user_settings', {
+  user_id:              integer('user_id').primaryKey()
+                          .references(() => users.id, { onDelete: 'cascade' }),
+  openai_api_key_enc:   text('openai_api_key_enc'),    // AES-256-GCM encrypted, null if not set
+  openai_key_set_at:    integer('openai_key_set_at'),  // unix epoch when key was last saved
+  created_at:           integer('created_at').notNull().default(sql`(unixepoch())`),
+})
+
+// ── kid_documents ─────────────────────────────────────────────────────────────
+// Audit log: every KID PDF upload. Extraction stored as JSON; status set to
+// 'confirmed' only after the user reviews and confirms the extracted fields.
+export const kidDocuments = sqliteTable('kid_documents', {
+  id:             integer('id').primaryKey({ autoIncrement: true }),
+  owner_id:       integer('owner_id')
+                    .notNull()
+                    .references(() => users.id, { onDelete: 'cascade' }),
+  instrument_id:  integer('instrument_id')
+                    .references(() => instruments.id), // nullable, no cascade — audit is immutable
+  filename:       text('filename').notNull(),
+  extracted_json: text('extracted_json'),              // full LLM output with confidence fields
+  status:         text('status', { enum: ['pending', 'confirmed'] as const })
+                    .notNull()
+                    .default('pending'),
+  model:          text('model'),                       // e.g. 'gpt-4o-mini'
+  created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
+})
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -344,3 +377,5 @@ export type InvestmentTxn       = InferSelectModel<typeof investmentTxns>
 export type FxHistory           = InferSelectModel<typeof fxHistory>
 export type PriceHistory        = InferSelectModel<typeof priceHistory>
 export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
+export type UserSettings        = InferSelectModel<typeof userSettings>
+export type KidDocument         = InferSelectModel<typeof kidDocuments>
