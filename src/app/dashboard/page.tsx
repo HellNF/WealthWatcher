@@ -18,6 +18,22 @@ const KIND_LABEL: Record<string, string> = {
   both:   'Banca · Broker',
 }
 
+// Palette tile colorate (stile N26/Revolut) — colore deterministico dal nome
+const AVATAR_COLORS = [
+  'oklch(0.55 0.15 198)', // teal
+  'oklch(0.55 0.19 268)', // indigo
+  'oklch(0.58 0.16 150)', // verde
+  'oklch(0.62 0.20 25)',  // corallo
+  'oklch(0.60 0.17 300)', // viola
+  'oklch(0.62 0.16 55)',  // ambra
+]
+
+function avatarColor(name: string): string {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+
 function formatEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
     style: 'currency',
@@ -52,10 +68,10 @@ export default async function DashboardPage() {
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
-      <Card noPadding className="overflow-hidden">
+      <Card noPadding className="overflow-hidden shadow-[--shadow-lg]">
         {/* Hero gradiente teal→cyan — testo sempre bianco */}
         <div
-          className="px-6 pt-6 pb-5"
+          className="relative px-6 pt-6 pb-5 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, var(--brand-grad-from), var(--brand-grad-to))',
             '--ink':   'oklch(1 0 0)',
@@ -63,7 +79,9 @@ export default async function DashboardPage() {
             '--faint': 'oklch(1 0 0 / 0.45)',
           } as React.CSSProperties}
         >
-          <div className="flex items-start justify-between gap-6 flex-wrap">
+          {/* Glow decorativo per profondità */}
+          <div className="absolute -top-20 -right-12 size-56 rounded-full bg-white/10 blur-3xl pointer-events-none" aria-hidden />
+          <div className="relative flex items-start justify-between gap-6 flex-wrap">
             {/* Valore principale */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">
@@ -149,9 +167,12 @@ export default async function DashboardPage() {
                 href={`/dashboard/institutions/${inst.id}`}
                 className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
               >
-                {/* Avatar lettera */}
-                <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-[--brand-text]">
+                {/* Avatar tile colorata */}
+                <div
+                  className="size-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+                  style={{ background: avatarColor(inst.name) }}
+                >
+                  <span className="text-base font-bold text-white">
                     {inst.name[0].toUpperCase()}
                   </span>
                 </div>
@@ -161,7 +182,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-[--muted]">{KIND_LABEL[inst.kind] ?? inst.kind}</p>
                 </div>
 
-                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--brand] group-hover:translate-x-0.5 transition-all duration-150 shrink-0" />
               </Link>
             ))}
           </Card>

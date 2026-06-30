@@ -68,16 +68,16 @@
 .dark {
   color-scheme: dark;
 
-  /* Surfaces — micro-tinta teal */
-  --bg:         oklch(0.100 0.008 205);
-  --surface:    oklch(0.155 0.012 205);
-  --surface-2:  oklch(0.208 0.016 205);
-  --border:     oklch(0.290 0.018 205);
+  /* Surfaces — step di luminosità più netti, le card galleggiano sul bg */
+  --bg:         oklch(0.135 0.012 248);
+  --surface:    oklch(0.190 0.016 248);
+  --surface-2:  oklch(0.245 0.020 248);
+  --border:     oklch(0.320 0.024 248);
 
   /* Text */
-  --ink:        oklch(0.96 0.004 205);
-  --muted:      oklch(0.60 0.018 205);
-  --faint:      oklch(0.42 0.012 205);
+  --ink:        oklch(0.97 0.004 248);
+  --muted:      oklch(0.66 0.020 248);
+  --faint:      oklch(0.50 0.016 248);
 
   /* Brand — teal/cyan */
   --brand:           oklch(0.68 0.14 198);
