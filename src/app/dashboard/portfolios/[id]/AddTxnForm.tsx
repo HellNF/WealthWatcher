@@ -24,15 +24,17 @@ const EMPTY: InstrFields = {
 }
 
 export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
-  const [open, setOpen]         = useState(false)
-  const [type, setType]         = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
-  const [instr, setInstr]       = useState<InstrFields>(EMPTY)
+  const [open, setOpen]           = useState(false)
+  const [type, setType]           = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
+  const [instr, setInstr]         = useState<InstrFields>(EMPTY)
   const [unitPrice, setUnitPrice] = useState('')
-  const [hits, setHits]         = useState<IsinResult[]>([])
+  const [hits, setHits]           = useState<IsinResult[]>([])
   const [lookupErr, setLookupErr] = useState<string | null>(null)
+  const [isFetching, setIsFetching] = useState(false)
 
-  const [isLooking,  startLookup]  = useTransition()
-  const [isFetching, startFetch]   = useTransition()
+  // Solo ISIN lookup usa useTransition (chiamata di rete separata).
+  // fetchDetails è una funzione async normale per evitare transizioni annidate.
+  const [isLooking, startLookup] = useTransition()
 
   const boundAction = addTxnAction.bind(null, portfolioId)
   const [state, action, pending] = useActionState<ActionState, FormData>(boundAction, undefined)
@@ -45,7 +47,19 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
       setInstr((p) => ({ ...p, [key]: e.target.value }))
   }
 
-  // After ISIN lookup selects an instrument, also fetch price + TER from Yahoo
+  async function fetchDetails(symbol: string) {
+    if (!symbol || isFetching) return
+    setIsFetching(true)
+    try {
+      const det = await fetchInstrumentDetailsAction(symbol)
+      if (det.price)    setUnitPrice(det.price)
+      if (det.currency) setInstr((p) => ({ ...p, currency: det.currency! }))
+      if (det.ter)      setInstr((p) => ({ ...p, ter: det.ter! }))
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
   function applyResult(r: IsinResult) {
     setInstr((p) => ({
       ...p,
@@ -55,17 +69,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
       price_source: r.priceSource,
     }))
     setHits([])
+    // fetchDetails è async normale — nessun problema di transizioni annidate
     fetchDetails(r.yahooSymbol)
-  }
-
-  function fetchDetails(symbol: string) {
-    if (!symbol) return
-    startFetch(async () => {
-      const det = await fetchInstrumentDetailsAction(symbol)
-      if (det.price)    setUnitPrice(det.price)
-      if (det.currency) setInstr((p) => ({ ...p, currency: det.currency! }))
-      if (det.ter)      setInstr((p) => ({ ...p, ter: det.ter! }))
-    })
   }
 
   function handleLookup() {
@@ -189,7 +194,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
 
         <input type="hidden" name="isin" value={instr.isin} />
 
-        {/* ── Strumento (auto-filled) ──────────────────────────────────────── */}
+        {/* ── Strumento (auto-filled da ISIN) ──────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-500">Simbolo (ticker)</label>
@@ -284,18 +289,18 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             </div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <label className="text-xs text-zinc-500">Prezzo unitario</label>
-                {isFetching && (
-                  <span className="text-xs text-zinc-600 animate-pulse">aggiorno…</span>
-                )}
+                <label className="text-xs text-zinc-500">
+                  Prezzo unitario
+                  {isFetching && <span className="ml-1 text-zinc-600 animate-pulse">aggiorno…</span>}
+                </label>
                 {!isFetching && instr.symbol && (
                   <button
                     type="button"
                     onClick={() => fetchDetails(instr.symbol)}
                     className="text-xs text-zinc-600 hover:text-emerald-400 transition"
-                    title="Ricarica prezzo corrente"
+                    title="Ricarica prezzo corrente da Yahoo Finance"
                   >
-                    ↻
+                    ↻ aggiorna
                   </button>
                 )}
               </div>

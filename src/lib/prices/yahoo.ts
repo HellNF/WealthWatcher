@@ -35,6 +35,27 @@ export interface InstrumentDetails {
  * Fetch current price + TER (fund expense ratio, ETFs only) for an instrument.
  * Never throws — returns nulls on any failure.
  */
+// Yahoo Finance restituisce alcuni prezzi in subunità (es. azioni LSE in GBp = pence).
+// Normalizza: GBp → GBP dividendo per 100; ILA → ILS, ZAc → ZAR, etc.
+const SUBUNIT_MAP: Record<string, { major: string; factor: number }> = {
+  GBp: { major: 'GBP', factor: 100 },
+  ILA: { major: 'ILS', factor: 100 },
+  ZAc: { major: 'ZAR', factor: 100 },
+}
+
+function normalizeCurrencyAndPrice(
+  rawCurrency: string,
+  rawPrice:    number,
+): { price: number; currency: string } {
+  const sub = SUBUNIT_MAP[rawCurrency]
+  if (sub) return { price: rawPrice / sub.factor, currency: sub.major }
+  return { price: rawPrice, currency: rawCurrency.toUpperCase() }
+}
+
+/**
+ * Fetch current price + TER (fund expense ratio, ETFs only) for an instrument.
+ * Never throws — returns nulls on any failure.
+ */
 export async function getInstrumentDetails(symbol: string): Promise<InstrumentDetails> {
   let price:    string | null = null
   let currency: string | null = null
@@ -45,10 +66,14 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
 
     const quote = await yf.default.quote(symbol)
     const q = quote as { regularMarketPrice?: number; currency?: string }
-    if (q.regularMarketPrice != null) price = q.regularMarketPrice.toFixed(6).replace(/\.?0+$/, '')
-    if (q.currency)                   currency = q.currency.toUpperCase()
 
-    // TER is only available for funds/ETFs via fundProfile
+    if (q.regularMarketPrice != null && q.currency) {
+      const norm = normalizeCurrencyAndPrice(q.currency, q.regularMarketPrice)
+      price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
+      currency = norm.currency
+    }
+
+    // TER only available for funds/ETFs via fundProfile
     try {
       const summary = await yf.default.quoteSummary(symbol, { modules: ['fundProfile'] })
       const fp = (summary as { fundProfile?: { annualReportExpenseRatio?: number } }).fundProfile
