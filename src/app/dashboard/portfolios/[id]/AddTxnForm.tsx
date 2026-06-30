@@ -1,6 +1,7 @@
 'use client'
-import { useActionState, useState } from 'react'
-import { addTxnAction, type ActionState } from './actions'
+import { useActionState, useState, useTransition } from 'react'
+import { addTxnAction, lookupIsinAction, type ActionState } from './actions'
+import type { IsinResult } from '@/lib/isin'
 
 const CLUSTER_LABELS: Record<string, string> = {
   etf: 'ETF', bond: 'Obbligazione/BTP', stock: 'Azione', crypto: 'Cripto', other: 'Altro',
@@ -9,14 +10,73 @@ const SOURCE_LABELS: Record<string, string> = {
   yahoo: 'Yahoo Finance', coingecko: 'CoinGecko', alphavantage: 'Alpha Vantage', manual: 'Manuale',
 }
 
+// Controlled instrument fields pre-fillable via ISIN lookup
+interface InstrFields {
+  isin:         string
+  symbol:       string
+  name:         string
+  cluster:      string
+  currency:     string
+  price_source: string
+}
+const EMPTY_INSTR: InstrFields = {
+  isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo',
+}
+
 export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
-  const [open, setOpen]       = useState(false)
-  const [type, setType]       = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
+  const [open, setOpen]     = useState(false)
+  const [type, setType]     = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
+  const [instr, setInstr]   = useState<InstrFields>(EMPTY_INSTR)
+  const [hits, setHits]     = useState<IsinResult[]>([])
+  const [lookupErr, setLookupErr] = useState<string | null>(null)
+
+  const [isLooking, startLookup] = useTransition()
+
   const boundAction = addTxnAction.bind(null, portfolioId)
   const [state, action, pending] = useActionState<ActionState, FormData>(boundAction, undefined)
 
-  const isBuySell   = type === 'buy' || type === 'sell'
-  const isDivOrFee  = type === 'dividend' || type === 'fee'
+  const isBuySell  = type === 'buy' || type === 'sell'
+  const isDivOrFee = type === 'dividend' || type === 'fee'
+
+  function set(key: keyof InstrFields) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setInstr((prev) => ({ ...prev, [key]: e.target.value }))
+  }
+
+  function handleLookup() {
+    const isin = instr.isin.trim()
+    if (!isin) return
+    setLookupErr(null)
+    setHits([])
+    startLookup(async () => {
+      const results = await lookupIsinAction(isin)
+      if (results.length === 0) {
+        setLookupErr('Nessuno strumento trovato per questo ISIN.')
+      } else if (results.length === 1) {
+        applyResult(results[0])
+      } else {
+        setHits(results)
+      }
+    })
+  }
+
+  function applyResult(r: IsinResult) {
+    setInstr((prev) => ({
+      ...prev,
+      symbol:       r.yahooSymbol,
+      name:         r.name,
+      cluster:      r.cluster,
+      price_source: r.priceSource,
+    }))
+    setHits([])
+  }
+
+  function handleClose() {
+    setOpen(false)
+    setInstr(EMPTY_INSTR)
+    setHits([])
+    setLookupErr(null)
+  }
 
   if (!open) {
     return (
@@ -30,15 +90,66 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-4">
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-300">Nuova operazione</h3>
-        <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300 text-sm transition">
-          ✕
-        </button>
+        <button onClick={handleClose} className="text-zinc-500 hover:text-zinc-300 text-sm transition">✕</button>
       </div>
 
-      <form action={action} className="space-y-4">
+      <form action={action} className="space-y-5">
+
+        {/* ISIN lookup */}
+        <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/40 p-4 space-y-3">
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Cerca per ISIN (opzionale)</p>
+          <div className="flex gap-2">
+            <input
+              value={instr.isin}
+              onChange={set('isin')}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleLookup())}
+              placeholder="es. IE00B3RBWM25"
+              maxLength={12}
+              className="flex-1 rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
+                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none font-mono uppercase tracking-widest"
+            />
+            <button
+              type="button"
+              onClick={handleLookup}
+              disabled={isLooking || !instr.isin.trim()}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300
+                         hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-40 transition whitespace-nowrap"
+            >
+              {isLooking ? 'Cerco…' : 'Cerca'}
+            </button>
+          </div>
+
+          {lookupErr && (
+            <p className="text-xs text-amber-400">{lookupErr}</p>
+          )}
+
+          {/* Multi-exchange picker */}
+          {hits.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-zinc-500">
+                Trovate {hits.length} quotazioni — scegli la borsa:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {hits.map((r) => (
+                  <button
+                    key={r.figi}
+                    type="button"
+                    onClick={() => applyResult(r)}
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left
+                               hover:border-emerald-500 hover:bg-zinc-800 transition"
+                  >
+                    <p className="text-sm font-mono font-medium text-zinc-100">{r.yahooSymbol}</p>
+                    <p className="text-xs text-zinc-500">{r.exchLabel} · {r.name}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Type + date */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
@@ -66,12 +177,17 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </div>
         </div>
 
-        {/* Instrument */}
+        {/* Hidden ISIN for server action */}
+        <input type="hidden" name="isin" value={instr.isin} />
+
+        {/* Instrument fields (pre-filled by ISIN lookup) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-500">Simbolo (ticker)</label>
             <input
               name="symbol"
+              value={instr.symbol}
+              onChange={set('symbol')}
               required
               placeholder="es. VWCE.DE"
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -82,6 +198,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <label className="text-xs text-zinc-500">Nome strumento</label>
             <input
               name="instrument_name"
+              value={instr.name}
+              onChange={set('name')}
               required
               placeholder="es. Vanguard FTSE All-World"
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -95,7 +213,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <label className="text-xs text-zinc-500">Tipo strumento</label>
             <select
               name="cluster"
-              defaultValue="etf"
+              value={instr.cluster}
+              onChange={set('cluster')}
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(CLUSTER_LABELS).map(([v, l]) => (
@@ -107,7 +226,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <label className="text-xs text-zinc-500">Valuta</label>
             <input
               name="currency"
-              defaultValue="EUR"
+              value={instr.currency}
+              onChange={set('currency')}
               maxLength={3}
               required
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
@@ -118,7 +238,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             <label className="text-xs text-zinc-500">Fonte prezzo</label>
             <select
               name="price_source"
-              defaultValue="yahoo"
+              value={instr.price_source}
+              onChange={set('price_source')}
               className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(SOURCE_LABELS).map(([v, l]) => (
@@ -179,12 +300,10 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           </div>
         )}
 
-        {/* Note */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-zinc-500">Nota (opzionale)</label>
           <input
             name="note"
-            placeholder=""
             className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
                        placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
           />
@@ -198,11 +317,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           >
             {pending ? 'Salvo…' : 'Salva operazione'}
           </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="text-sm text-zinc-500 hover:text-zinc-300 transition"
-          >
+          <button type="button" onClick={handleClose} className="text-sm text-zinc-500 hover:text-zinc-300 transition">
             Annulla
           </button>
         </div>

@@ -6,6 +6,7 @@ import { getPortfolioForUser } from '@/lib/portfolios'
 import { getOrCreateInstrument } from '@/lib/instruments'
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
+import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { toMinor } from '@/lib/money'
 
 export type ActionState = { error?: string } | undefined
@@ -103,6 +104,11 @@ export async function deleteTxnAction(
   const user = await requireUser()
   deleteTxn(user.id, txnId)
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+}
+
+export async function lookupIsinAction(isin: string): Promise<IsinResult[]> {
+  await requireUser()
+  return lookupIsin(isin)
 }
 
 export async function refreshPricesAction(portfolioId: number): Promise<void> {
