@@ -178,14 +178,102 @@ export const transactions = sqliteTable(
   ],
 )
 
+// ── instruments ───────────────────────────────────────────────────────────────
+// Global shared instrument catalogue (like categories/merchants — no owner_id).
+// Upserted by symbol when a user first adds an operation for that ticker.
+export const instruments = sqliteTable(
+  'instruments',
+  {
+    id:              integer('id').primaryKey({ autoIncrement: true }),
+    symbol:          text('symbol').notNull(),           // ticker, e.g. "VWCE.DE", "BTC-EUR"
+    isin:            text('isin'),                       // optional
+    name:            text('name').notNull(),
+    cluster:         text('cluster', {
+                       enum: ['etf', 'bond', 'stock', 'crypto', 'other'] as const,
+                     }).notNull(),
+    currency:        text('currency').notNull(),         // ISO-4217 trading currency
+    ter:             text('ter'),                        // decimal string, e.g. "0.0022"
+    price_source:    text('price_source', {
+                       enum: ['yahoo', 'coingecko', 'alphavantage', 'manual'] as const,
+                     }).notNull().default('yahoo'),
+    provider_symbol: text('provider_symbol'),            // CoinGecko id or override if different from symbol
+    last_price:      text('last_price'),                 // decimal string, in `currency`
+    last_price_at:   integer('last_price_at'),           // unix epoch of last fetch
+    created_at:      integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('instruments_symbol_uniq').on(t.symbol),
+  ],
+)
+
+// ── investment_portfolios ─────────────────────────────────────────────────────
+// Trading / investment account under an institution. Mirrors bank_accounts.
+export const investmentPortfolios = sqliteTable(
+  'investment_portfolios',
+  {
+    id:             integer('id').primaryKey({ autoIncrement: true }),
+    institution_id: integer('institution_id')
+                      .notNull()
+                      .references(() => institutions.id, { onDelete: 'cascade' }),
+    owner_id:       integer('owner_id')
+                      .notNull()
+                      .references(() => users.id, { onDelete: 'cascade' }),
+    name:           text('name').notNull(),
+    currency:       text('currency').notNull().default('EUR'), // reporting currency
+    created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_investment_portfolios_owner').on(t.owner_id),
+    index('idx_investment_portfolios_institution').on(t.institution_id),
+  ],
+)
+
+// ── investment_txns ───────────────────────────────────────────────────────────
+// Source-of-truth for every investment operation. Positions/lots are DERIVED.
+// Monetary amounts in minor units (signed); quantities/prices as decimal strings.
+export const investmentTxns = sqliteTable(
+  'investment_txns',
+  {
+    id:            integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:      integer('owner_id')
+                     .notNull()
+                     .references(() => users.id, { onDelete: 'cascade' }),
+    portfolio_id:  integer('portfolio_id')
+                     .notNull()
+                     .references(() => investmentPortfolios.id, { onDelete: 'cascade' }),
+    instrument_id: integer('instrument_id')
+                     .notNull()
+                     .references(() => instruments.id),   // no cascade — history is immutable
+    type:          text('type', {
+                     enum: ['buy', 'sell', 'dividend', 'fee'] as const,
+                   }).notNull(),
+    trade_date:    text('trade_date').notNull(),          // ISO YYYY-MM-DD
+    quantity:      text('quantity'),                      // decimal string; null for fee
+    unit_price:    text('unit_price'),                    // decimal string, in instrument currency; null for fee
+    fee_minor:     integer('fee_minor').notNull().default(0), // minor units, instrument currency
+    amount_minor:  integer('amount_minor'),               // dividend cash / fee amount; null for buy/sell
+    currency:      text('currency').notNull(),            // = instrument.currency
+    note:          text('note'),
+    created_at:    integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_investment_txns_owner_date').on(t.owner_id, t.trade_date),
+    index('idx_investment_txns_portfolio').on(t.portfolio_id),
+    index('idx_investment_txns_instrument').on(t.instrument_id),
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
-export type AllowedEmail  = InferSelectModel<typeof allowedEmails>
-export type User          = InferSelectModel<typeof users>
-export type Share         = InferSelectModel<typeof shares>
-export type Institution   = InferSelectModel<typeof institutions>
-export type BankAccount   = InferSelectModel<typeof bankAccounts>
-export type Category      = InferSelectModel<typeof categories>
-export type Merchant      = InferSelectModel<typeof merchants>
-export type MerchantAlias = InferSelectModel<typeof merchantAliases>
-export type ImportBatch   = InferSelectModel<typeof importBatches>
-export type Transaction   = InferSelectModel<typeof transactions>
+export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
+export type User                = InferSelectModel<typeof users>
+export type Share               = InferSelectModel<typeof shares>
+export type Institution         = InferSelectModel<typeof institutions>
+export type BankAccount         = InferSelectModel<typeof bankAccounts>
+export type Category            = InferSelectModel<typeof categories>
+export type Merchant            = InferSelectModel<typeof merchants>
+export type MerchantAlias       = InferSelectModel<typeof merchantAliases>
+export type ImportBatch         = InferSelectModel<typeof importBatches>
+export type Transaction         = InferSelectModel<typeof transactions>
+export type Instrument          = InferSelectModel<typeof instruments>
+export type InvestmentPortfolio = InferSelectModel<typeof investmentPortfolios>
+export type InvestmentTxn       = InferSelectModel<typeof investmentTxns>

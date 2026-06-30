@@ -15,6 +15,13 @@
       "when": 1782747697862,
       "tag": "0001_cuddly_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782811543981,
+      "tag": "0002_lethal_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
