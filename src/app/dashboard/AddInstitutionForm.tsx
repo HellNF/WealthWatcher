@@ -1,6 +1,8 @@
 'use client'
 import { useActionState } from 'react'
+import { Plus } from 'lucide-react'
 import { addInstitution, type ActionState } from './actions'
+import { Button, Field, Input, Select } from '@/components/ui'
 
 export default function AddInstitutionForm() {
   const [state, action, pending] = useActionState<ActionState, FormData>(
@@ -9,30 +11,29 @@ export default function AddInstitutionForm() {
   )
 
   return (
-    <form action={action} className="flex flex-col sm:flex-row gap-2 sm:items-center">
-      <input
-        name="name"
-        required
-        placeholder="Nome istituzione (es. Intesa San Paolo)"
-        className="flex-1 rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
-      />
-      <select
-        name="kind"
-        defaultValue="bank"
-        className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
-      >
-        <option value="bank">Banca</option>
-        <option value="broker">Broker</option>
-        <option value="both">Entrambi</option>
-      </select>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-4 py-2 text-sm hover:bg-emerald-400 disabled:opacity-50 transition"
-      >
-        {pending ? 'Aggiungo…' : 'Aggiungi'}
-      </button>
-      {state?.error && <span className="text-sm text-red-400">{state.error}</span>}
+    <form action={action} className="flex flex-col sm:flex-row gap-2 sm:items-end">
+      <Field label="Nome istituzione" htmlFor="inst-name" className="flex-1">
+        <Input
+          id="inst-name"
+          name="name"
+          required
+          placeholder="es. Intesa Sanpaolo"
+        />
+      </Field>
+      <Field label="Tipo" htmlFor="inst-kind">
+        <Select id="inst-kind" name="kind" defaultValue="bank">
+          <option value="bank">Banca</option>
+          <option value="broker">Broker</option>
+          <option value="both">Entrambi</option>
+        </Select>
+      </Field>
+      <Button type="submit" loading={pending} className="shrink-0 self-end">
+        <Plus className="size-4" />
+        Aggiungi
+      </Button>
+      {state?.error && (
+        <p className="text-sm text-[--danger] sm:col-span-full">{state.error}</p>
+      )}
     </form>
   )
 }

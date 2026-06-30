@@ -5,9 +5,11 @@ import { listAccounts } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import AddAccountForm from './AddAccountForm'
 import AddPortfolioForm from './AddPortfolioForm'
-import { Breadcrumb } from '@/components/ui'
+import {
+  Breadcrumb, Card, EmptyState,
+} from '@/components/ui'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, CreditCard, TrendingUp } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,67 +30,85 @@ export default async function InstitutionPage({ params }: Props) {
   const portfolios = listPortfolios(user.id, id)
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-10">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: institution.name },
       ]} />
 
-      {/* Conti bancari */}
+      {/* ── Conti bancari ─────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Conti</h2>
-        <AddAccountForm institutionId={id} />
+        <h2 className="text-base font-semibold text-[--ink]">Conti bancari</h2>
+
+        <Card>
+          <AddAccountForm institutionId={id} />
+        </Card>
 
         {accounts.length === 0 ? (
-          <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-            Nessun conto. Aggiungine uno per iniziare a importare movimenti.
-          </p>
+          <Card>
+            <EmptyState
+              icon={CreditCard}
+              title="Nessun conto"
+              description="Aggiungi un conto corrente per iniziare a importare i movimenti bancari."
+            />
+          </Card>
         ) : (
-          <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 overflow-hidden">
+          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
             {accounts.map((acc) => (
-              <li key={acc.id} className="bg-zinc-900">
-                <Link
-                  href={`/dashboard/accounts/${acc.id}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800 transition"
-                >
-                  <span className="text-zinc-100">{acc.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">{acc.currency}</span>
-                    <ChevronRight className="size-4 text-zinc-600" />
-                  </div>
-                </Link>
-              </li>
+              <Link
+                key={acc.id}
+                href={`/dashboard/accounts/${acc.id}`}
+                className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+              >
+                <div className="size-9 rounded-xl bg-[--info-subtle] flex items-center justify-center shrink-0">
+                  <CreditCard className="size-4 text-[--info-text]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[--ink] truncate">{acc.name}</p>
+                  <p className="text-xs text-[--muted]">{acc.currency}</p>
+                </div>
+                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+              </Link>
             ))}
-          </ul>
+          </Card>
         )}
       </section>
 
-      {/* Portafogli investimenti */}
+      {/* ── Portafogli investimenti ────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Portafogli investimenti</h2>
-        <AddPortfolioForm institutionId={id} />
+        <h2 className="text-base font-semibold text-[--ink]">Portafogli investimenti</h2>
+
+        <Card>
+          <AddPortfolioForm institutionId={id} />
+        </Card>
 
         {portfolios.length === 0 ? (
-          <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-            Nessun portafoglio. Aggiungine uno per tracciare i tuoi investimenti.
-          </p>
+          <Card>
+            <EmptyState
+              icon={TrendingUp}
+              title="Nessun portafoglio"
+              description="Aggiungi un portafoglio per tracciare ETF, azioni e altri strumenti finanziari."
+            />
+          </Card>
         ) : (
-          <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800 overflow-hidden">
+          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
             {portfolios.map((p) => (
-              <li key={p.id} className="bg-zinc-900">
-                <Link
-                  href={`/dashboard/portfolios/${p.id}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800 transition"
-                >
-                  <span className="text-zinc-100">{p.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">{p.currency}</span>
-                    <ChevronRight className="size-4 text-zinc-600" />
-                  </div>
-                </Link>
-              </li>
+              <Link
+                key={p.id}
+                href={`/dashboard/portfolios/${p.id}`}
+                className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+              >
+                <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                  <TrendingUp className="size-4 text-[--brand-text]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[--ink] truncate">{p.name}</p>
+                  <p className="text-xs text-[--muted]">{p.currency}</p>
+                </div>
+                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+              </Link>
             ))}
-          </ul>
+          </Card>
         )}
       </section>
     </main>
