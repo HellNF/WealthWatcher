@@ -53,12 +53,12 @@ export default async function DashboardPage() {
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
       <Card noPadding className="overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-[--brand] to-[--brand-subtle]" />
-        <div className="p-6 pb-4">
+        {/* Zona colorata — stats sul brand-subtle */}
+        <div className="bg-[--brand-subtle] px-6 pt-6 pb-5">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             {/* Valore principale */}
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-[--brand-text] uppercase tracking-widest opacity-70">
                 Patrimonio netto
               </p>
               {latest ? (
@@ -77,10 +77,10 @@ export default async function DashboardPage() {
                   )}
                 </div>
               ) : (
-                <span className="text-[--muted] text-sm">Calcolo in corso…</span>
+                <span className="text-[--brand-text] text-sm opacity-70">Calcolo in corso…</span>
               )}
               {latest && (
-                <p className="text-xs text-[--faint]">
+                <p className="text-xs text-[--brand-text] opacity-60">
                   Aggiornato al {latest.date}
                 </p>
               )}
@@ -104,8 +104,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Chart — a filo con la card, senza padding laterale extra */}
-        <div className="px-2 pb-4">
+        {/* Chart — superficie neutra sotto la zona colorata */}
+        <div className="bg-[--surface] px-2 pb-4 pt-2">
           <NetWorthChart snapshots={snapshots} />
         </div>
       </Card>
