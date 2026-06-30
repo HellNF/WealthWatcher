@@ -1,7 +1,10 @@
 'use client'
-import { useActionState, useState, useTransition } from 'react'
-import { addTxnAction, lookupIsinAction, fetchInstrumentDetailsAction, type ActionState } from './actions'
+import { useActionState, useState, useTransition, useRef } from 'react'
+import { addTxnAction, lookupIsinAction, fetchInstrumentDetailsAction,
+         extractKidAction, confirmKidAction,
+         type ActionState, type KidActionState, type ConfirmKidState } from './actions'
 import type { IsinResult } from '@/lib/isin'
+import type { KidExtraction } from '@/lib/kid/extract'
 
 const CLUSTER_LABELS: Record<string, string> = {
   etf: 'ETF', bond: 'Obbligazione/BTP', stock: 'Azione', crypto: 'Cripto', other: 'Altro',
@@ -23,6 +26,32 @@ const EMPTY: InstrFields = {
   isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo', ter: '',
 }
 
+// KID review state: fields that the user can edit after extraction
+interface KidReview {
+  name:       string
+  ter:        string
+  entry_cost: string
+  exit_cost:  string
+  sri:        string
+}
+
+function kidToReview(d: KidExtraction): KidReview {
+  return {
+    name:       d.name.value ?? '',
+    ter:        d.ter.value != null ? String(d.ter.value) : '',
+    entry_cost: d.entry_cost.value != null ? String(d.entry_cost.value) : '',
+    exit_cost:  d.exit_cost.value != null ? String(d.exit_cost.value) : '',
+    sri:        d.sri.value != null ? String(d.sri.value) : '',
+  }
+}
+
+function confidenceBadge(c: 'low' | 'medium' | 'high') {
+  const cls = c === 'high' ? 'text-emerald-400 bg-emerald-950' :
+              c === 'medium' ? 'text-amber-400 bg-amber-950' :
+              'text-red-400 bg-red-950'
+  return <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{c}</span>
+}
+
 export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   const [open, setOpen]           = useState(false)
   const [type, setType]           = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
@@ -32,6 +61,18 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   const [lookupErr, setLookupErr] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(false)
   const [fetchMsg, setFetchMsg]     = useState<string | null>(null)
+
+  // KID extraction state
+  const [kidExtracted, setKidExtracted] = useState<KidExtraction | null>(null)
+  const [kidModel, setKidModel]         = useState<string>('')
+  const [kidFilename, setKidFilename]   = useState<string>('')
+  const [kidReview, setKidReview]       = useState<KidReview | null>(null)
+  const [kidPending, setKidPending]     = useState(false)
+  const [kidErr, setKidErr]             = useState<string | null>(null)
+  const kidFileRef = useRef<HTMLInputElement>(null)
+
+  const [confirmKidState, confirmAction, confirmPending] =
+    useActionState<ConfirmKidState, FormData>(confirmKidAction, undefined)
 
   // Solo ISIN lookup usa useTransition (chiamata di rete separata).
   // fetchDetails è una funzione async normale per evitare transizioni annidate.
@@ -95,6 +136,26 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     })
   }
 
+  async function handleKidUpload(file: File) {
+    setKidErr(null)
+    setKidExtracted(null)
+    setKidReview(null)
+    setKidPending(true)
+    try {
+      const fd = new FormData()
+      fd.append('kid_pdf', file)
+      const result = await extractKidAction(undefined, fd) as KidActionState
+      if (!result) return
+      if ('error' in result) { setKidErr(result.error); return }
+      setKidExtracted(result.data)
+      setKidModel(result.model)
+      setKidFilename(file.name)
+      setKidReview(kidToReview(result.data))
+    } finally {
+      setKidPending(false)
+    }
+  }
+
   function handleClose() {
     setOpen(false)
     setInstr(EMPTY)
@@ -102,6 +163,10 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     setHits([])
     setLookupErr(null)
     setFetchMsg(null)
+    setKidExtracted(null)
+    setKidReview(null)
+    setKidErr(null)
+    if (kidFileRef.current) kidFileRef.current.value = ''
   }
 
   if (!open) {
@@ -183,6 +248,156 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── KID import ──────────────────────────────────────────────────── */}
+        <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/40 p-4 space-y-3">
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Importa dati da KID (opzionale)</p>
+
+          {!kidExtracted ? (
+            <div className="flex items-center gap-3">
+              <label className={`cursor-pointer rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300
+                hover:border-zinc-500 hover:text-zinc-100 transition ${kidPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                {kidPending ? 'Estrazione in corso…' : '↑ Carica PDF KID'}
+                <input
+                  ref={kidFileRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleKidUpload(f) }}
+                />
+              </label>
+              {kidErr && <p className="text-xs text-red-400">{kidErr}</p>}
+            </div>
+          ) : (
+            /* Review panel */
+            <div className="space-y-3">
+              <p className="text-xs text-zinc-400">
+                Campi estratti da <span className="font-mono text-zinc-300">{kidFilename}</span> via <span className="text-zinc-500">{kidModel}</span>.
+                Verifica e correggi prima di confermare.
+              </p>
+
+              {/* Hidden fields for audit */}
+              <input type="hidden" name="filename" value={kidFilename} form="kid-confirm-form" />
+              <input type="hidden" name="model" value={kidModel} form="kid-confirm-form" />
+              <input type="hidden" name="extracted_json" value={JSON.stringify(kidExtracted)} form="kid-confirm-form" />
+              <input type="hidden" name="symbol" value={instr.symbol} form="kid-confirm-form" />
+              <input type="hidden" name="instr_name" value={instr.name} form="kid-confirm-form" />
+              <input type="hidden" name="cluster" value={instr.cluster} form="kid-confirm-form" />
+              <input type="hidden" name="currency" value={instr.currency} form="kid-confirm-form" />
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Name */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-zinc-500">Nome strumento</label>
+                    {confidenceBadge(kidExtracted.name.confidence)}
+                  </div>
+                  <input
+                    name="name" form="kid-confirm-form"
+                    value={kidReview!.name}
+                    onChange={e => setKidReview(r => r ? { ...r, name: e.target.value } : r)}
+                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                {/* TER */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-zinc-500">TER % / anno</label>
+                    {kidExtracted.ter.value != null && confidenceBadge(kidExtracted.ter.confidence)}
+                  </div>
+                  <input
+                    name="ter" form="kid-confirm-form"
+                    value={kidReview!.ter}
+                    onChange={e => setKidReview(r => r ? { ...r, ter: e.target.value } : r)}
+                    placeholder="es. 0.20"
+                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                {/* SRI */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-zinc-500">SRI (rischio 1–7)</label>
+                    {kidExtracted.sri.value != null && confidenceBadge(kidExtracted.sri.confidence)}
+                  </div>
+                  <input
+                    name="sri" form="kid-confirm-form"
+                    type="number" min="1" max="7"
+                    value={kidReview!.sri}
+                    onChange={e => setKidReview(r => r ? { ...r, sri: e.target.value } : r)}
+                    placeholder="4"
+                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                {/* Entry cost */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-zinc-500">Costo ingresso %</label>
+                    {kidExtracted.entry_cost.value != null && confidenceBadge(kidExtracted.entry_cost.confidence)}
+                  </div>
+                  <input
+                    name="entry_cost" form="kid-confirm-form"
+                    value={kidReview!.entry_cost}
+                    onChange={e => setKidReview(r => r ? { ...r, entry_cost: e.target.value } : r)}
+                    placeholder="es. 3.0"
+                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                {/* Exit cost */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-zinc-500">Costo uscita %</label>
+                    {kidExtracted.exit_cost.value != null && confidenceBadge(kidExtracted.exit_cost.confidence)}
+                  </div>
+                  <input
+                    name="exit_cost" form="kid-confirm-form"
+                    value={kidReview!.exit_cost}
+                    onChange={e => setKidReview(r => r ? { ...r, exit_cost: e.target.value } : r)}
+                    placeholder="es. 0"
+                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Benchmark + taxation note (read-only, informational) */}
+              {kidExtracted.benchmark.value && (
+                <p className="text-xs text-zinc-500">
+                  Benchmark: <span className="text-zinc-400">{kidExtracted.benchmark.value}</span>
+                  {' '}{confidenceBadge(kidExtracted.benchmark.confidence)}
+                </p>
+              )}
+              {kidExtracted.taxation_note.value && (
+                <p className="text-xs text-zinc-500">
+                  Fiscalità: <span className="text-zinc-400">{kidExtracted.taxation_note.value}</span>
+                </p>
+              )}
+
+              <form id="kid-confirm-form" action={confirmAction} className="flex items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={confirmPending || !instr.symbol}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 transition"
+                >
+                  {confirmPending ? 'Salvo…' : 'Conferma dati KID'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setKidExtracted(null); setKidReview(null); setKidErr(null); if (kidFileRef.current) kidFileRef.current.value = '' }}
+                  className="text-sm text-zinc-500 hover:text-zinc-300 transition"
+                >
+                  Annulla
+                </button>
+                {!instr.symbol && <p className="text-xs text-amber-400">Compila prima il simbolo strumento</p>}
+              </form>
+
+              {confirmKidState?.error   && <p className="text-sm text-red-400">{confirmKidState.error}</p>}
+              {confirmKidState?.success && <p className="text-sm text-emerald-400">{confirmKidState.success}</p>}
             </div>
           )}
         </div>

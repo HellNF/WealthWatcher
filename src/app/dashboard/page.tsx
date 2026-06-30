@@ -48,6 +48,9 @@ export default async function DashboardPage() {
                 </span>
               )}
             </span>
+            <Link href="/dashboard/settings" className="text-zinc-500 hover:text-zinc-200 transition text-sm">
+              Impostazioni
+            </Link>
             <form action={signOutAction}>
               <button className="text-zinc-500 hover:text-zinc-200 transition">Esci</button>
             </form>

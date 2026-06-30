@@ -171,16 +171,21 @@ export async function extractKidAction(
 // ── KID confirm (writes to DB) ────────────────────────────────────────────────
 
 const confirmSchema = z.object({
-  instrument_id:    z.coerce.number().int().positive(),
-  filename:         z.string().min(1),
-  model:            z.string().min(1),
-  extracted_json:   z.string().min(1),
-  // Reviewed/corrected fields — all optional, use null to clear
-  name:             z.string().trim().optional(),
-  ter:              z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
-  entry_cost:       z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
-  exit_cost:        z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
-  sri:              z.coerce.number().int().min(1).max(7).nullable().optional(),
+  // Instrument identification — find-or-create by symbol
+  symbol:         z.string().trim().min(1).toUpperCase(),
+  instr_name:     z.string().trim().min(1),
+  cluster:        z.enum(['etf', 'bond', 'stock', 'crypto', 'other'] as const),
+  currency:       z.string().trim().length(3).toUpperCase(),
+  // KID audit fields
+  filename:       z.string().min(1),
+  model:          z.string().min(1),
+  extracted_json: z.string().min(1),
+  // Reviewed/corrected KID values — empty string treated as null (clear the field)
+  name:           z.string().trim().min(1).optional(),
+  ter:            z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  entry_cost:     z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  exit_cost:      z.string().trim().transform(v => v.replace(',', '.') || null).nullable().optional(),
+  sri:            z.preprocess(v => v === '' ? null : v, z.coerce.number().int().min(1).max(7).nullable().optional()),
 })
 
 export type ConfirmKidState = { error?: string; success?: string } | undefined
@@ -193,20 +198,18 @@ export async function confirmKidAction(
 
   const raw: Record<string, unknown> = {}
   for (const [k, v] of formData.entries()) raw[k] = v
-  // treat empty string sri as null
-  if (raw.sri === '') raw.sri = null
 
   const parse = confirmSchema.safeParse(raw)
   if (!parse.success) return { error: parse.error.issues[0].message }
 
-  const { instrument_id, filename, model, extracted_json, name, ter, entry_cost, exit_cost, sri } = parse.data
+  const { symbol, instr_name, cluster, currency, filename, model, extracted_json,
+          name, ter, entry_cost, exit_cost, sri } = parse.data
 
-  // Verify instrument exists
-  const instr = getInstrument(instrument_id)
-  if (!instr) return { error: 'Strumento non trovato' }
+  // Find or create the instrument (idempotent)
+  const instr = getOrCreateInstrument({ symbol, name: instr_name, cluster, currency })
 
-  // Update instrument with confirmed KID fields
-  updateInstrumentKidFields(instrument_id, {
+  // Update with confirmed KID fields
+  updateInstrumentKidFields(instr.id, {
     ...(name       !== undefined ? { name }       : {}),
     ...(ter        !== undefined ? { ter }        : {}),
     ...(entry_cost !== undefined ? { entry_cost } : {}),
@@ -218,8 +221,8 @@ export async function confirmKidAction(
   sqlite.prepare(`
     INSERT INTO kid_documents (owner_id, instrument_id, filename, extracted_json, status, model)
     VALUES (?, ?, ?, ?, 'confirmed', ?)
-  `).run(user.id, instrument_id, filename, extracted_json, model)
+  `).run(user.id, instr.id, filename, extracted_json, model)
 
   revalidatePath(`/dashboard/portfolios`, 'page')
-  return { success: 'Dati KID salvati' }
+  return { success: 'Dati KID salvati correttamente' }
 }
