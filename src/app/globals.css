@@ -14,108 +14,92 @@
 :root {
   color-scheme: light;
 
-  /* Surfaces — micro-tinta teal: le card bianche emergono */
-  --bg:         oklch(0.963 0.006 205);
+  /* Surfaces */
+  --bg:         oklch(0.98 0 0);
   --surface:    oklch(1 0 0);
-  --surface-2:  oklch(0.940 0.010 205);
-  --border:     oklch(0.836 0.010 205);
+  --surface-2:  oklch(0.96 0.003 160);
+  --border:     oklch(0.88 0.005 160);
 
   /* Text */
-  --ink:        oklch(0.13 0.003 205);
-  --muted:      oklch(0.40 0.018 205);
-  --faint:      oklch(0.56 0.012 205);
+  --ink:        oklch(0.13 0 0);
+  --muted:      oklch(0.45 0.01 160);
+  --faint:      oklch(0.65 0.008 160);
 
-  /* Brand — teal/cyan (chrome del prodotto) */
-  --brand:           oklch(0.46 0.12 198);
-  --brand-hover:     oklch(0.41 0.12 198);
-  --brand-fg:        oklch(1 0 0);
-  --brand-subtle:    oklch(0.93 0.040 205);
-  --brand-text:      oklch(0.38 0.10 205);
-  --brand-grad-from: oklch(0.43 0.13 192);
-  --brand-grad-to:   oklch(0.54 0.16 212);
-
-  /* Gain — verde (solo finanza positiva: P/L↑, entrate, acquisti) */
-  --gain:        oklch(0.55 0.16 150);
-  --gain-subtle: oklch(0.92 0.052 150);
-  --gain-text:   oklch(0.36 0.13 150);
+  /* Brand / Gain — emerald */
+  --brand:         oklch(0.55 0.17 162);
+  --brand-hover:   oklch(0.50 0.17 162);
+  --brand-fg:      oklch(1 0 0);
+  --brand-subtle:  oklch(0.94 0.04 162);
+  --brand-text:    oklch(0.38 0.14 162);
 
   /* Danger / Loss — red */
-  --danger:        oklch(0.58 0.22 27);
-  --danger-subtle: oklch(0.95 0.038 27);
-  --danger-text:   oklch(0.42 0.18 27);
+  --danger:        oklch(0.60 0.22 27);
+  --danger-subtle: oklch(0.96 0.03 27);
+  --danger-text:   oklch(0.45 0.18 27);
 
   /* Warning — amber */
-  --warning:        oklch(0.68 0.18 85);
-  --warning-subtle: oklch(0.95 0.048 85);
-  --warning-text:   oklch(0.44 0.15 85);
+  --warning:        oklch(0.72 0.17 85);
+  --warning-subtle: oklch(0.96 0.04 85);
+  --warning-text:   oklch(0.48 0.14 85);
 
-  /* Info — indigo (dividendi, non confonde col teal brand) */
-  --info:        oklch(0.56 0.19 268);
-  --info-subtle: oklch(0.93 0.042 268);
-  --info-text:   oklch(0.38 0.16 268);
+  /* Info — sky */
+  --info:        oklch(0.65 0.15 240);
+  --info-subtle: oklch(0.95 0.04 240);
+  --info-text:   oklch(0.45 0.13 240);
 
   /* Focus ring */
-  --ring: oklch(0.46 0.12 198 / 0.35);
+  --ring: oklch(0.55 0.17 162 / 0.35);
 
-  /* Shadows — teal-tinted */
-  --shadow-sm: 0 1px 3px oklch(0.43 0.13 192 / 0.10), 0 1px 2px oklch(0 0 0 / 0.04);
-  --shadow:    0 2px 8px oklch(0.43 0.13 192 / 0.12), 0 1px 3px oklch(0 0 0 / 0.05);
-  --shadow-md: 0 4px 14px oklch(0.43 0.13 192 / 0.14), 0 2px 4px oklch(0 0 0 / 0.05);
-  --shadow-lg: 0 8px 28px oklch(0.43 0.13 192 / 0.16), 0 4px 8px oklch(0 0 0 / 0.07);
+  /* Shadows */
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.08), 0 2px 4px oklch(0 0 0 / 0.04);
+  --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.10), 0 4px 8px oklch(0 0 0 / 0.06);
 }
 
 /* ─── Semantic tokens — Dark ────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
 
-  /* Surfaces — step di luminosità più netti, le card galleggiano sul bg */
-  --bg:         oklch(0.135 0.012 248);
-  --surface:    oklch(0.190 0.016 248);
-  --surface-2:  oklch(0.245 0.020 248);
-  --border:     oklch(0.320 0.024 248);
+  /* Surfaces — micro-tinted con hue brand per coerenza */
+  --bg:         oklch(0.11 0.006 160);
+  --surface:    oklch(0.15 0.007 160);
+  --surface-2:  oklch(0.19 0.008 160);
+  --border:     oklch(0.26 0.01 160);
 
   /* Text */
-  --ink:        oklch(0.97 0.004 248);
-  --muted:      oklch(0.66 0.020 248);
-  --faint:      oklch(0.50 0.016 248);
+  --ink:        oklch(0.97 0 0);
+  --muted:      oklch(0.62 0.01 160);
+  --faint:      oklch(0.42 0.01 160);
 
-  /* Brand — teal/cyan */
-  --brand:           oklch(0.68 0.14 198);
-  --brand-hover:     oklch(0.62 0.14 198);
-  --brand-fg:        oklch(0.10 0 0);
-  --brand-subtle:    oklch(0.21 0.050 205);
-  --brand-text:      oklch(0.68 0.14 198);
-  --brand-grad-from: oklch(0.43 0.13 192);
-  --brand-grad-to:   oklch(0.55 0.17 212);
-
-  /* Gain — verde */
-  --gain:        oklch(0.70 0.17 150);
-  --gain-subtle: oklch(0.21 0.060 150);
-  --gain-text:   oklch(0.70 0.17 150);
+  /* Brand / Gain */
+  --brand:         oklch(0.72 0.18 162);
+  --brand-hover:   oklch(0.68 0.18 162);
+  --brand-fg:      oklch(0.10 0 0);
+  --brand-subtle:  oklch(0.20 0.04 162);
+  --brand-text:    oklch(0.72 0.18 162);
 
   /* Danger / Loss */
   --danger:        oklch(0.65 0.22 27);
-  --danger-subtle: oklch(0.22 0.055 27);
-  --danger-text:   oklch(0.68 0.22 27);
+  --danger-subtle: oklch(0.22 0.05 27);
+  --danger-text:   oklch(0.65 0.22 27);
 
   /* Warning */
-  --warning:        oklch(0.75 0.18 85);
-  --warning-subtle: oklch(0.21 0.055 85);
-  --warning-text:   oklch(0.78 0.18 85);
+  --warning:        oklch(0.75 0.16 85);
+  --warning-subtle: oklch(0.21 0.05 85);
+  --warning-text:   oklch(0.75 0.16 85);
 
-  /* Info — indigo */
-  --info:        oklch(0.72 0.18 268);
-  --info-subtle: oklch(0.20 0.052 268);
-  --info-text:   oklch(0.72 0.18 268);
+  /* Info */
+  --info:        oklch(0.70 0.14 240);
+  --info-subtle: oklch(0.20 0.04 240);
+  --info-text:   oklch(0.70 0.14 240);
 
   /* Focus ring */
-  --ring: oklch(0.68 0.14 198 / 0.45);
+  --ring: oklch(0.72 0.18 162 / 0.40);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.35), 0 1px 2px oklch(0 0 0 / 0.25);
-  --shadow:    0 2px 8px oklch(0 0 0 / 0.45), 0 1px 3px oklch(0 0 0 / 0.30);
-  --shadow-md: 0 4px 14px oklch(0 0 0 / 0.50), 0 2px 4px oklch(0 0 0 / 0.30);
-  --shadow-lg: 0 8px 28px oklch(0 0 0 / 0.55), 0 4px 8px oklch(0 0 0 / 0.35);
+  /* No shadows in dark — elevation via surface steps + border */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────────── */

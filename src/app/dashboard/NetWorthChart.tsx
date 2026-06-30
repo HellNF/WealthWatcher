@@ -4,7 +4,6 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { LineChart as LineChartIcon } from 'lucide-react'
 import type { ValuationSnapshot } from '@/db/schema'
 import { useTheme } from '@/components/providers/ThemeProvider'
 
@@ -31,16 +30,9 @@ export default function NetWorthChart({ snapshots }: Props) {
 
   if (snapshots.length < 2) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2.5 py-10 px-6 text-center">
-        <div className="rounded-2xl bg-[--brand-subtle] p-3">
-          <LineChartIcon className="size-5 text-[--brand-text]" strokeWidth={1.75} />
-        </div>
-        <p className="text-sm font-medium text-[--ink]">Il grafico arriva presto</p>
-        <p className="text-xs text-[--muted] max-w-xs text-wrap-pretty">
-          Servono almeno 2 rilevazioni giornaliere: la curva del patrimonio si popola
-          automaticamente nei prossimi giorni.
-        </p>
-      </div>
+      <p className="text-sm text-[--muted] py-6 text-center">
+        Il grafico si popola nei prossimi giorni (servono almeno 2 snapshot).
+      </p>
     )
   }
 
@@ -50,25 +42,22 @@ export default function NetWorthChart({ snapshots }: Props) {
   }))
 
   // Token values matched to OKLCH definitions in globals.css
-  // Brand: teal/cyan — distinto dal gain (verde P/L)
   const colors = isDark
     ? {
-        brand:    '#2dd4bf', // teal-400 ≈ --brand dark oklch(0.68 0.14 198)
-        brandFill:'#14b8a6', // teal-500 per fill gradient
-        grid:     'oklch(0.320 0.024 248)', // --border dark
-        axis:     'oklch(0.50 0.016 248)',  // --faint dark
-        tooltipBg:     'oklch(0.190 0.016 248)', // --surface dark
-        tooltipBorder: 'oklch(0.320 0.024 248)',
-        tooltipLabel:  'oklch(0.66 0.020 248)',  // --muted dark
+        brand:    '#34d399', // emerald-400
+        grid:     'oklch(0.26 0.01 160)',
+        axis:     'oklch(0.42 0.01 160)',
+        tooltipBg:     '#1a2421',
+        tooltipBorder: 'oklch(0.26 0.01 160)',
+        tooltipLabel:  'oklch(0.62 0.01 160)',
       }
     : {
-        brand:    '#0f766e', // teal-700 ≈ --brand light oklch(0.46 0.12 198)
-        brandFill:'#0d9488', // teal-600 per fill gradient
-        grid:     'oklch(0.836 0.010 205)', // --border light
-        axis:     'oklch(0.56 0.012 205)',  // --faint light
+        brand:    '#059669', // emerald-600
+        grid:     'oklch(0.88 0.005 160)',
+        axis:     'oklch(0.65 0.008 160)',
         tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.836 0.010 205)',
-        tooltipLabel:  'oklch(0.40 0.018 205)', // --muted light
+        tooltipBorder: 'oklch(0.88 0.005 160)',
+        tooltipLabel:  'oklch(0.45 0.01 160)',
       }
 
   return (

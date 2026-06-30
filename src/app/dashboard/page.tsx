@@ -4,8 +4,8 @@ import AddInstitutionForm from './AddInstitutionForm'
 import NetWorthChart from './NetWorthChart'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 import {
-  Card,
-  Stat, EmptyState,
+  Card, CardHeader, CardTitle,
+  Stat, Badge, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
 import { Building2, ChevronRight, TrendingUp } from 'lucide-react'
@@ -16,22 +16,6 @@ const KIND_LABEL: Record<string, string> = {
   bank:   'Banca',
   broker: 'Broker',
   both:   'Banca · Broker',
-}
-
-// Palette tile colorate (stile N26/Revolut) — colore deterministico dal nome
-const AVATAR_COLORS = [
-  'oklch(0.55 0.15 198)', // teal
-  'oklch(0.55 0.19 268)', // indigo
-  'oklch(0.58 0.16 150)', // verde
-  'oklch(0.62 0.20 25)',  // corallo
-  'oklch(0.60 0.17 300)', // viola
-  'oklch(0.62 0.16 55)',  // ambra
-]
-
-function avatarColor(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 function formatEur(minor: number): string {
@@ -68,56 +52,40 @@ export default async function DashboardPage() {
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
-      <Card noPadding className="overflow-hidden shadow-[--shadow-lg]">
-        {/* Hero gradiente teal→cyan — testo sempre bianco */}
-        <div
-          className="relative px-6 pt-6 pb-5 overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, var(--brand-grad-from), var(--brand-grad-to))',
-            '--ink':   'oklch(1 0 0)',
-            '--muted': 'oklch(1 0 0 / 0.65)',
-            '--faint': 'oklch(1 0 0 / 0.45)',
-          } as React.CSSProperties}
-        >
-          {/* Glow decorativo per profondità */}
-          <div className="absolute -top-20 -right-12 size-56 rounded-full bg-white/10 blur-3xl pointer-events-none" aria-hidden />
-          <div className="relative flex items-start justify-between gap-6 flex-wrap">
+      <Card noPadding className="overflow-hidden">
+        <div className="p-6 pb-4">
+          <div className="flex items-start justify-between gap-6 flex-wrap">
             {/* Valore principale */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">
                 Patrimonio netto
               </p>
               {latest ? (
                 <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-4xl font-bold font-mono tabular-nums text-white leading-none">
+                  <span className="text-4xl font-bold font-mono tabular-nums text-[--ink] leading-none">
                     {formatEur(latest.net_worth_eur_minor)}
                   </span>
                   {delta !== null && (
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold mb-1 ${
-                      delta >= 0
-                        ? 'bg-white/20 text-white'
-                        : 'bg-black/20 text-red-200'
-                    }`}>
-                      {delta >= 0 ? '+' : ''}{formatEurCompact(delta)}
-                    </span>
+                    <Badge variant={delta >= 0 ? 'gain' : 'loss'} className="mb-1">
+                      {delta >= 0 ? '+' : ''}
+                      {formatEurCompact(delta)}
+                    </Badge>
                   )}
                   {latest.stale === 1 && (
-                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mb-1 bg-white/15 text-white/75">
-                      parziale
-                    </span>
+                    <Badge variant="warning" className="mb-1">parziale</Badge>
                   )}
                 </div>
               ) : (
-                <span className="text-white/60 text-sm">Calcolo in corso…</span>
+                <span className="text-[--muted] text-sm">Calcolo in corso…</span>
               )}
               {latest && (
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-[--faint]">
                   Aggiornato al {latest.date}
                 </p>
               )}
             </div>
 
-            {/* Breakdown — Stat usa --ink/--muted ridefiniti → testo bianco */}
+            {/* Breakdown */}
             {latest && (
               <div className="flex gap-8 flex-wrap">
                 <Stat
@@ -135,8 +103,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Chart — superficie neutra sotto la zona colorata */}
-        <div className="bg-[--surface] px-2 pb-4 pt-2">
+        {/* Chart — a filo con la card, senza padding laterale extra */}
+        <div className="px-2 pb-4">
           <NetWorthChart snapshots={snapshots} />
         </div>
       </Card>
@@ -167,12 +135,9 @@ export default async function DashboardPage() {
                 href={`/dashboard/institutions/${inst.id}`}
                 className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
               >
-                {/* Avatar tile colorata */}
-                <div
-                  className="size-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-                  style={{ background: avatarColor(inst.name) }}
-                >
-                  <span className="text-base font-bold text-white">
+                {/* Avatar lettera */}
+                <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-[--brand-text]">
                     {inst.name[0].toUpperCase()}
                   </span>
                 </div>
@@ -182,7 +147,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-[--muted]">{KIND_LABEL[inst.kind] ?? inst.kind}</p>
                 </div>
 
-                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--brand] group-hover:translate-x-0.5 transition-all duration-150 shrink-0" />
+                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
               </Link>
             ))}
           </Card>

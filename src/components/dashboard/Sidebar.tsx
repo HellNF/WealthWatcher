@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  ChevronRight,
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -23,8 +24,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',          icon: LayoutDashboard, exact: true },
-  { label: 'Report',       href: '/dashboard/reports',  icon: BarChart3 },
+  { label: 'Dashboard', href: '/dashboard',         icon: LayoutDashboard, exact: true },
+  { label: 'Report',    href: '/dashboard/reports',  icon: BarChart3 },
   { label: 'Impostazioni', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -33,30 +34,16 @@ interface SidebarProps {
   signOutAction: () => Promise<void>
 }
 
-// Sidebar è sempre scura (light + dark mode). I CSS custom property cascadano
-// ai figli (BrandMark, ThemeToggle, nav link) ridefinendo i token semantici.
-// Sidebar sempre scura — teal/cyan identity, indipendente dal tema pagina.
-// I CSS custom property cascadano a BrandMark, ThemeToggle, nav link.
-const SIDEBAR_STYLE: React.CSSProperties = {
-  background:       'oklch(0.14 0.038 205)',
-  '--ink':          'oklch(0.94 0.006 205)',
-  '--muted':        'oklch(0.54 0.020 205)',
-  '--faint':        'oklch(0.38 0.012 205)',
-  '--border':       'oklch(0.22 0.032 205)',
-  '--surface':      'oklch(0.26 0.055 205)',   // active toggle button
-  '--surface-2':    'oklch(0.21 0.046 205)',   // nav hover bg / toggle container
-  '--brand-subtle': 'oklch(0.46 0.13 198)',    // active nav → teal pieno (4.8:1 su bianco ✓)
-  '--brand-text':   'oklch(1 0 0)',            // testo bianco su teal
-  '--shadow-sm':    '0 1px 3px oklch(0 0 0 / 0.40)',
-  '--ring':         'oklch(0.68 0.14 198 / 0.50)',
-} as React.CSSProperties
-
 export function Sidebar({ user, signOutAction }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
-  useEffect(() => { setMobileOpen(false) }, [pathname])
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
+  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMobileOpen(false)
@@ -79,18 +66,18 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100',
               active
-                ? 'bg-[--brand-subtle] text-[--brand-text] font-semibold shadow-[--shadow-sm]'
+                ? 'bg-[--brand-subtle] text-[--brand-text] font-medium'
                 : 'text-[--muted] hover:bg-[--surface-2] hover:text-[--ink]',
             )}
             aria-current={active ? 'page' : undefined}
           >
-            <item.icon
-              className={cn('size-[18px] shrink-0', active ? 'text-white' : '')}
-              strokeWidth={active ? 2 : 1.75}
-            />
+            <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
             <span>{item.label}</span>
+            {active && (
+              <ChevronRight className="size-3.5 ml-auto text-[--brand]" />
+            )}
           </Link>
         )
       })}
@@ -98,9 +85,9 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   )
 
   const userFooter = (
-    <div className="px-3 py-3 border-t border-[--border] space-y-3">
+    <div className="px-3 py-3 border-t border-[--border] space-y-2">
       <ThemeToggle mode="icon+label" className="w-full justify-center" />
-      <div className="flex items-center gap-2 px-1">
+      <div className="flex items-center gap-2 px-2 py-1">
         <div className="size-7 rounded-full bg-[--brand-subtle] flex items-center justify-center shrink-0">
           <span className="text-xs font-semibold text-[--brand-text]">
             {(user.name ?? user.email ?? '?')[0].toUpperCase()}
@@ -111,7 +98,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
             {user.name ?? user.email}
           </p>
           {user.role === 'admin' && (
-            <p className="text-[10px] text-[--muted]">admin</p>
+            <p className="text-[10px] text-[--brand-text]">admin</p>
           )}
         </div>
         <form action={signOutAction}>
@@ -132,24 +119,22 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     <>
       {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside
-        className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 border-r"
-        style={SIDEBAR_STYLE}
+        className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-[--border] bg-[--surface]"
         aria-label="Barra laterale"
       >
+        {/* Brand */}
         <div className="px-4 py-4 border-b border-[--border]">
           <Link href="/dashboard" aria-label="Torna alla dashboard">
             <BrandMark size="md" showName />
           </Link>
         </div>
+
         {navContent}
         {userFooter}
       </aside>
 
       {/* ── Mobile top bar ──────────────────────────────────────────────────── */}
-      <header
-        className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b backdrop-blur-md"
-        style={{ ...SIDEBAR_STYLE, background: 'oklch(0.14 0.040 162 / 0.92)' }}
-      >
+      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-sm">
         <button
           onClick={() => setMobileOpen(true)}
           className="text-[--muted] hover:text-[--ink] transition-colors"
@@ -169,18 +154,20 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       {/* ── Mobile drawer ───────────────────────────────────────────────────── */}
       {mobileOpen && (
         <>
+          {/* Overlay */}
           <div
-            className="fixed inset-0 z-[30] bg-black/50 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-[30] bg-black/40 backdrop-blur-sm lg:hidden"
             onClick={() => setMobileOpen(false)}
             aria-hidden
           />
+          {/* Drawer */}
           <aside
             className={cn(
-              'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col border-r lg:hidden',
+              'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col',
+              'bg-[--surface] border-r border-[--border] lg:hidden',
               'transition-transform duration-200 ease-out',
               mobileOpen ? 'translate-x-0' : '-translate-x-full',
             )}
-            style={SIDEBAR_STYLE}
             aria-label="Menu mobile"
           >
             <div className="px-4 py-4 border-b border-[--border] flex items-center justify-between">
