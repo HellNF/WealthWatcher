@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "backup": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/backup.ts",
+    "snapshot": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node -r tsconfig-paths/register scripts/snapshot.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
