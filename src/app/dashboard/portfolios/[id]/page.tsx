@@ -8,6 +8,7 @@ import { getPortfolioPositions } from '@/lib/positions'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { getInstrument } from '@/lib/instruments'
 import { fromMinor } from '@/lib/money'
+import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm from './AddTxnForm'
@@ -33,6 +34,15 @@ export default async function PortfolioPage({ params }: Props) {
   await refreshPortfolioPrices(user.id, id)
 
   const { positions, summary } = getPortfolioPositions(user.id, id)
+
+  // EUR equivalents for non-EUR currency buckets (today's rate)
+  const today = new Date().toISOString().slice(0, 10)
+  const eurEquivalents = new Map<string, number | null>()
+  for (const cur of summary.byCurrency) {
+    if (cur.currency !== 'EUR' && cur.totalMarketMinor !== null) {
+      eurEquivalents.set(cur.currency, await convertToEur(cur.totalMarketMinor, cur.currency, today))
+    }
+  }
 
   // Enrich txns with symbol + name for display
   const rawTxns = listTxns(user.id, id)
@@ -78,9 +88,19 @@ export default async function PortfolioPage({ params }: Props) {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-500">Valore att.</span>
-                  <span className="tabular-nums font-mono text-zinc-200">
-                    {cur.totalMarketMinor !== null ? fromMinor(cur.totalMarketMinor, cur.currency) : '—'}
-                  </span>
+                  <div className="text-right">
+                    <span className="tabular-nums font-mono text-zinc-200">
+                      {cur.totalMarketMinor !== null ? fromMinor(cur.totalMarketMinor, cur.currency) : '—'}
+                    </span>
+                    {cur.currency !== 'EUR' && cur.totalMarketMinor !== null && (() => {
+                      const eur = eurEquivalents.get(cur.currency)
+                      return eur != null ? (
+                        <span className="block text-xs text-zinc-500 tabular-nums font-mono">
+                          ≈ {fromMinor(eur, 'EUR')}
+                        </span>
+                      ) : null
+                    })()}
+                  </div>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-500">P/L non real.</span>

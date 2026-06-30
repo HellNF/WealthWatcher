@@ -3,6 +3,8 @@ import { requireUser } from '@/lib/dal'
 import { listInstitutions } from '@/lib/institutions'
 import { signOutAction } from './actions'
 import AddInstitutionForm from './AddInstitutionForm'
+import NetWorthChart from './NetWorthChart'
+import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,9 +14,22 @@ const KIND_LABEL: Record<string, string> = {
   both: 'Banca + Broker',
 }
 
+function formatEur(minor: number): string {
+  return (minor / 100).toLocaleString('it-IT', {
+    style: 'currency',
+    currency: 'EUR',
+  })
+}
+
 export default async function DashboardPage() {
   const user = await requireUser()
   const institutions = listInstitutions(user.id)
+
+  // Lazy snapshot — fire & forget; never blocks the page
+  await ensureTodaySnapshot(user.id).catch(() => {})
+
+  const snapshots = listSnapshots(user.id)
+  const latest    = snapshots.at(-1) ?? null
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -41,6 +56,53 @@ export default async function DashboardPage() {
       </header>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 space-y-8">
+
+        {/* ── Net worth card ── */}
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-400 mb-1">Net worth totale (EUR)</p>
+              {latest ? (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-zinc-100">
+                    {formatEur(latest.net_worth_eur_minor)}
+                  </span>
+                  {latest.stale === 1 && (
+                    <span className="text-xs text-amber-400 bg-amber-950 px-1.5 py-0.5 rounded">
+                      parziale
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-zinc-500 text-sm">Calcolo in corso…</span>
+              )}
+            </div>
+
+            {latest && (
+              <div className="text-right text-sm text-zinc-400 space-y-1">
+                <p>
+                  Investimenti:{' '}
+                  <span className="text-zinc-200 font-medium">
+                    {formatEur(latest.investments_eur_minor)}
+                  </span>
+                </p>
+                <p>
+                  Conti:{' '}
+                  <span className="text-zinc-200 font-medium">
+                    {formatEur(latest.accounts_eur_minor)}
+                  </span>
+                </p>
+                <p className="text-xs text-zinc-600">
+                  Aggiornato {latest.date}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <NetWorthChart snapshots={snapshots} />
+        </section>
+
+        {/* ── Institutions list ── */}
         <section className="space-y-4">
           <h1 className="text-lg font-semibold text-zinc-100">Istituzioni</h1>
           <AddInstitutionForm />
