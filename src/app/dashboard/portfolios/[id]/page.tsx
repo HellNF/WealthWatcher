@@ -11,7 +11,7 @@ import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm from './AddTxnForm'
-import { Breadcrumb } from '@/components/ui'
+import { Breadcrumb, Card, Stat, Badge } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +38,10 @@ export default async function PortfolioPage({ params }: Props) {
   const eurEquivalents = new Map<string, number | null>()
   for (const cur of summary.byCurrency) {
     if (cur.currency !== 'EUR' && cur.totalMarketMinor !== null) {
-      eurEquivalents.set(cur.currency, await convertToEur(cur.totalMarketMinor, cur.currency, today))
+      eurEquivalents.set(
+        cur.currency,
+        await convertToEur(cur.totalMarketMinor, cur.currency, today),
+      )
     }
   }
 
@@ -49,72 +52,73 @@ export default async function PortfolioPage({ params }: Props) {
   })
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-10">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
-        ...(institution ? [{ label: institution.name, href: `/dashboard/institutions/${institution.id}` }] : []),
+        ...(institution
+          ? [{ label: institution.name, href: `/dashboard/institutions/${institution.id}` }]
+          : []),
         { label: portfolio.name },
       ]} />
 
-      {/* Summary per currency */}
+      {/* ── Sommario per valuta ──────────────────────────────────────────── */}
       {summary.byCurrency.length > 0 && (
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {summary.byCurrency.map((cur) => (
-            <div key={cur.currency} className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-4 space-y-2">
-              <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wide">{cur.currency}</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Investito</span>
-                <span className="tabular-nums text-zinc-300 font-mono">{fromMinor(cur.totalCostMinor, cur.currency)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">Valore att.</span>
-                <div className="text-right">
-                  <span className="tabular-nums font-mono text-zinc-200">
-                    {cur.totalMarketMinor !== null ? fromMinor(cur.totalMarketMinor, cur.currency) : '—'}
-                  </span>
-                  {cur.currency !== 'EUR' && cur.totalMarketMinor !== null && (() => {
-                    const eur = eurEquivalents.get(cur.currency)
-                    return eur != null ? (
-                      <span className="block text-xs text-zinc-500 tabular-nums font-mono">
-                        ≈ {fromMinor(eur, 'EUR')}
-                      </span>
-                    ) : null
-                  })()}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {summary.byCurrency.map((cur) => {
+            const pl = cur.totalUnrealizedPlMinor
+            const eurEquiv = cur.currency !== 'EUR'
+              ? eurEquivalents.get(cur.currency)
+              : null
+
+            return (
+              <Card key={cur.currency} className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[--muted]">{cur.currency}</span>
+                  {pl !== null && (
+                    <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
+                      P/L {pl >= 0 ? '+' : ''}{fromMinor(pl, cur.currency)}
+                    </Badge>
+                  )}
                 </div>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">P/L non real.</span>
-                <span className={`tabular-nums font-mono ${
-                  cur.totalUnrealizedPlMinor === null ? 'text-zinc-600'
-                  : cur.totalUnrealizedPlMinor >= 0 ? 'text-emerald-400' : 'text-red-400'
-                }`}>
-                  {cur.totalUnrealizedPlMinor !== null
-                    ? `${cur.totalUnrealizedPlMinor >= 0 ? '+' : ''}${fromMinor(cur.totalUnrealizedPlMinor, cur.currency)}`
-                    : '—'}
-                </span>
-              </div>
-              {cur.totalRealizedPlMinor !== 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">P/L real.</span>
-                  <span className={`tabular-nums font-mono ${cur.totalRealizedPlMinor >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {cur.totalRealizedPlMinor >= 0 ? '+' : ''}{fromMinor(cur.totalRealizedPlMinor, cur.currency)}
-                  </span>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Stat
+                    label="Investito"
+                    value={fromMinor(cur.totalCostMinor, cur.currency)}
+                    size="sm"
+                  />
+                  <Stat
+                    label="Valore att."
+                    value={cur.totalMarketMinor !== null
+                      ? fromMinor(cur.totalMarketMinor, cur.currency)
+                      : '—'}
+                    size="sm"
+                    sub={eurEquiv != null ? `≈ ${fromMinor(eurEquiv, 'EUR')}` : undefined}
+                  />
                 </div>
-              )}
-            </div>
-          ))}
-        </section>
+
+                {cur.totalRealizedPlMinor !== 0 && (
+                  <Stat
+                    label="P/L realizzato"
+                    value={`${cur.totalRealizedPlMinor >= 0 ? '+' : ''}${fromMinor(cur.totalRealizedPlMinor, cur.currency)}`}
+                    size="sm"
+                  />
+                )}
+              </Card>
+            )
+          })}
+        </div>
       )}
 
-      {/* Positions */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Posizioni</h2>
+      {/* ── Posizioni ───────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-[--ink]">Posizioni</h2>
         <PositionsTable positions={positions} portfolioId={id} />
       </section>
 
-      {/* Add operation */}
+      {/* ── Operazioni ──────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">Operazioni</h2>
+        <h2 className="text-base font-semibold text-[--ink]">Operazioni</h2>
         <AddTxnForm portfolioId={id} />
         <TxnList txns={txnsWithSymbol} portfolioId={id} />
       </section>

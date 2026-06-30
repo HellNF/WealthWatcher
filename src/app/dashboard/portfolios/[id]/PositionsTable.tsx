@@ -1,8 +1,13 @@
 'use client'
 import { useTransition } from 'react'
+import { RefreshCw, TrendingUp } from 'lucide-react'
 import { refreshPricesAction } from './actions'
 import { fromMinor } from '@/lib/money'
 import type { Position } from '@/lib/investments/fifo'
+import {
+  Button, Badge, EmptyState,
+  TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
+} from '@/components/ui'
 
 function fmtDate(epoch: number | null): string {
   if (!epoch) return '—'
@@ -12,13 +17,13 @@ function fmtDate(epoch: number | null): string {
 }
 
 function PlCell({ minor, pct }: { minor: number | null; pct: string | null }) {
-  if (minor === null) return <span className="text-zinc-600 text-xs">—</span>
+  if (minor === null) return <span className="text-[--faint] text-xs">—</span>
   const positive = minor >= 0
   return (
-    <span className={`tabular-nums font-mono ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
+    <Badge variant={positive ? 'gain' : 'loss'}>
       {positive ? '+' : ''}{fromMinor(minor, 'EUR')}
-      {pct && <span className="ml-1 text-xs opacity-75">({positive ? '+' : ''}{pct}%)</span>}
-    </span>
+      {pct && <span className="ml-1 opacity-75">({positive ? '+' : ''}{pct}%)</span>}
+    </Badge>
   )
 }
 
@@ -35,76 +40,100 @@ export default function PositionsTable({
     startTransition(() => refreshPricesAction(portfolioId))
   }
 
-  if (positions.length === 0) {
+  const activePositions = positions.filter(p => parseFloat(p.remainingQty) > 0)
+
+  if (activePositions.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 py-6 text-center border border-dashed border-zinc-800 rounded-xl">
-        Nessuna posizione. Aggiungi un&rsquo;operazione per iniziare.
-      </p>
+      <EmptyState
+        icon={TrendingUp}
+        title="Nessuna posizione"
+        description="Aggiungi un'operazione di acquisto per iniziare a tracciare le tue posizioni."
+      />
     )
   }
 
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={handleRefresh}
           disabled={isPending}
-          className="rounded-lg border border-zinc-700 text-zinc-400 text-sm px-3 py-1.5
-                     hover:border-zinc-500 hover:text-zinc-200 disabled:opacity-50 transition"
+          loading={isPending}
         >
-          {isPending ? 'Aggiornamento…' : '↻ Aggiorna prezzi'}
-        </button>
+          <RefreshCw className="size-3.5" />
+          Aggiorna prezzi
+        </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-zinc-800">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-zinc-800 bg-zinc-950">
-              <th className="text-left px-4 py-2 text-zinc-500 font-medium">Strumento</th>
-              <th className="text-right px-4 py-2 text-zinc-500 font-medium">Qtà</th>
-              <th className="text-right px-4 py-2 text-zinc-500 font-medium">P.M. carico</th>
-              <th className="text-right px-4 py-2 text-zinc-500 font-medium">Prezzo att.</th>
-              <th className="text-right px-4 py-2 text-zinc-500 font-medium">Valore</th>
-              <th className="text-right px-4 py-2 text-zinc-500 font-medium">P/L non realiz.</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800/50">
-            {positions.filter(p => parseFloat(p.remainingQty) > 0).map((pos) => {
-              const avgCost = pos.costBasisMinor / Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+      <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <Table>
+          <TableHead>
+            <Tr>
+              <Th>Strumento</Th>
+              <Th className="text-right">Qtà</Th>
+              <Th className="text-right">P.M. carico</Th>
+              <Th className="text-right">Prezzo att.</Th>
+              <Th className="text-right">Valore</Th>
+              <Th className="text-right">P/L non real.</Th>
+            </Tr>
+          </TableHead>
+          <TableBody>
+            {activePositions.map((pos) => {
+              const avgCost = pos.costBasisMinor /
+                Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
               return (
-                <tr key={pos.symbol} className="bg-zinc-900 hover:bg-zinc-800/60 transition">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-zinc-100">{pos.name}</p>
-                    <p className="text-xs text-zinc-500">{pos.symbol} · {pos.currency}</p>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-zinc-300">
-                    {parseFloat(pos.remainingQty).toLocaleString('it-IT', { maximumFractionDigits: 8 })}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-zinc-400 text-xs font-mono">
-                    {avgCost.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                <Tr key={pos.symbol}>
+                  <Td>
+                    <p className="font-medium text-[--ink]">{pos.name}</p>
+                    <p className="text-xs text-[--muted]">{pos.symbol} · {pos.currency}</p>
+                  </Td>
+                  <Td numeric>
+                    <span className="text-[--ink]">
+                      {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
+                        maximumFractionDigits: 8,
+                      })}
+                    </span>
+                  </Td>
+                  <Td numeric>
+                    <span className="text-[--muted] text-xs">
+                      {avgCost.toLocaleString('it-IT', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4,
+                      })}
+                    </span>
+                  </Td>
+                  <Td numeric>
                     {pos.lastPrice ? (
-                      <div>
-                        <span className="tabular-nums text-zinc-200 font-mono">{parseFloat(pos.lastPrice).toLocaleString('it-IT', { minimumFractionDigits: 2 })}</span>
-                        <p className="text-xs text-zinc-600">{fmtDate(pos.lastPriceAt)}</p>
+                      <div className="text-right">
+                        <span className="text-[--ink]">
+                          {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                        <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
                       </div>
                     ) : (
-                      <span className="text-xs text-amber-500">stale</span>
+                      <Badge variant="warning">stale</Badge>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-mono text-zinc-200">
-                    {pos.marketValueMinor !== null ? fromMinor(pos.marketValueMinor, pos.currency) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </Td>
+                  <Td numeric>
+                    <span className="text-[--ink]">
+                      {pos.marketValueMinor !== null
+                        ? fromMinor(pos.marketValueMinor, pos.currency)
+                        : '—'}
+                    </span>
+                  </Td>
+                  <Td numeric>
                     <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               )
             })}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableWrapper>
     </div>
   )
 }

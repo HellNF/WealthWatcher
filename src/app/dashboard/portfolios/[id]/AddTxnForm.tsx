@@ -1,10 +1,15 @@
 'use client'
 import { useActionState, useState, useTransition, useRef } from 'react'
-import { addTxnAction, lookupIsinAction, fetchInstrumentDetailsAction,
-         extractKidAction, confirmKidAction,
-         type ActionState, type KidActionState, type ConfirmKidState } from './actions'
+import { X, RefreshCw, Search, Upload } from 'lucide-react'
+import {
+  addTxnAction, lookupIsinAction, fetchInstrumentDetailsAction,
+  extractKidAction, confirmKidAction,
+  type ActionState, type KidActionState, type ConfirmKidState,
+} from './actions'
 import type { IsinResult } from '@/lib/isin'
 import type { KidExtraction } from '@/lib/kid/extract'
+import { Button, Field, Input, Select, Badge, Card, CardHeader, CardTitle } from '@/components/ui'
+import { cn } from '@/lib/cn'
 
 const CLUSTER_LABELS: Record<string, string> = {
   etf: 'ETF', bond: 'Obbligazione/BTP', stock: 'Azione', crypto: 'Cripto', other: 'Altro',
@@ -26,43 +31,41 @@ const EMPTY: InstrFields = {
   isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo', ter: '',
 }
 
-// KID review state: fields that the user can edit after extraction
 interface KidReview {
-  name:       string
-  ter:        string
-  entry_cost: string
-  exit_cost:  string
-  sri:        string
+  name: string; ter: string; entry_cost: string; exit_cost: string; sri: string
 }
 
 function kidToReview(d: KidExtraction): KidReview {
   return {
     name:       d.name.value ?? '',
-    ter:        d.ter.value != null ? String(d.ter.value) : '',
+    ter:        d.ter.value        != null ? String(d.ter.value)        : '',
     entry_cost: d.entry_cost.value != null ? String(d.entry_cost.value) : '',
-    exit_cost:  d.exit_cost.value != null ? String(d.exit_cost.value) : '',
-    sri:        d.sri.value != null ? String(d.sri.value) : '',
+    exit_cost:  d.exit_cost.value  != null ? String(d.exit_cost.value)  : '',
+    sri:        d.sri.value        != null ? String(d.sri.value)        : '',
   }
 }
 
-function confidenceBadge(c: 'low' | 'medium' | 'high') {
-  const cls = c === 'high' ? 'text-emerald-400 bg-emerald-950' :
-              c === 'medium' ? 'text-amber-400 bg-amber-950' :
-              'text-red-400 bg-red-950'
-  return <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{c}</span>
+function ConfidenceBadge({ c }: { c: 'low' | 'medium' | 'high' }) {
+  return (
+    <Badge variant={c === 'high' ? 'success' : c === 'medium' ? 'warning' : 'danger'}>
+      {c}
+    </Badge>
+  )
 }
 
-export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
-  const [open, setOpen]           = useState(false)
-  const [type, setType]           = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
-  const [instr, setInstr]         = useState<InstrFields>(EMPTY)
-  const [unitPrice, setUnitPrice] = useState('')
-  const [hits, setHits]           = useState<IsinResult[]>([])
-  const [lookupErr, setLookupErr] = useState<string | null>(null)
-  const [isFetching, setIsFetching] = useState(false)
-  const [fetchMsg, setFetchMsg]     = useState<string | null>(null)
+// Classe comune per sezioni disclosure
+const sectionCls = 'rounded-xl border border-[--border] bg-[--surface-2] p-4 space-y-3'
 
-  // KID extraction state
+export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
+  const [open, setOpen]               = useState(false)
+  const [type, setType]               = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
+  const [instr, setInstr]             = useState<InstrFields>(EMPTY)
+  const [unitPrice, setUnitPrice]     = useState('')
+  const [hits, setHits]               = useState<IsinResult[]>([])
+  const [lookupErr, setLookupErr]     = useState<string | null>(null)
+  const [isFetching, setIsFetching]   = useState(false)
+  const [fetchMsg, setFetchMsg]       = useState<string | null>(null)
+
   const [kidExtracted, setKidExtracted] = useState<KidExtraction | null>(null)
   const [kidModel, setKidModel]         = useState<string>('')
   const [kidFilename, setKidFilename]   = useState<string>('')
@@ -74,14 +77,12 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   const [confirmKidState, confirmAction, confirmPending] =
     useActionState<ConfirmKidState, FormData>(confirmKidAction, undefined)
 
-  // Solo ISIN lookup usa useTransition (chiamata di rete separata).
-  // fetchDetails è una funzione async normale per evitare transizioni annidate.
   const [isLooking, startLookup] = useTransition()
 
   const boundAction = addTxnAction.bind(null, portfolioId)
   const [state, action, pending] = useActionState<ActionState, FormData>(boundAction, undefined)
 
-  const isBuySell  = type === 'buy' || type === 'sell'
+  const isBuySell  = type === 'buy'  || type === 'sell'
   const isDivOrFee = type === 'dividend' || type === 'fee'
 
   function setField(key: keyof InstrFields) {
@@ -107,15 +108,8 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   }
 
   function applyResult(r: IsinResult) {
-    setInstr((p) => ({
-      ...p,
-      symbol:       r.yahooSymbol,
-      name:         r.name,
-      cluster:      r.cluster,
-      price_source: r.priceSource,
-    }))
+    setInstr((p) => ({ ...p, symbol: r.yahooSymbol, name: r.name, cluster: r.cluster, price_source: r.priceSource }))
     setHits([])
-    // fetchDetails è async normale — nessun problema di transizioni annidate
     fetchDetails(r.yahooSymbol)
   }
 
@@ -126,13 +120,9 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     setHits([])
     startLookup(async () => {
       const results = await lookupIsinAction(isin)
-      if (results.length === 0) {
-        setLookupErr('Nessuno strumento trovato per questo ISIN.')
-      } else if (results.length === 1) {
-        applyResult(results[0])
-      } else {
-        setHits(results)
-      }
+      if (results.length === 0) setLookupErr('Nessuno strumento trovato per questo ISIN.')
+      else if (results.length === 1) applyResult(results[0])
+      else setHits(results)
     })
   }
 
@@ -171,80 +161,78 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-4 py-2 text-sm hover:bg-emerald-400 transition"
-      >
+      <Button onClick={() => setOpen(true)}>
         + Aggiungi operazione
-      </button>
+      </Button>
     )
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-300">Nuova operazione</h3>
-        <button onClick={handleClose} className="text-zinc-500 hover:text-zinc-300 text-sm transition">✕</button>
-      </div>
+    <Card className="space-y-5">
+      <CardHeader>
+        <CardTitle as="h3">Nuova operazione</CardTitle>
+        <button
+          onClick={handleClose}
+          className="text-[--faint] hover:text-[--ink] transition-colors"
+          aria-label="Chiudi"
+        >
+          <X className="size-4" />
+        </button>
+      </CardHeader>
 
       <form action={action} className="space-y-5">
 
-        {/* ── ISIN lookup ─────────────────────────────────────────────────── */}
-        <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/40 p-4 space-y-3">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Cerca per ISIN (opzionale)</p>
+        {/* ── ISIN lookup ──────────────────────────────────────────────────── */}
+        <div className={sectionCls}>
+          <p className="text-xs font-medium text-[--muted]">Cerca per ISIN (opzionale)</p>
           <div className="flex gap-2">
-            <input
+            <Input
               value={instr.isin}
               onChange={setField('isin')}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleLookup())}
               placeholder="es. IE00B3RBWM25"
               maxLength={12}
-              className="flex-1 rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none font-mono uppercase tracking-widest"
+              className="flex-1 font-mono uppercase tracking-widest"
             />
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleLookup}
               disabled={isLooking || !instr.isin.trim()}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300
-                         hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-40 transition whitespace-nowrap"
+              loading={isLooking}
             >
-              {isLooking ? 'Cerco…' : 'Cerca'}
-            </button>
+              <Search className="size-4" />
+              Cerca
+            </Button>
           </div>
 
-          {lookupErr && <p className="text-xs text-amber-400">{lookupErr}</p>}
+          {lookupErr && <p className="text-xs text-[--warning]">{lookupErr}</p>}
 
           {hits.length > 0 && (
             <div className="space-y-2">
-              <div>
-                <p className="text-xs text-zinc-400 font-medium">
-                  Lo stesso ETF/strumento è quotato su {hits.length} borse — scegli quella su cui hai comprato:
-                </p>
-                <p className="text-xs text-zinc-600 mt-0.5">
-                  Per un broker italiano tipicamente Borsa Italiana o Xetra.
-                </p>
-              </div>
+              <p className="text-xs text-[--muted]">
+                Lo stesso strumento è quotato su {hits.length} borse — scegli quella su cui hai comprato:
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {hits.map((r) => (
                   <button
                     key={r.figi}
                     type="button"
                     onClick={() => applyResult(r)}
-                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-left
-                               hover:border-emerald-500 hover:bg-zinc-800 transition group"
+                    className={cn(
+                      'rounded-lg border border-[--border] bg-[--surface] px-3 py-2.5 text-left',
+                      'hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors duration-100 group',
+                    )}
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono font-semibold text-zinc-100 group-hover:text-emerald-400 transition">
+                      <p className="text-sm font-mono font-semibold text-[--ink] group-hover:text-[--brand] transition-colors">
                         {r.yahooSymbol}
                       </p>
                       {(r.exchCode === 'IM' || r.exchCode === 'GY') && (
-                        <span className="text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800 rounded px-1.5 py-0.5">
-                          consigliato
-                        </span>
+                        <Badge variant="success">consigliato</Badge>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 mt-0.5">{r.exchLabel}</p>
+                    <p className="text-xs text-[--muted] mt-0.5">{r.exchLabel}</p>
                   </button>
                 ))}
               </div>
@@ -252,15 +240,19 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
           )}
         </div>
 
-        {/* ── KID import ──────────────────────────────────────────────────── */}
-        <div className="rounded-lg border border-zinc-700/60 bg-zinc-950/40 p-4 space-y-3">
-          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Importa dati da KID (opzionale)</p>
+        {/* ── KID import ───────────────────────────────────────────────────── */}
+        <div className={sectionCls}>
+          <p className="text-xs font-medium text-[--muted]">Importa dati da KID (opzionale)</p>
 
           {!kidExtracted ? (
             <div className="flex items-center gap-3">
-              <label className={`cursor-pointer rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300
-                hover:border-zinc-500 hover:text-zinc-100 transition ${kidPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                {kidPending ? 'Estrazione in corso…' : '↑ Carica PDF KID'}
+              <label className={cn(
+                'inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[--border]',
+                'text-sm text-[--ink] cursor-pointer hover:bg-[--surface] transition-colors duration-100',
+                kidPending && 'opacity-50 pointer-events-none',
+              )}>
+                <Upload className="size-4 text-[--muted]" />
+                {kidPending ? 'Estrazione in corso…' : 'Carica PDF KID'}
                 <input
                   ref={kidFileRef}
                   type="file"
@@ -269,341 +261,347 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleKidUpload(f) }}
                 />
               </label>
-              {kidErr && <p className="text-xs text-red-400">{kidErr}</p>}
+              {kidErr && <p className="text-xs text-[--danger]">{kidErr}</p>}
             </div>
           ) : (
-            /* Review panel */
             <div className="space-y-3">
-              <p className="text-xs text-zinc-400">
-                Campi estratti da <span className="font-mono text-zinc-300">{kidFilename}</span> via <span className="text-zinc-500">{kidModel}</span>.
+              <p className="text-xs text-[--muted]">
+                Campi estratti da{' '}
+                <span className="font-mono text-[--ink]">{kidFilename}</span>{' '}
+                via <span className="text-[--faint]">{kidModel}</span>.
                 Verifica e correggi prima di confermare.
               </p>
 
-              {/* Hidden fields for audit */}
-              <input type="hidden" name="filename" value={kidFilename} form="kid-confirm-form" />
-              <input type="hidden" name="model" value={kidModel} form="kid-confirm-form" />
-              <input type="hidden" name="extracted_json" value={JSON.stringify(kidExtracted)} form="kid-confirm-form" />
-              <input type="hidden" name="symbol" value={instr.symbol} form="kid-confirm-form" />
-              <input type="hidden" name="instr_name" value={instr.name} form="kid-confirm-form" />
-              <input type="hidden" name="cluster" value={instr.cluster} form="kid-confirm-form" />
-              <input type="hidden" name="currency" value={instr.currency} form="kid-confirm-form" />
+              {/* Hidden fields for audit — associati a kid-confirm-form */}
+              <input type="hidden" name="filename"       value={kidFilename}                   form="kid-confirm-form" />
+              <input type="hidden" name="model"          value={kidModel}                      form="kid-confirm-form" />
+              <input type="hidden" name="extracted_json" value={JSON.stringify(kidExtracted)}  form="kid-confirm-form" />
+              <input type="hidden" name="symbol"         value={instr.symbol}                  form="kid-confirm-form" />
+              <input type="hidden" name="instr_name"     value={instr.name}                    form="kid-confirm-form" />
+              <input type="hidden" name="cluster"        value={instr.cluster}                 form="kid-confirm-form" />
+              <input type="hidden" name="currency"       value={instr.currency}                form="kid-confirm-form" />
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Name */}
-                <div className="flex flex-col gap-1 col-span-2">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs text-zinc-500">Nome strumento</label>
-                    {confidenceBadge(kidExtracted.name.confidence)}
+                <Field
+                  label="Nome strumento"
+                  htmlFor="kid-name"
+                  className="col-span-2"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <ConfidenceBadge c={kidExtracted.name.confidence} />
                   </div>
-                  <input
-                    name="name" form="kid-confirm-form"
+                  <Input
+                    id="kid-name"
+                    name="name"
+                    form="kid-confirm-form"
                     value={kidReview!.name}
                     onChange={e => setKidReview(r => r ? { ...r, name: e.target.value } : r)}
-                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
                   />
-                </div>
+                </Field>
 
                 {/* TER */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs text-zinc-500">TER % / anno</label>
-                    {kidExtracted.ter.value != null && confidenceBadge(kidExtracted.ter.confidence)}
-                  </div>
-                  <input
-                    name="ter" form="kid-confirm-form"
+                <Field label="TER % / anno" htmlFor="kid-ter">
+                  {kidExtracted.ter.value != null && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <ConfidenceBadge c={kidExtracted.ter.confidence} />
+                    </div>
+                  )}
+                  <Input
+                    id="kid-ter"
+                    name="ter"
+                    form="kid-confirm-form"
                     value={kidReview!.ter}
                     onChange={e => setKidReview(r => r ? { ...r, ter: e.target.value } : r)}
                     placeholder="es. 0.20"
-                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
                   />
-                </div>
+                </Field>
 
                 {/* SRI */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs text-zinc-500">SRI (rischio 1–7)</label>
-                    {kidExtracted.sri.value != null && confidenceBadge(kidExtracted.sri.confidence)}
-                  </div>
-                  <input
-                    name="sri" form="kid-confirm-form"
-                    type="number" min="1" max="7"
+                <Field label="SRI (rischio 1–7)" htmlFor="kid-sri">
+                  {kidExtracted.sri.value != null && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <ConfidenceBadge c={kidExtracted.sri.confidence} />
+                    </div>
+                  )}
+                  <Input
+                    id="kid-sri"
+                    name="sri"
+                    form="kid-confirm-form"
+                    type="number"
+                    min="1"
+                    max="7"
                     value={kidReview!.sri}
                     onChange={e => setKidReview(r => r ? { ...r, sri: e.target.value } : r)}
                     placeholder="4"
-                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
                   />
-                </div>
+                </Field>
 
                 {/* Entry cost */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs text-zinc-500">Costo ingresso %</label>
-                    {kidExtracted.entry_cost.value != null && confidenceBadge(kidExtracted.entry_cost.confidence)}
-                  </div>
-                  <input
-                    name="entry_cost" form="kid-confirm-form"
+                <Field label="Costo ingresso %" htmlFor="kid-entry">
+                  {kidExtracted.entry_cost.value != null && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <ConfidenceBadge c={kidExtracted.entry_cost.confidence} />
+                    </div>
+                  )}
+                  <Input
+                    id="kid-entry"
+                    name="entry_cost"
+                    form="kid-confirm-form"
                     value={kidReview!.entry_cost}
                     onChange={e => setKidReview(r => r ? { ...r, entry_cost: e.target.value } : r)}
                     placeholder="es. 3.0"
-                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
                   />
-                </div>
+                </Field>
 
                 {/* Exit cost */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-xs text-zinc-500">Costo uscita %</label>
-                    {kidExtracted.exit_cost.value != null && confidenceBadge(kidExtracted.exit_cost.confidence)}
-                  </div>
-                  <input
-                    name="exit_cost" form="kid-confirm-form"
+                <Field label="Costo uscita %" htmlFor="kid-exit">
+                  {kidExtracted.exit_cost.value != null && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <ConfidenceBadge c={kidExtracted.exit_cost.confidence} />
+                    </div>
+                  )}
+                  <Input
+                    id="kid-exit"
+                    name="exit_cost"
+                    form="kid-confirm-form"
                     value={kidReview!.exit_cost}
                     onChange={e => setKidReview(r => r ? { ...r, exit_cost: e.target.value } : r)}
                     placeholder="es. 0"
-                    className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
                   />
-                </div>
+                </Field>
               </div>
 
-              {/* Benchmark + taxation note (read-only, informational) */}
               {kidExtracted.benchmark.value && (
-                <p className="text-xs text-zinc-500">
-                  Benchmark: <span className="text-zinc-400">{kidExtracted.benchmark.value}</span>
-                  {' '}{confidenceBadge(kidExtracted.benchmark.confidence)}
+                <p className="text-xs text-[--muted]">
+                  Benchmark: <span className="text-[--ink]">{kidExtracted.benchmark.value}</span>
+                  {' '}<ConfidenceBadge c={kidExtracted.benchmark.confidence} />
                 </p>
               )}
               {kidExtracted.taxation_note.value && (
-                <p className="text-xs text-zinc-500">
-                  Fiscalità: <span className="text-zinc-400">{kidExtracted.taxation_note.value}</span>
+                <p className="text-xs text-[--muted]">
+                  Fiscalità: <span className="text-[--ink]">{kidExtracted.taxation_note.value}</span>
                 </p>
               )}
 
+              {/* Il form kid-confirm-form è NESTED qui — questo è intenzionale e load-bearing */}
               <form id="kid-confirm-form" action={confirmAction} className="flex items-center gap-3 pt-1">
-                <button
+                <Button
                   type="submit"
                   disabled={confirmPending || !instr.symbol}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 transition"
+                  loading={confirmPending}
                 >
-                  {confirmPending ? 'Salvo…' : 'Conferma dati KID'}
-                </button>
-                <button
+                  Conferma dati KID
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => { setKidExtracted(null); setKidReview(null); setKidErr(null); if (kidFileRef.current) kidFileRef.current.value = '' }}
-                  className="text-sm text-zinc-500 hover:text-zinc-300 transition"
+                  variant="ghost"
+                  onClick={() => {
+                    setKidExtracted(null)
+                    setKidReview(null)
+                    setKidErr(null)
+                    if (kidFileRef.current) kidFileRef.current.value = ''
+                  }}
                 >
                   Annulla
-                </button>
-                {!instr.symbol && <p className="text-xs text-amber-400">Compila prima il simbolo strumento</p>}
+                </Button>
+                {!instr.symbol && (
+                  <p className="text-xs text-[--warning]">Compila prima il simbolo strumento</p>
+                )}
               </form>
 
-              {confirmKidState?.error   && <p className="text-sm text-red-400">{confirmKidState.error}</p>}
-              {confirmKidState?.success && <p className="text-sm text-emerald-400">{confirmKidState.success}</p>}
+              {confirmKidState?.error   && <p className="text-sm text-[--danger]">{confirmKidState.error}</p>}
+              {confirmKidState?.success && <p className="text-sm text-[--brand]">{confirmKidState.success}</p>}
             </div>
           )}
         </div>
 
-        {/* ── Tipo + data ─────────────────────────────────────────────────── */}
+        {/* ── Tipo + data ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Tipo</label>
-            <select
+          <Field label="Tipo" htmlFor="txn-type">
+            <Select
+              id="txn-type"
               name="type"
               value={type}
               onChange={(e) => setType(e.target.value as typeof type)}
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               <option value="buy">Acquisto</option>
               <option value="sell">Vendita</option>
               <option value="dividend">Dividendo</option>
               <option value="fee">Commissione</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Data</label>
-            <input
+            </Select>
+          </Field>
+          <Field label="Data" htmlFor="txn-date">
+            <Input
+              id="txn-date"
               type="date"
               name="trade_date"
               required
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             />
-          </div>
+          </Field>
         </div>
 
+        {/* ISIN hidden — il valore controllato viene portato nel form principale */}
         <input type="hidden" name="isin" value={instr.isin} />
 
-        {/* ── Strumento (auto-filled da ISIN) ──────────────────────────────── */}
+        {/* ── Strumento ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Simbolo (ticker)</label>
-            <input
+          <Field label="Simbolo (ticker)" htmlFor="txn-symbol">
+            <Input
+              id="txn-symbol"
               name="symbol"
               value={instr.symbol}
               onChange={setField('symbol')}
               required
               placeholder="es. VWCE.DE"
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none uppercase"
+              className="uppercase"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Nome strumento</label>
-            <input
+          </Field>
+          <Field label="Nome strumento" htmlFor="txn-instr-name">
+            <Input
+              id="txn-instr-name"
               name="instrument_name"
               value={instr.name}
               onChange={setField('name')}
               required
               placeholder="es. Vanguard FTSE All-World"
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
             />
-          </div>
+          </Field>
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Tipo strumento</label>
-            <select
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Field label="Tipo strumento" htmlFor="txn-cluster">
+            <Select
+              id="txn-cluster"
               name="cluster"
               value={instr.cluster}
               onChange={setField('cluster')}
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(CLUSTER_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Valuta</label>
-            <input
+            </Select>
+          </Field>
+          <Field label="Valuta" htmlFor="txn-currency">
+            <Input
+              id="txn-currency"
               name="currency"
               value={instr.currency}
               onChange={setField('currency')}
               maxLength={3}
               required
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         focus:border-emerald-500 outline-none uppercase"
+              className="uppercase"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Fonte prezzo</label>
-            <select
+          </Field>
+          <Field label="Fonte prezzo" htmlFor="txn-source">
+            <Select
+              id="txn-source"
               name="price_source"
               value={instr.price_source}
               onChange={setField('price_source')}
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:border-emerald-500 outline-none"
             >
               {Object.entries(SOURCE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">TER % / anno</label>
-            <input
+            </Select>
+          </Field>
+          <Field label="TER % / anno" htmlFor="txn-ter">
+            <Input
+              id="txn-ter"
               name="ter"
               value={instr.ter}
               onChange={setField('ter')}
               placeholder="es. 0.22"
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
             />
-          </div>
+          </Field>
         </div>
 
-        {/* ── Campi buy/sell ────────────────────────────────────────────────── */}
+        {/* ── Campi buy/sell ─────────────────────────────────────────────────── */}
         {isBuySell && (
           <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Quantità</label>
-              <input
+            <Field label="Quantità" htmlFor="txn-qty">
+              <Input
+                id="txn-qty"
                 name="quantity"
                 required
                 placeholder="es. 10"
-                className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                           placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
               />
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-zinc-500">
+            </Field>
+            <Field htmlFor="txn-price">
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="txn-price" className="text-sm font-medium text-[--ink]">
                   Prezzo unitario
-                  {isFetching && <span className="ml-1 text-zinc-600 animate-pulse">aggiorno…</span>}
+                  {isFetching && (
+                    <span className="ml-1 text-[--faint] animate-pulse text-xs">aggiorno…</span>
+                  )}
                 </label>
                 {!isFetching && instr.symbol && (
                   <button
                     type="button"
                     onClick={() => fetchDetails(instr.symbol)}
-                    className="text-xs text-zinc-600 hover:text-emerald-400 transition"
-                    title="Ricarica prezzo corrente da Yahoo Finance"
+                    className="text-xs text-[--faint] hover:text-[--brand] transition-colors flex items-center gap-1"
+                    title="Ricarica prezzo corrente"
                   >
-                    ↻ aggiorna
+                    <RefreshCw className="size-3" />
+                    aggiorna
                   </button>
                 )}
               </div>
-              <input
+              <Input
+                id="txn-price"
                 name="unit_price"
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
                 required
                 placeholder="es. 95.42"
-                className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                           placeholder:text-zinc-600 focus:border-emerald-500 outline-none font-mono"
+                className="font-mono"
               />
-              {fetchMsg && <p className="text-xs text-amber-400 mt-1">{fetchMsg}</p>}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Commissione</label>
-              <input
+              {fetchMsg && <p className="text-xs text-[--warning] mt-1">{fetchMsg}</p>}
+            </Field>
+            <Field label="Commissione" htmlFor="txn-fee">
+              <Input
+                id="txn-fee"
                 name="fee"
                 placeholder="es. 4.95"
-                className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                           placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
               />
-            </div>
+            </Field>
           </div>
         )}
 
-        {/* ── Importo dividend/fee ─────────────────────────────────────────── */}
+        {/* ── Importo dividend/fee ────────────────────────────────────────────── */}
         {isDivOrFee && (
-          <div className="flex flex-col gap-1 max-w-xs">
-            <label className="text-xs text-zinc-500">
-              {type === 'dividend' ? 'Importo dividendo' : 'Importo commissione'}
-            </label>
-            <input
+          <Field
+            label={type === 'dividend' ? 'Importo dividendo' : 'Importo commissione'}
+            htmlFor="txn-amount"
+            className="max-w-xs"
+          >
+            <Input
+              id="txn-amount"
               name="amount"
               required
               placeholder="es. 12.50"
-              className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                         placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
             />
-          </div>
+          </Field>
         )}
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-500">Nota (opzionale)</label>
-          <input
+        <Field label="Nota (opzionale)" htmlFor="txn-note">
+          <Input
+            id="txn-note"
             name="note"
-            className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
-                       placeholder:text-zinc-600 focus:border-emerald-500 outline-none"
           />
-        </div>
+        </Field>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-emerald-500 text-zinc-950 font-medium px-5 py-2 text-sm hover:bg-emerald-400 disabled:opacity-50 transition"
-          >
-            {pending ? 'Salvo…' : 'Salva operazione'}
-          </button>
-          <button type="button" onClick={handleClose} className="text-sm text-zinc-500 hover:text-zinc-300 transition">
+        <div className="flex items-center gap-3 pt-1">
+          <Button type="submit" loading={pending}>
+            Salva operazione
+          </Button>
+          <Button type="button" variant="ghost" onClick={handleClose}>
             Annulla
-          </button>
+          </Button>
         </div>
 
-        {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
+        {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
       </form>
-    </div>
+    </Card>
   )
 }
