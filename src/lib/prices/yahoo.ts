@@ -64,26 +64,43 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
   try {
     const yf = await import('yahoo-finance2')
 
-    const quote = await yf.default.quote(symbol)
-    const q = quote as { regularMarketPrice?: number; currency?: string }
+    // Strategia 1: quote() — funziona per ETF, azioni, crypto
+    try {
+      const quote = await yf.default.quote(symbol)
+      const q = quote as { regularMarketPrice?: number; currency?: string }
+      if (q.regularMarketPrice && q.currency) {
+        const norm = normalizeCurrencyAndPrice(q.currency, q.regularMarketPrice)
+        price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
+        currency = norm.currency
+      }
+    } catch { /* quote() non disponibile per questo ticker */ }
 
-    if (q.regularMarketPrice != null && q.currency) {
-      const norm = normalizeCurrencyAndPrice(q.currency, q.regularMarketPrice)
-      price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
-      currency = norm.currency
+    // Strategia 2: quoteSummary[price] — necessario per fondi comuni (0P... tickers)
+    // dove regularMarketPrice è null/0 nel modulo quote standard
+    if (!price) {
+      try {
+        const summary = await yf.default.quoteSummary(symbol, { modules: ['price'] })
+        const p = (summary as {
+          price?: { regularMarketPrice?: number; currency?: string }
+        }).price
+        if (p?.regularMarketPrice && p?.currency) {
+          const norm = normalizeCurrencyAndPrice(p.currency, p.regularMarketPrice)
+          price    = norm.price.toFixed(6).replace(/\.?0+$/, '')
+          currency = norm.currency
+        }
+      } catch { /* anche quoteSummary fallito */ }
     }
 
-    // TER only available for funds/ETFs via fundProfile
+    // TER via fundProfile (ETF e fondi comuni)
     try {
       const summary = await yf.default.quoteSummary(symbol, { modules: ['fundProfile'] })
       const fp = (summary as { fundProfile?: { annualReportExpenseRatio?: number } }).fundProfile
       if (fp?.annualReportExpenseRatio != null) {
-        // Yahoo returns decimal (0.0022 = 0.22%) — convert to percentage string
         ter = (fp.annualReportExpenseRatio * 100).toFixed(4).replace(/\.?0+$/, '')
       }
-    } catch { /* non-fund or field not available */ }
+    } catch { /* non-fund o campo non disponibile */ }
 
-  } catch { /* provider down or invalid symbol */ }
+  } catch { /* provider down o simbolo non valido */ }
 
   return { price, currency, ter }
 }

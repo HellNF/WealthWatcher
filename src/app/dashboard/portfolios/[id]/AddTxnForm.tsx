@@ -31,6 +31,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   const [hits, setHits]           = useState<IsinResult[]>([])
   const [lookupErr, setLookupErr] = useState<string | null>(null)
   const [isFetching, setIsFetching] = useState(false)
+  const [fetchMsg, setFetchMsg]     = useState<string | null>(null)
 
   // Solo ISIN lookup usa useTransition (chiamata di rete separata).
   // fetchDetails è una funzione async normale per evitare transizioni annidate.
@@ -50,11 +51,15 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
   async function fetchDetails(symbol: string) {
     if (!symbol || isFetching) return
     setIsFetching(true)
+    setFetchMsg(null)
     try {
       const det = await fetchInstrumentDetailsAction(symbol)
       if (det.price)    setUnitPrice(det.price)
       if (det.currency) setInstr((p) => ({ ...p, currency: det.currency! }))
       if (det.ter)      setInstr((p) => ({ ...p, ter: det.ter! }))
+      if (!det.price)   setFetchMsg('Prezzo non disponibile — inseriscilo manualmente.')
+    } catch {
+      setFetchMsg('Errore nel recupero del prezzo.')
     } finally {
       setIsFetching(false)
     }
@@ -96,6 +101,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     setUnitPrice('')
     setHits([])
     setLookupErr(null)
+    setFetchMsg(null)
   }
 
   if (!open) {
@@ -313,6 +319,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
                 className="rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100
                            placeholder:text-zinc-600 focus:border-emerald-500 outline-none font-mono"
               />
+              {fetchMsg && <p className="text-xs text-amber-400 mt-1">{fetchMsg}</p>}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-zinc-500">Commissione</label>
