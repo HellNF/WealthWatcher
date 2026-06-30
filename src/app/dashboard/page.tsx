@@ -4,8 +4,8 @@ import AddInstitutionForm from './AddInstitutionForm'
 import NetWorthChart from './NetWorthChart'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 import {
-  Card, CardHeader, CardTitle,
-  Stat, Badge, EmptyState,
+  Card,
+  Stat, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
 import { Building2, ChevronRight, TrendingUp } from 'lucide-react'
@@ -53,40 +53,53 @@ export default async function DashboardPage() {
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
       <Card noPadding className="overflow-hidden">
-        {/* Zona colorata — stats sul brand-subtle */}
-        <div className="bg-[--brand-subtle] px-6 pt-6 pb-5">
+        {/* Hero gradiente teal→cyan — testo sempre bianco */}
+        <div
+          className="px-6 pt-6 pb-5"
+          style={{
+            background: 'linear-gradient(135deg, var(--brand-grad-from), var(--brand-grad-to))',
+            '--ink':   'oklch(1 0 0)',
+            '--muted': 'oklch(1 0 0 / 0.65)',
+            '--faint': 'oklch(1 0 0 / 0.45)',
+          } as React.CSSProperties}
+        >
           <div className="flex items-start justify-between gap-6 flex-wrap">
             {/* Valore principale */}
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-[--brand-text] uppercase tracking-widest opacity-70">
+              <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">
                 Patrimonio netto
               </p>
               {latest ? (
                 <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-4xl font-bold font-mono tabular-nums text-[--ink] leading-none">
+                  <span className="text-4xl font-bold font-mono tabular-nums text-white leading-none">
                     {formatEur(latest.net_worth_eur_minor)}
                   </span>
                   {delta !== null && (
-                    <Badge variant={delta >= 0 ? 'gain' : 'loss'} className="mb-1">
-                      {delta >= 0 ? '+' : ''}
-                      {formatEurCompact(delta)}
-                    </Badge>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold mb-1 ${
+                      delta >= 0
+                        ? 'bg-white/20 text-white'
+                        : 'bg-black/20 text-red-200'
+                    }`}>
+                      {delta >= 0 ? '+' : ''}{formatEurCompact(delta)}
+                    </span>
                   )}
                   {latest.stale === 1 && (
-                    <Badge variant="warning" className="mb-1">parziale</Badge>
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium mb-1 bg-white/15 text-white/75">
+                      parziale
+                    </span>
                   )}
                 </div>
               ) : (
-                <span className="text-[--brand-text] text-sm opacity-70">Calcolo in corso…</span>
+                <span className="text-white/60 text-sm">Calcolo in corso…</span>
               )}
               {latest && (
-                <p className="text-xs text-[--brand-text] opacity-60">
+                <p className="text-xs text-white/45">
                   Aggiornato al {latest.date}
                 </p>
               )}
             </div>
 
-            {/* Breakdown */}
+            {/* Breakdown — Stat usa --ink/--muted ridefiniti → testo bianco */}
             {latest && (
               <div className="flex gap-8 flex-wrap">
                 <Stat

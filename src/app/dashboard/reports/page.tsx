@@ -128,7 +128,7 @@ export default async function ReportsPage({ searchParams }: Props) {
             </Card>
             <Card>
               <p className="text-xs font-medium text-[--muted] uppercase tracking-wide mb-1.5">Entrate</p>
-              <p className="text-2xl font-semibold text-[--brand] tabular-nums font-mono leading-none">
+              <p className="text-2xl font-semibold text-[--gain] tabular-nums font-mono leading-none">
                 +{formatMoney(report.totalInflow, 'EUR')}
               </p>
             </Card>
@@ -136,7 +136,7 @@ export default async function ReportsPage({ searchParams }: Props) {
               <p className="text-xs font-medium text-[--muted] uppercase tracking-wide mb-1.5">Saldo periodo</p>
               <p className={[
                 'text-2xl font-semibold tabular-nums font-mono leading-none',
-                report.totalOutflow + report.totalInflow >= 0 ? 'text-[--brand]' : 'text-[--danger]',
+                report.totalOutflow + report.totalInflow >= 0 ? 'text-[--gain]' : 'text-[--danger]',
               ].join(' ')}>
                 {report.totalOutflow + report.totalInflow >= 0 ? '+' : ''}
                 {fromMinor(report.totalOutflow + report.totalInflow, 'EUR')}

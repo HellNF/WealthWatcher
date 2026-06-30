@@ -35,18 +35,20 @@ interface SidebarProps {
 
 // Sidebar è sempre scura (light + dark mode). I CSS custom property cascadano
 // ai figli (BrandMark, ThemeToggle, nav link) ridefinendo i token semantici.
+// Sidebar sempre scura — teal/cyan identity, indipendente dal tema pagina.
+// I CSS custom property cascadano a BrandMark, ThemeToggle, nav link.
 const SIDEBAR_STYLE: React.CSSProperties = {
-  background:       'oklch(0.14 0.040 162)',
-  '--ink':          'oklch(0.94 0.006 160)',
-  '--muted':        'oklch(0.54 0.024 160)',
-  '--faint':        'oklch(0.38 0.014 160)',
-  '--border':       'oklch(0.22 0.034 162)',
-  '--surface':      'oklch(0.26 0.062 162)',   // active toggle button
-  '--surface-2':    'oklch(0.21 0.050 162)',   // nav hover bg / toggle container
-  '--brand-subtle': 'oklch(0.55 0.17 162)',    // active nav item → emerald pieno
-  '--brand-text':   'oklch(1 0 0)',            // active nav item → testo bianco
+  background:       'oklch(0.14 0.038 205)',
+  '--ink':          'oklch(0.94 0.006 205)',
+  '--muted':        'oklch(0.54 0.020 205)',
+  '--faint':        'oklch(0.38 0.012 205)',
+  '--border':       'oklch(0.22 0.032 205)',
+  '--surface':      'oklch(0.26 0.055 205)',   // active toggle button
+  '--surface-2':    'oklch(0.21 0.046 205)',   // nav hover bg / toggle container
+  '--brand-subtle': 'oklch(0.46 0.13 198)',    // active nav → teal pieno (4.8:1 su bianco ✓)
+  '--brand-text':   'oklch(1 0 0)',            // testo bianco su teal
   '--shadow-sm':    '0 1px 3px oklch(0 0 0 / 0.40)',
-  '--ring':         'oklch(0.72 0.18 162 / 0.50)',
+  '--ring':         'oklch(0.68 0.14 198 / 0.50)',
 } as React.CSSProperties
 
 export function Sidebar({ user, signOutAction }: SidebarProps) {

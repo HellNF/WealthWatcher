@@ -42,22 +42,25 @@ export default function NetWorthChart({ snapshots }: Props) {
   }))
 
   // Token values matched to OKLCH definitions in globals.css
+  // Brand: teal/cyan — distinto dal gain (verde P/L)
   const colors = isDark
     ? {
-        brand:    '#34d399', // emerald-400 ≈ --brand dark
-        grid:     'oklch(0.290 0.020 160)', // --border dark
-        axis:     'oklch(0.42 0.014 160)',  // --faint dark
-        tooltipBg:     '#141e18',           // ≈ --surface dark
-        tooltipBorder: 'oklch(0.290 0.020 160)',
-        tooltipLabel:  'oklch(0.60 0.022 160)', // --muted dark
+        brand:    '#2dd4bf', // teal-400 ≈ --brand dark oklch(0.68 0.14 198)
+        brandFill:'#14b8a6', // teal-500 per fill gradient
+        grid:     'oklch(0.290 0.018 205)', // --border dark
+        axis:     'oklch(0.42 0.012 205)',  // --faint dark
+        tooltipBg:     '#131c1f',           // ≈ --surface dark oklch(0.155 0.012 205)
+        tooltipBorder: 'oklch(0.290 0.018 205)',
+        tooltipLabel:  'oklch(0.60 0.018 205)', // --muted dark
       }
     : {
-        brand:    '#059669', // emerald-600 ≈ --brand light
-        grid:     'oklch(0.836 0.012 160)', // --border light
-        axis:     'oklch(0.56 0.014 160)',  // --faint light
+        brand:    '#0f766e', // teal-700 ≈ --brand light oklch(0.46 0.12 198)
+        brandFill:'#0d9488', // teal-600 per fill gradient
+        grid:     'oklch(0.836 0.010 205)', // --border light
+        axis:     'oklch(0.56 0.012 205)',  // --faint light
         tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.836 0.012 160)',
-        tooltipLabel:  'oklch(0.40 0.022 160)', // --muted light
+        tooltipBorder: 'oklch(0.836 0.010 205)',
+        tooltipLabel:  'oklch(0.40 0.018 205)', // --muted light
       }
 
   return (
