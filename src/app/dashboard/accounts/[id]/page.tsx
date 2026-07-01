@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getAccountForUser } from '@/lib/accounts'
+import { getAccountForUser, getAccountBalanceMinor } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { listTransactions, listAllCategories } from '@/lib/transactions'
 import TransactionTable from './TransactionTable'
+import SetBalanceForm from './SetBalanceForm'
 import { Breadcrumb, Card, Stat } from '@/components/ui'
 import { fromMinor } from '@/lib/money'
 import { Upload, BarChart3 } from 'lucide-react'
@@ -33,9 +34,12 @@ export default async function AccountPage({ params }: Props) {
   const transactions = listTransactions(user.id, id)
   const categories = listAllCategories()
 
-  // Saldo calcolato dalla somma dei movimenti importati
-  const balanceMinor = transactions.reduce((sum, t) => sum + t.amount_minor, 0)
+  // Saldo: usa il saldo di riferimento manuale se impostato, altrimenti somma i
+  // movimenti (fonte unica: getAccountBalanceMinor, condivisa col net worth).
+  const balanceMinor = getAccountBalanceMinor(id)
   const hasTxns = transactions.length > 0
+  const today = new Date().toISOString().slice(0, 10)
+  const prefillAmount = (balanceMinor / 100).toFixed(2)
 
   const firstDate = hasTxns
     ? formatDate(transactions[transactions.length - 1].booked_date)
@@ -50,30 +54,39 @@ export default async function AccountPage({ params }: Props) {
         { label: account.name },
       ]} />
 
-      {/* Stats */}
-      <Card className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-        <Stat
-          label="Saldo movimenti"
-          value={fromMinor(balanceMinor, account.currency)}
-          delta={hasTxns ? balanceMinor : null}
-          deltaLabel={balanceMinor >= 0 ? 'positivo' : 'negativo'}
-          size="sm"
-        />
-        <Stat
-          label="Valuta"
-          value={account.currency}
-          size="sm"
-        />
-        <Stat
-          label="Movimenti"
-          value={transactions.length.toLocaleString('it-IT')}
-          size="sm"
-        />
-        <Stat
-          label="Periodo"
-          value={hasTxns ? `${firstDate} – ${lastDate}` : '—'}
-          size="sm"
-        />
+      {/* Stats + gestione saldo */}
+      <Card className="space-y-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <Stat
+            label="Saldo"
+            value={fromMinor(balanceMinor, account.currency)}
+            size="sm"
+          />
+          <Stat
+            label="Valuta"
+            value={account.currency}
+            size="sm"
+          />
+          <Stat
+            label="Movimenti"
+            value={transactions.length.toLocaleString('it-IT')}
+            size="sm"
+          />
+          <Stat
+            label="Periodo"
+            value={hasTxns ? `${firstDate} – ${lastDate}` : '—'}
+            size="sm"
+          />
+        </div>
+        <div className="pt-4 border-t border-[--border]">
+          <SetBalanceForm
+            accountId={id}
+            currency={account.currency}
+            today={today}
+            anchorDate={account.anchor_date}
+            prefillAmount={prefillAmount}
+          />
+        </div>
       </Card>
 
       {/* Azioni */}

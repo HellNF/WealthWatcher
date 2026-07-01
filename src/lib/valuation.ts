@@ -22,12 +22,19 @@ interface AccountBalance {
 }
 
 function getAccountBalances(userId: number): AccountBalance[] {
+  // Saldo anchor-aware: con saldo di riferimento impostato usa quello + i movimenti
+  // successivi; altrimenti somma l'intero storico. Speculare a getAccountBalanceMinor
+  // in src/lib/accounts.ts (unica logica di saldo dell'app).
   const rows = sqlite.prepare(`
     SELECT
       ba.id            AS accountId,
       ba.name          AS name,
       ba.currency      AS currency,
-      COALESCE(SUM(t.amount_minor), 0) AS balanceMinor
+      CASE WHEN ba.anchor_balance_minor IS NOT NULL
+        THEN ba.anchor_balance_minor
+             + COALESCE(SUM(CASE WHEN t.booked_date > ba.anchor_date THEN t.amount_minor END), 0)
+        ELSE COALESCE(SUM(t.amount_minor), 0)
+      END AS balanceMinor
     FROM bank_accounts ba
     LEFT JOIN transactions t ON t.bank_account_id = ba.id
     WHERE ba.owner_id = ?

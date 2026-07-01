@@ -67,6 +67,11 @@ export const bankAccounts = sqliteTable(
     owner_id:       integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     name:           text('name').notNull(),
     currency:       text('currency').notNull().default('EUR'),
+    // Manual balance anchor: the real account balance as of `anchor_date`.
+    // Displayed balance = anchor_balance_minor + Σ(movimenti con booked_date > anchor_date).
+    // Null = nessun saldo impostato → si somma l'intero storico movimenti.
+    anchor_balance_minor: integer('anchor_balance_minor'), // signed minor units, nullable
+    anchor_date:          text('anchor_date'),             // ISO YYYY-MM-DD, nullable
     created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [

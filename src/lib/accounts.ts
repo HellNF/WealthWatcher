@@ -1,7 +1,7 @@
 // src/lib/accounts.ts — BankAccount repository.
 // Ownership access mirrors src/lib/institutions.ts: owner OR explicit share.
 import { and, desc, eq, exists, or, sql } from 'drizzle-orm'
-import { db } from '@/db'
+import { db, sqlite } from '@/db'
 import { bankAccounts, shares } from '@/db/schema'
 import type { BankAccount } from '@/db/schema'
 
@@ -62,4 +62,52 @@ export function createAccount(
     .returning()
     .get()
   return row as BankAccount
+}
+
+// ── Saldo del conto ───────────────────────────────────────────────────────────
+// Fonte di verità unica del saldo (usata da pagina conto e da valuation.ts).
+// Con anchor impostato: saldo_di_riferimento + Σ(movimenti dopo anchor_date).
+// Senza anchor: somma dell'intero storico movimenti (comportamento storico).
+// NB: la stessa logica è replicata nel SQL aggregato di src/lib/valuation.ts.
+export function getAccountBalanceMinor(accountId: number): number {
+  const row = sqlite
+    .prepare(
+      `SELECT
+         CASE WHEN ba.anchor_balance_minor IS NOT NULL
+           THEN ba.anchor_balance_minor
+                + COALESCE(SUM(CASE WHEN t.booked_date > ba.anchor_date THEN t.amount_minor END), 0)
+           ELSE COALESCE(SUM(t.amount_minor), 0)
+         END AS balanceMinor
+       FROM bank_accounts ba
+       LEFT JOIN transactions t ON t.bank_account_id = ba.id
+       WHERE ba.id = ?
+       GROUP BY ba.id`,
+    )
+    .get(accountId) as { balanceMinor: number } | undefined
+  return row?.balanceMinor ?? 0
+}
+
+// Imposta il saldo di riferimento manuale (importo + data). Solo il proprietario.
+export function setAccountBalanceAnchor(
+  userId: number,
+  accountId: number,
+  balanceMinor: number,
+  date: string,
+): boolean {
+  const res = db
+    .update(bankAccounts)
+    .set({ anchor_balance_minor: balanceMinor, anchor_date: date })
+    .where(and(eq(bankAccounts.id, accountId), eq(bankAccounts.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
+
+// Rimuove il saldo di riferimento → torna alla somma dell'intero storico.
+export function clearAccountBalanceAnchor(userId: number, accountId: number): boolean {
+  const res = db
+    .update(bankAccounts)
+    .set({ anchor_balance_minor: null, anchor_date: null })
+    .where(and(eq(bankAccounts.id, accountId), eq(bankAccounts.owner_id, userId)))
+    .run()
+  return res.changes > 0
 }
