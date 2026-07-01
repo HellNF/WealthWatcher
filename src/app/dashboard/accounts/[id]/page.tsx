@@ -1,16 +1,17 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getAccountForUser, getAccountBalanceMinor } from '@/lib/accounts'
+import { getAccountForUser, getAccountBalanceMinor, estimateInterest } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { listTransactions, listAllCategories } from '@/lib/transactions'
 import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
+import InterestForm from './InterestForm'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renameAccountAction, deleteAccountAction } from './manage-actions'
 import { Breadcrumb, Card, Stat, ConfirmDelete } from '@/components/ui'
 import { fromMinor } from '@/lib/money'
-import { Upload, BarChart3 } from 'lucide-react'
+import { Upload, BarChart3, PiggyBank } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,8 @@ export default async function AccountPage({ params }: Props) {
     ? formatDate(transactions[transactions.length - 1].booked_date)
     : null
   const lastDate = hasTxns ? formatDate(transactions[0].booked_date) : null
+
+  const interest = estimateInterest(balanceMinor, account.interest_rate)
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -108,6 +111,38 @@ export default async function AccountPage({ params }: Props) {
           Report mensile
         </Link>
       </div>
+
+      {/* Interesse sulla giacenza */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-[--ink]">Interesse sulla giacenza</h2>
+        <Card className="space-y-5">
+          {interest ? (
+            <div className="flex items-start gap-4 flex-wrap">
+              <div className="size-10 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                <PiggyBank className="size-5 text-[--brand-text]" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 flex-1">
+                <Stat label="Tasso annuo" value={`${interest.ratePercent}%`} size="sm" />
+                <Stat label="Interesse lordo / anno" value={fromMinor(interest.grossAnnualMinor, account.currency)} size="sm" />
+                <Stat
+                  label="Netto / anno (−26%)"
+                  value={fromMinor(interest.netAnnualMinor, account.currency)}
+                  size="sm"
+                  sub={`≈ ${fromMinor(Math.round(interest.netAnnualMinor / 12), account.currency)} / mese`}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-[--muted]">
+              Questo conto non è remunerato. Se la banca riconosce un interesse sulla giacenza,
+              impostane il tasso per vedere la stima del rendimento.
+            </p>
+          )}
+          <div className="pt-4 border-t border-[--border]">
+            <InterestForm accountId={id} currentRate={account.interest_rate} />
+          </div>
+        </Card>
+      </section>
 
       {/* Transazioni */}
       <section className="space-y-3">

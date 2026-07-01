@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getInstitutionForUser } from '@/lib/institutions'
-import { listAccounts, getAccountBalanceMinor } from '@/lib/accounts'
+import { listAccounts, getAccountPreview, estimateInterest } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioValuationEur } from '@/lib/portfolioValuation'
 import { fromMinor } from '@/lib/money'
@@ -23,6 +23,12 @@ const KIND_LABEL: Record<string, string> = {
   both:   'Banca · Broker',
 }
 
+function fmtShort(iso: string | null): string | null {
+  if (!iso) return null
+  const [, m, d] = iso.split('-')
+  return `${d}/${m}`
+}
+
 interface Props {
   params: Promise<{ id: string }>
 }
@@ -38,6 +44,12 @@ export default async function InstitutionPage({ params }: Props) {
 
   const accounts   = listAccounts(user.id, id)
   const portfolios = listPortfolios(user.id, id)
+
+  // Preview conti: saldo + statistiche movimenti + stima interesse.
+  const accountPreviews = accounts.map((acc) => {
+    const preview = getAccountPreview(acc.id)
+    return { acc, preview, interest: estimateInterest(preview.balanceMinor, acc.interest_rate) }
+  })
 
   // Valutazione EUR dei portafogli (valore + P/L%) per le righe.
   const today = new Date().toISOString().slice(0, 10)
@@ -94,25 +106,40 @@ export default async function InstitutionPage({ params }: Props) {
           </Card>
         ) : (
           <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {accounts.map((acc) => (
-              <Link
-                key={acc.id}
-                href={`/dashboard/accounts/${acc.id}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
-              >
-                <div className="size-9 rounded-xl bg-[--info-subtle] flex items-center justify-center shrink-0">
-                  <CreditCard className="size-4 text-[--info-text]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[--ink] truncate">{acc.name}</p>
-                  <p className="text-xs text-[--muted]">{acc.currency}</p>
-                </div>
-                <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
-                  {fromMinor(getAccountBalanceMinor(acc.id), acc.currency)}
-                </span>
-                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
-              </Link>
-            ))}
+            {accountPreviews.map(({ acc, preview, interest }) => {
+              const last = fmtShort(preview.lastDate)
+              const meta = [
+                acc.currency,
+                `${preview.txCount} ${preview.txCount === 1 ? 'movimento' : 'movimenti'}`,
+                last ? `ultimo ${last}` : null,
+              ].filter(Boolean).join(' · ')
+              return (
+                <Link
+                  key={acc.id}
+                  href={`/dashboard/accounts/${acc.id}`}
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+                >
+                  <div className="size-10 rounded-xl bg-[--info-subtle] flex items-center justify-center shrink-0">
+                    <CreditCard className="size-5 text-[--info-text]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[--ink] truncate">{acc.name}</p>
+                    <p className="text-xs text-[--muted] truncate">{meta}</p>
+                  </div>
+                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                    <span className="font-mono tabular-nums text-sm font-medium text-[--ink]">
+                      {fromMinor(preview.balanceMinor, acc.currency)}
+                    </span>
+                    {interest && (
+                      <span className="text-xs text-[--brand-text]">
+                        {interest.ratePercent}% · {fromMinor(interest.grossAnnualMinor, acc.currency)}/anno
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                </Link>
+              )
+            })}
           </Card>
         )}
       </section>

@@ -2,9 +2,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getAccountForUser, updateAccount, deleteAccount } from '@/lib/accounts'
+import { getAccountForUser, updateAccount, deleteAccount, setAccountInterestRate } from '@/lib/accounts'
 
-type State = { error?: string } | undefined
+type State = { error?: string; success?: string } | undefined
 
 export async function renameAccountAction(
   accountId: number,
@@ -21,6 +21,29 @@ export async function renameAccountAction(
 
   revalidatePath(`/dashboard/accounts/${accountId}`)
   return undefined
+}
+
+// Imposta o azzera il tasso di interesse annuo lordo sulla giacenza (campo vuoto = rimuove).
+export async function setInterestAction(
+  accountId: number,
+  _prev: State,
+  formData: FormData,
+): Promise<State> {
+  const user = await requireUser()
+  const raw = String(formData.get('rate') ?? '').trim().replace(',', '.')
+
+  let rate: string | null = null
+  if (raw !== '') {
+    const n = Number(raw)
+    if (!isFinite(n) || n < 0 || n > 100) return { error: 'Tasso non valido (0–100%)' }
+    rate = String(n)
+  }
+
+  const ok = setAccountInterestRate(user.id, accountId, rate)
+  if (!ok) return { error: 'Conto non trovato' }
+
+  revalidatePath(`/dashboard/accounts/${accountId}`)
+  return { success: rate ? 'Tasso aggiornato' : 'Tasso rimosso' }
 }
 
 // Elimina il conto e a cascata i suoi movimenti. Torna alla pagina istituzione.

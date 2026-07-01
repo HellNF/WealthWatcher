@@ -136,3 +136,63 @@ export function deleteAccount(userId: number, id: number): boolean {
     .run()
   return res.changes > 0
 }
+
+// Imposta (o azzera con null) il tasso di interesse annuo lordo sulla giacenza.
+export function setAccountInterestRate(
+  userId: number,
+  id: number,
+  rate: string | null,
+): boolean {
+  const res = db
+    .update(bankAccounts)
+    .set({ interest_rate: rate })
+    .where(and(eq(bankAccounts.id, id), eq(bankAccounts.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
+
+// ── Preview del conto (per liste/panoramiche) ─────────────────────────────────
+
+export interface AccountPreview {
+  balanceMinor: number
+  txCount:      number
+  firstDate:    string | null
+  lastDate:     string | null
+}
+
+export function getAccountPreview(accountId: number): AccountPreview {
+  const balanceMinor = getAccountBalanceMinor(accountId)
+  const stats = sqlite
+    .prepare(
+      `SELECT COUNT(*) AS txCount, MIN(booked_date) AS firstDate, MAX(booked_date) AS lastDate
+       FROM transactions WHERE bank_account_id = ?`,
+    )
+    .get(accountId) as { txCount: number; firstDate: string | null; lastDate: string | null }
+  return {
+    balanceMinor,
+    txCount:   stats.txCount,
+    firstDate: stats.firstDate,
+    lastDate:  stats.lastDate,
+  }
+}
+
+// ── Stima interesse sulla giacenza ────────────────────────────────────────────
+// Ritenuta fiscale italiana su interessi/redditi da capitale = 26% (SPEC §4.1:
+// stima informativa, non consulenza fiscale).
+const INTEREST_WITHHOLDING = 0.26
+
+export interface InterestEstimate {
+  ratePercent:      number
+  grossAnnualMinor: number
+  netAnnualMinor:   number
+}
+
+/** Interesse annuo stimato sulla giacenza corrente. Null se non applicabile. */
+export function estimateInterest(balanceMinor: number, rate: string | null): InterestEstimate | null {
+  if (!rate) return null
+  const r = parseFloat(rate)
+  if (!isFinite(r) || r <= 0 || balanceMinor <= 0) return null
+  const grossAnnualMinor = Math.round(balanceMinor * (r / 100))
+  const netAnnualMinor   = Math.round(grossAnnualMinor * (1 - INTEREST_WITHHOLDING))
+  return { ratePercent: r, grossAnnualMinor, netAnnualMinor }
+}

@@ -5,6 +5,9 @@ import {
   getAccountBalanceMinor,
   setAccountBalanceAnchor,
   clearAccountBalanceAnchor,
+  setAccountInterestRate,
+  getAccountPreview,
+  estimateInterest,
 } from '@/lib/accounts'
 
 let userId: number
@@ -85,5 +88,40 @@ describe('setAccountBalanceAnchor — ownership', () => {
     const ok = setAccountBalanceAnchor(userId + 9999, accountId, 50000, '2024-06-15')
     expect(ok).toBe(false)
     expect(getAccountBalanceMinor(accountId)).toBe(12000) // invariato
+  })
+})
+
+describe('estimateInterest', () => {
+  test('null senza tasso o con saldo non positivo', () => {
+    expect(estimateInterest(12000, null)).toBeNull()
+    expect(estimateInterest(0, '2.5')).toBeNull()
+    expect(estimateInterest(-500, '2.5')).toBeNull()
+  })
+
+  test('lordo = saldo × tasso%, netto = lordo × 0.74 (ritenuta 26%)', () => {
+    // saldo €120,00 (12000) al 2.5% → lordo €3,00 (300), netto 300×0.74 = 222
+    const est = estimateInterest(12000, '2.5')!
+    expect(est.ratePercent).toBe(2.5)
+    expect(est.grossAnnualMinor).toBe(300)
+    expect(est.netAnnualMinor).toBe(222)
+  })
+})
+
+describe('getAccountPreview + setAccountInterestRate', () => {
+  afterEach(() => setAccountInterestRate(userId, accountId, null))
+
+  test('preview: saldo, conteggio e date dei movimenti', () => {
+    const p = getAccountPreview(accountId)
+    expect(p.balanceMinor).toBe(12000)
+    expect(p.txCount).toBe(4)
+    expect(p.firstDate).toBe('2024-06-10')
+    expect(p.lastDate).toBe('2024-06-25')
+  })
+
+  test('imposta il tasso (solo owner) e la stima lo riflette', () => {
+    expect(setAccountInterestRate(userId + 9999, accountId, '3')).toBe(false)
+    expect(setAccountInterestRate(userId, accountId, '3')).toBe(true)
+    const est = estimateInterest(getAccountBalanceMinor(accountId), '3')!
+    expect(est.grossAnnualMinor).toBe(360) // 12000 × 3%
   })
 })

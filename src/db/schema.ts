@@ -72,6 +72,9 @@ export const bankAccounts = sqliteTable(
     // Null = nessun saldo impostato → si somma l'intero storico movimenti.
     anchor_balance_minor: integer('anchor_balance_minor'), // signed minor units, nullable
     anchor_date:          text('anchor_date'),             // ISO YYYY-MM-DD, nullable
+    // Tasso di interesse annuo lordo sulla giacenza, in percentuale (es. "2.5").
+    // Null = conto non remunerato. Usato per stimare l'interesse maturato.
+    interest_rate:        text('interest_rate'),           // decimal string %/anno, nullable
     created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
