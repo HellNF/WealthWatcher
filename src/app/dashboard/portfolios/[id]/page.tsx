@@ -11,7 +11,9 @@ import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm from './AddTxnForm'
-import { Breadcrumb, Card, Stat, Badge } from '@/components/ui'
+import RenameForm from '@/components/dashboard/RenameForm'
+import { renamePortfolioAction, deletePortfolioAction } from './actions'
+import { Breadcrumb, Card, Stat, Badge, ConfirmDelete } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,6 +123,23 @@ export default async function PortfolioPage({ params }: Props) {
         <h2 className="text-base font-semibold text-[--ink]">Operazioni</h2>
         <AddTxnForm portfolioId={id} />
         <TxnList txns={txnsWithSymbol} portfolioId={id} />
+      </section>
+
+      {/* ── Gestione portafoglio ────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-[--ink]">Gestione portafoglio</h2>
+        <Card className="flex items-center justify-between gap-4 flex-wrap">
+          <RenameForm
+            action={renamePortfolioAction.bind(null, id)}
+            currentName={portfolio.name}
+            label="Nome portafoglio"
+          />
+          <ConfirmDelete
+            action={deletePortfolioAction.bind(null, id)}
+            label="Elimina portafoglio"
+            confirmText="Eliminare il portafoglio e tutte le sue operazioni?"
+          />
+        </Card>
       </section>
     </main>
   )

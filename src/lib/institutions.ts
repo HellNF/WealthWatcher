@@ -57,3 +57,34 @@ export function createInstitution(userId: number, name: string, kind: Institutio
   // SQLite INSERT RETURNING * always returns the row on success; the cast is safe.
   return row as Institution
 }
+
+// ── Mutations (owner-only) ────────────────────────────────────────────────────
+// Writes require ownership, not just visibility: a viewer share cannot edit.
+
+export function updateInstitution(
+  userId: number,
+  id: number,
+  fields: { name?: string; kind?: InstitutionKind },
+): boolean {
+  const patch: Partial<{ name: string; kind: InstitutionKind }> = {}
+  if (fields.name !== undefined) patch.name = fields.name
+  if (fields.kind !== undefined) patch.kind = fields.kind
+  if (Object.keys(patch).length === 0) return false
+
+  const res = db
+    .update(institutions)
+    .set(patch)
+    .where(and(eq(institutions.id, id), eq(institutions.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
+
+// Cascades to bank_accounts, investment_portfolios and their transactions
+// (ON DELETE CASCADE in the schema).
+export function deleteInstitution(userId: number, id: number): boolean {
+  const res = db
+    .delete(institutions)
+    .where(and(eq(institutions.id, id), eq(institutions.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}

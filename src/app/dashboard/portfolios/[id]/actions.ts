@@ -1,8 +1,9 @@
 'use server'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getPortfolioForUser } from '@/lib/portfolios'
+import { getPortfolioForUser, updatePortfolio, deletePortfolio } from '@/lib/portfolios'
 import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from '@/lib/instruments'
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
@@ -111,6 +112,40 @@ export async function deleteTxnAction(
   const user = await requireUser()
   deleteTxn(user.id, txnId)
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+}
+
+// ── Gestione portafoglio (rinomina, elimina) ──────────────────────────────────
+
+export async function renamePortfolioAction(
+  portfolioId: number,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser()
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return { error: 'Nome obbligatorio' }
+  if (name.length > 100) return { error: 'Nome troppo lungo' }
+
+  const ok = updatePortfolio(user.id, portfolioId, { name })
+  if (!ok) return { error: 'Portafoglio non trovato' }
+
+  revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+  return undefined
+}
+
+// Elimina il portafoglio e a cascata le sue operazioni. Torna all'istituzione.
+export async function deletePortfolioAction(portfolioId: number): Promise<void> {
+  const user = await requireUser()
+  const portfolio = getPortfolioForUser(user.id, portfolioId)
+  const institutionId = portfolio?.institution_id
+
+  deletePortfolio(user.id, portfolioId)
+
+  if (institutionId) {
+    revalidatePath(`/dashboard/institutions/${institutionId}`)
+    redirect(`/dashboard/institutions/${institutionId}`)
+  }
+  redirect('/dashboard')
 }
 
 export async function lookupIsinAction(isin: string): Promise<IsinResult[]> {

@@ -6,7 +6,9 @@ import { getInstitutionForUser } from '@/lib/institutions'
 import { listTransactions, listAllCategories } from '@/lib/transactions'
 import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
-import { Breadcrumb, Card, Stat } from '@/components/ui'
+import RenameForm from '@/components/dashboard/RenameForm'
+import { renameAccountAction, deleteAccountAction } from './manage-actions'
+import { Breadcrumb, Card, Stat, ConfirmDelete } from '@/components/ui'
 import { fromMinor } from '@/lib/money'
 import { Upload, BarChart3 } from 'lucide-react'
 
@@ -111,6 +113,23 @@ export default async function AccountPage({ params }: Props) {
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-[--ink]">Movimenti</h2>
         <TransactionTable transactions={transactions} categories={categories} />
+      </section>
+
+      {/* Gestione conto */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-[--ink]">Gestione conto</h2>
+        <Card className="flex items-center justify-between gap-4 flex-wrap">
+          <RenameForm
+            action={renameAccountAction.bind(null, id)}
+            currentName={account.name}
+            label="Nome conto"
+          />
+          <ConfirmDelete
+            action={deleteAccountAction.bind(null, id)}
+            label="Elimina conto"
+            confirmText="Eliminare il conto e tutti i suoi movimenti?"
+          />
+        </Card>
       </section>
     </main>
   )

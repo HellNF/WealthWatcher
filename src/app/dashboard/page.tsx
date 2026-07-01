@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/dal'
 import { listInstitutions } from '@/lib/institutions'
+import { getInstitutionValueEur } from '@/lib/institutionValuation'
 import AddInstitutionForm from './AddInstitutionForm'
 import NetWorthChart from './NetWorthChart'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
@@ -47,6 +48,12 @@ export default async function DashboardPage() {
   const delta = latest && prev
     ? latest.net_worth_eur_minor - prev.net_worth_eur_minor
     : null
+
+  // Valore totale in EUR per ogni istituzione (panoramica).
+  const today = new Date().toISOString().slice(0, 10)
+  const instValues = await Promise.all(
+    institutions.map((inst) => getInstitutionValueEur(user.id, inst.id, today)),
+  )
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -129,27 +136,35 @@ export default async function DashboardPage() {
           </Card>
         ) : (
           <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {institutions.map((inst) => (
-              <Link
-                key={inst.id}
-                href={`/dashboard/institutions/${inst.id}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
-              >
-                {/* Avatar lettera */}
-                <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-[--brand-text]">
-                    {inst.name[0].toUpperCase()}
+            {institutions.map((inst, i) => {
+              const val = instValues[i]
+              return (
+                <Link
+                  key={inst.id}
+                  href={`/dashboard/institutions/${inst.id}`}
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+                >
+                  {/* Avatar lettera */}
+                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                    <span className="text-sm font-semibold text-[--brand-text]">
+                      {inst.name[0].toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[--ink] truncate">{inst.name}</p>
+                    <p className="text-xs text-[--muted]">{KIND_LABEL[inst.kind] ?? inst.kind}</p>
+                  </div>
+
+                  <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
+                    {formatEur(val.valueEurMinor)}
+                    {val.stale && <span className="text-[--warning] ml-1" title="Valore parziale">*</span>}
                   </span>
-                </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[--ink] truncate">{inst.name}</p>
-                  <p className="text-xs text-[--muted]">{KIND_LABEL[inst.kind] ?? inst.kind}</p>
-                </div>
-
-                <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
-              </Link>
-            ))}
+                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                </Link>
+              )
+            })}
           </Card>
         )}
       </section>

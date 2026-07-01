@@ -35,3 +35,5 @@ export type { BreadcrumbItem } from './Breadcrumb'
 export { BrandMark } from './BrandMark'
 
 export { ThemeToggle } from './ThemeToggle'
+
+export { ConfirmDelete } from './ConfirmDelete'

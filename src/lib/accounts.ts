@@ -111,3 +111,28 @@ export function clearAccountBalanceAnchor(userId: number, accountId: number): bo
     .run()
   return res.changes > 0
 }
+
+// ── Mutations (owner-only) ────────────────────────────────────────────────────
+
+export function updateAccount(
+  userId: number,
+  id: number,
+  fields: { name?: string },
+): boolean {
+  if (fields.name === undefined) return false
+  const res = db
+    .update(bankAccounts)
+    .set({ name: fields.name })
+    .where(and(eq(bankAccounts.id, id), eq(bankAccounts.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
+
+// Cascades to the account's transactions (ON DELETE CASCADE in the schema).
+export function deleteAccount(userId: number, id: number): boolean {
+  const res = db
+    .delete(bankAccounts)
+    .where(and(eq(bankAccounts.id, id), eq(bankAccounts.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}

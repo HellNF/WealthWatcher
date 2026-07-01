@@ -61,3 +61,28 @@ export function createPortfolio(
     .returning()
     .get() as InvestmentPortfolio
 }
+
+// ── Mutations (owner-only) ────────────────────────────────────────────────────
+
+export function updatePortfolio(
+  userId: number,
+  id: number,
+  fields: { name?: string },
+): boolean {
+  if (fields.name === undefined) return false
+  const res = db
+    .update(investmentPortfolios)
+    .set({ name: fields.name })
+    .where(and(eq(investmentPortfolios.id, id), eq(investmentPortfolios.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
+
+// Cascades to the portfolio's investment_txns (ON DELETE CASCADE in the schema).
+export function deletePortfolio(userId: number, id: number): boolean {
+  const res = db
+    .delete(investmentPortfolios)
+    .where(and(eq(investmentPortfolios.id, id), eq(investmentPortfolios.owner_id, userId)))
+    .run()
+  return res.changes > 0
+}
