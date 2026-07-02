@@ -11,6 +11,8 @@ import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm from './AddTxnForm'
+import AllocationChart from './AllocationChart'
+import InstrumentPriceChart from './InstrumentPriceChart'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renamePortfolioAction, deletePortfolioAction } from './actions'
 import { Breadcrumb, Card, Stat, Badge, ConfirmDelete } from '@/components/ui'
@@ -109,6 +111,35 @@ export default async function PortfolioPage({ params }: Props) {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {/* ── Allocazione + prezzi ────────────────────────────────────────── */}
+      {positions.filter(p => parseFloat(p.remainingQty) > 0).length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Donut allocazione */}
+          <Card className="space-y-2">
+            <h2 className="text-sm font-semibold text-[--ink]">Allocazione</h2>
+            <AllocationChart positions={positions} />
+          </Card>
+
+          {/* Grafici andamento per strumento */}
+          <Card className="space-y-4">
+            <h2 className="text-sm font-semibold text-[--ink]">Andamento prezzi</h2>
+            <div className="divide-y divide-[--border]">
+              {positions
+                .filter(p => parseFloat(p.remainingQty) > 0)
+                .map((pos) => (
+                  <div key={pos.symbol} className="pt-4 first:pt-0">
+                    <InstrumentPriceChart
+                      symbol={pos.symbol}
+                      name={pos.name}
+                      currency={pos.currency}
+                    />
+                  </div>
+                ))}
+            </div>
+          </Card>
         </div>
       )}
 

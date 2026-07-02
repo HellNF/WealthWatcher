@@ -95,6 +95,44 @@ export interface InstrumentDetails {
   ter:      string | null   // TER annuo come percentuale, es. "0.2" (= 0.20%)
 }
 
+export interface PricePoint {
+  date:  string   // ISO date YYYY-MM-DD
+  close: number   // prezzo di chiusura nella valuta dell'strumento
+}
+
+/**
+ * Recupera dati storici (OHLC giornalieri o settimanali) da Yahoo Finance.
+ * Periodi: 1m, 3m, 6m (giornaliero); 1y, 5y (settimanale).
+ * Non lancia mai eccezioni — ritorna array vuoto in caso di errore.
+ */
+export async function getHistoricalPrices(
+  symbol: string,
+  period: '1m' | '3m' | '6m' | '1y' | '5y',
+): Promise<PricePoint[]> {
+  const now = Date.now()
+  const days: Record<string, number> = { '1m': 30, '3m': 90, '6m': 180, '1y': 365, '5y': 1825 }
+  const interval = period === '1y' || period === '5y' ? '1wk' : '1d'
+  const period1 = new Date(now - days[period] * 86400000).toISOString().slice(0, 10)
+  const period2 = new Date(now).toISOString().slice(0, 10)
+
+  try {
+    const yf = await getYf()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows: any[] = await yf.historical(symbol, { period1, period2, interval })
+    return rows
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((r: any) => r.close != null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((r: any) => ({
+        date:  new Date(r.date).toISOString().slice(0, 10),
+        close: r.close as number,
+      }))
+  } catch (e) {
+    console.error('[yahoo] getHistoricalPrices', symbol, period, e)
+    return []
+  }
+}
+
 /**
  * Recupera prezzo corrente + TER per un simbolo Yahoo Finance.
  * Non lancia mai eccezioni — ritorna null sui campi non disponibili.

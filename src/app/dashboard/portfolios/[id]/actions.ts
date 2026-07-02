@@ -8,10 +8,11 @@ import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from 
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
-import { getInstrumentDetails, type InstrumentDetails } from '@/lib/prices/yahoo'
+import { getInstrumentDetails, getHistoricalPrices, type InstrumentDetails, type PricePoint } from '@/lib/prices/yahoo'
 import { toMinor, dec } from '@/lib/money'
 import { getOpenAiKey } from '@/lib/userSettings'
 import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
+import { takeSnapshot } from '@/lib/valuation'
 import { sqlite } from '@/db'
 
 export type ActionState = { error?: string } | undefined
@@ -101,6 +102,9 @@ export async function addTxnAction(
     return { error: err instanceof Error ? err.message : 'Errore durante il salvataggio' }
   }
 
+  // Ricalcola snapshot così la dashboard riflette subito il nuovo patrimonio.
+  await takeSnapshot(user.id).catch(() => {})
+  revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
   return undefined
 }
@@ -111,6 +115,8 @@ export async function deleteTxnAction(
 ): Promise<void> {
   const user = await requireUser()
   deleteTxn(user.id, txnId)
+  await takeSnapshot(user.id).catch(() => {})
+  revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
 }
 
@@ -164,6 +170,15 @@ export async function refreshPricesAction(portfolioId: number): Promise<void> {
   if (!portfolio) return
   await refreshPortfolioPrices(user.id, portfolioId)
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+}
+
+const VALID_PERIODS = ['1m', '3m', '6m', '1y', '5y'] as const
+type Period = typeof VALID_PERIODS[number]
+
+export async function fetchHistoryAction(symbol: string, period: string): Promise<PricePoint[]> {
+  await requireUser()
+  if (!VALID_PERIODS.includes(period as Period)) return []
+  return getHistoricalPrices(symbol, period as Period)
 }
 
 // ── KID extraction ────────────────────────────────────────────────────────────
