@@ -21,6 +21,36 @@ async function getYf() {
   return yfInstance
 }
 
+export interface YahooSearchHit {
+  symbol:    string
+  name:      string
+  exchange:  string
+  quoteType: string   // EQUITY | ETF | MUTUALFUND | CRYPTOCURRENCY | …
+}
+
+// Ricerca simboli Yahoo per query libera (nome, ticker o ISIN). Risolve anche i
+// fondi comuni (es. ISIN LU… → simbolo "0P…") che OpenFIGI non mappa su Yahoo.
+export async function searchYahoo(query: string): Promise<YahooSearchHit[]> {
+  try {
+    const yf = await getYf()
+    const r = await yf.search(query, { quotesCount: 10, newsCount: 0 })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (r?.quotes ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((q: any) => q.symbol && q.quoteType)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((q: any) => ({
+        symbol:    q.symbol as string,
+        name:      (q.longname || q.shortname || q.symbol) as string,
+        exchange:  (q.exchange ?? '') as string,
+        quoteType: q.quoteType as string,
+      }))
+  } catch (e) {
+    console.error('[yahoo] searchYahoo', query, e)
+    return []
+  }
+}
+
 // Yahoo Finance restituisce alcuni prezzi in subunità (es. azioni LSE in GBp = pence).
 // Normalizza: GBp → GBP /100, ILA → ILS /100, ZAc → ZAR /100.
 const SUBUNIT_MAP: Record<string, { major: string; factor: number }> = {

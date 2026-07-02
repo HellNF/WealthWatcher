@@ -1,5 +1,9 @@
-// src/lib/isin.ts — ISIN lookup via OpenFIGI (Bloomberg, gratuito, no API key obbligatoria).
-// Free tier: 25 req/min senza chiave; con OPENFIGI_KEY (account gratuito) il limite sale.
+// src/lib/isin.ts — ISIN lookup.
+// Strategia: prima OpenFIGI (Bloomberg, gratuito) per ETF/azioni con i loro
+// listing di borsa; se non produce risultati utilizzabili (es. fondi comuni, o
+// borse non mappate), fallback su Yahoo search che risolve l'ISIN direttamente
+// nel simbolo Yahoo (anche per i fondi, es. LU… → "0P…").
+import { searchYahoo } from '@/lib/prices/yahoo'
 
 export interface IsinResult {
   figi:        string
@@ -49,10 +53,20 @@ interface FigiEntry {
   securityType2?: string
 }
 
-export async function lookupIsin(isin: string): Promise<IsinResult[]> {
-  const normalized = isin.trim().toUpperCase()
-  if (!/^[A-Z]{2}[A-Z0-9]{10}$/.test(normalized)) return []
+// quoteType Yahoo → cluster interno. I fondi comuni sono tassati come i fondi
+// (26%), quindi mappati su 'etf' (fondo) per coerenza fiscale/di display.
+function quoteTypeToCluster(qt: string): IsinResult['cluster'] {
+  switch (qt.toUpperCase()) {
+    case 'ETF':
+    case 'MUTUALFUND':      return 'etf'
+    case 'EQUITY':          return 'stock'
+    case 'CRYPTOCURRENCY':  return 'crypto'
+    case 'BOND':            return 'bond'
+    default:                return 'other'
+  }
+}
 
+async function openFigiLookup(isin: string): Promise<IsinResult[]> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const key = process.env.OPENFIGI_KEY
   if (key) headers['X-OPENFIGI-APIKEY'] = key
@@ -61,14 +75,17 @@ export async function lookupIsin(isin: string): Promise<IsinResult[]> {
     const res = await fetch('https://api.openfigi.com/v3/mapping', {
       method:  'POST',
       headers,
-      body:    JSON.stringify([{ idType: 'ID_ISIN', idValue: normalized }]),
+      body:    JSON.stringify([{ idType: 'ID_ISIN', idValue: isin }]),
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      console.error('[isin] OpenFIGI HTTP', res.status, await res.text().catch(() => ''))
+      return []
+    }
 
     const json = await res.json() as [{ data?: FigiEntry[]; error?: string }]
     const entries = json[0]?.data ?? []
 
-    // 1. Costruisci risultati solo per le borse presenti in EXCH_MAP
+    // Costruisci risultati solo per le borse presenti in EXCH_MAP
     const mapped = entries
       .filter((e) => e.ticker && e.exchCode && e.exchCode in EXCH_MAP)
       .map((e) => {
@@ -86,7 +103,7 @@ export async function lookupIsin(isin: string): Promise<IsinResult[]> {
         }
       })
 
-    // 2. Deduplicazione: stesso simbolo Yahoo = stessa listing, tieni il primo per priorità
+    // Deduplicazione: stesso simbolo Yahoo = stessa listing, tieni il primo per priorità
     const seen = new Set<string>()
     const deduped = mapped
       .sort((a, b) => a._priority - b._priority)
@@ -96,10 +113,41 @@ export async function lookupIsin(isin: string): Promise<IsinResult[]> {
         return true
       })
 
-    // 3. Rimuovi il campo interno e limita a 8 risultati
     return deduped.slice(0, 8).map(({ _priority: _, ...r }) => r)
-
-  } catch {
+  } catch (e) {
+    console.error('[isin] OpenFIGI errore', e)
     return []
   }
+}
+
+async function yahooIsinFallback(isin: string): Promise<IsinResult[]> {
+  const hits = await searchYahoo(isin)
+  const seen = new Set<string>()
+  const out: IsinResult[] = []
+  for (const h of hits) {
+    if (seen.has(h.symbol)) continue
+    seen.add(h.symbol)
+    out.push({
+      figi:        '',
+      name:        h.name,
+      ticker:      h.symbol,
+      exchCode:    h.exchange,
+      exchLabel:   h.exchange || 'Yahoo Finance',
+      yahooSymbol: h.symbol,
+      cluster:     quoteTypeToCluster(h.quoteType),
+      priceSource: 'yahoo',
+    })
+  }
+  return out.slice(0, 8)
+}
+
+export async function lookupIsin(isin: string): Promise<IsinResult[]> {
+  const normalized = isin.trim().toUpperCase()
+  if (!/^[A-Z]{2}[A-Z0-9]{10}$/.test(normalized)) return []
+
+  const figiResults = await openFigiLookup(normalized)
+  if (figiResults.length > 0) return figiResults
+
+  // Fallback: fondi comuni e borse non mappate da OpenFIGI.
+  return yahooIsinFallback(normalized)
 }
