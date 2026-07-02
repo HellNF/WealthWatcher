@@ -5,12 +5,11 @@ import Credentials from 'next-auth/providers/credentials'
 import { isEmailAllowed, upsertUser, normalizeEmail } from '@/lib/users'
 
 /**
- * Dev-only credentials provider: lets us sign in locally without Google OAuth
- * credentials. Guarded so it can NEVER be enabled in production, and the email
- * still has to pass the allowlist (SPEC §2). Set AUTH_DEV_LOGIN=true to enable.
+ * Dev credentials provider: lets us sign in without Google OAuth credentials.
+ * For now we enable it whenever AUTH_DEV_LOGIN=true, even in production,
+ * because this environment is self-hosted and access is still gated by allowlist.
  */
-const devLoginEnabled =
-  process.env.NODE_ENV !== 'production' && process.env.AUTH_DEV_LOGIN === 'true'
+const devLoginEnabled = process.env.AUTH_DEV_LOGIN === 'true'
 
 const providers: NextAuthConfig['providers'] = [Google]
 
