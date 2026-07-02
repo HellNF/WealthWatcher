@@ -9,7 +9,7 @@ import { isEmailAllowed, upsertUser, normalizeEmail } from '@/lib/users'
 const providers: NextAuthConfig['providers'] = [
   Google,
   Credentials({
-    id: 'email',
+    id: 'credentials',
     name: 'Email',
     credentials: { email: { label: 'Email', type: 'email' } },
     authorize(credentials) {

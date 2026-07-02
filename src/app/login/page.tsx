@@ -19,7 +19,7 @@ export default async function LoginPage({
   async function emailSignIn(formData: FormData) {
     'use server'
     try {
-      await signIn('email', { email: String(formData.get('email') ?? ''), redirectTo })
+      await signIn('credentials', { email: String(formData.get('email') ?? ''), redirectTo })
     } catch (e) {
       // AuthError = accesso rifiutato dalla whitelist.
       if (e instanceof AuthError) redirect('/login?error=denied')
