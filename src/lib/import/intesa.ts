@@ -22,25 +22,48 @@ function excelSerialToISO(serial: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+// Cerca il foglio giusto: preferisce "Lista Operazione" o simili, fallback al primo.
+function findSheet(wb: XLSX.WorkBook): XLSX.WorkSheet {
+  const preferred = wb.SheetNames.find((n) =>
+    /operazion/i.test(n) || /moviment/i.test(n) || /transaction/i.test(n),
+  )
+  return wb.Sheets[preferred ?? wb.SheetNames[0]]
+}
+
+// Restituisce l'indice della colonna in cui la riga contiene "Data" (case-insensitive, trim).
+// Accetta anche "Data operazione", "Data valuta" ecc. purché inizino con "Data".
+function findHeaderRow(all: unknown[][]): { rowIdx: number; colOffset: number } | null {
+  for (let i = 0; i < Math.min(all.length, 30); i++) {
+    const row = all[i]
+    if (!Array.isArray(row)) continue
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] ?? '').trim()
+      if (/^data$/i.test(cell) || /^data\s+operazion/i.test(cell)) {
+        return { rowIdx: i, colOffset: c }
+      }
+    }
+  }
+  return null
+}
+
 export function parseIntesaXlsx(buffer: Buffer): ParsedRow[] {
   const wb = XLSX.read(buffer, { type: 'buffer' })
-  const ws = wb.Sheets[wb.SheetNames[0]]
+  const ws = findSheet(wb)
   const all = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: '' })
 
-  // Find the header row ("Data" is the first non-empty value in col 0)
-  const headerIdx = all.findIndex(
-    (r) => Array.isArray(r) && String(r[0]).trim() === 'Data',
-  )
-  if (headerIdx === -1) {
+  const found = findHeaderRow(all)
+  if (!found) {
     throw new Error(
-      'Formato Intesa non riconosciuto: riga "Data" non trovata. ' +
-      'Verifica di aver esportato "Lista Operazioni" da Intesa Sanpaolo.',
+      'Formato Intesa non riconosciuto: intestazione non trovata. ' +
+      'Verifica di aver esportato "Lista Operazioni" da Intesa Sanpaolo in formato Excel (.xlsx).',
     )
   }
 
-  // Data rows: must have a numeric date serial (> 40000 = past 2009)
+  const { rowIdx: headerIdx, colOffset: C } = found
+
+  // Data rows: must have a numeric date serial (> 40000 = past 2009) nella colonna "Data"
   const dataRows = (all.slice(headerIdx + 1) as unknown[][]).filter(
-    (r) => typeof r[0] === 'number' && (r[0] as number) > 40_000,
+    (r) => typeof r[C] === 'number' && (r[C] as number) > 40_000,
   )
 
   // Track hash occurrences within this file to handle legitimate duplicates
@@ -48,12 +71,12 @@ export function parseIntesaXlsx(buffer: Buffer): ParsedRow[] {
   const occurrences: Record<string, number> = {}
 
   return dataRows.map((row) => {
-    const dateSerial     = row[0] as number
-    const operazione     = String(row[1] ?? '').trim()
-    const dettagli       = String(row[2] ?? '').trim()
-    const currency       = String(row[6] ?? 'EUR').trim().toUpperCase()
-    const rawAmount      = row[7] as number
-    const intesaCategory = String(row[5] ?? '').trim()
+    const dateSerial     = row[C + 0] as number
+    const operazione     = String(row[C + 1] ?? '').trim()
+    const dettagli       = String(row[C + 2] ?? '').trim()
+    const currency       = String(row[C + 6] ?? 'EUR').trim().toUpperCase()
+    const rawAmount      = row[C + 7] as number
+    const intesaCategory = String(row[C + 5] ?? '').trim()
 
     const bookedDate = excelSerialToISO(dateSerial)
 
