@@ -1,30 +1,45 @@
 'use server'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser } from '@/lib/accounts'
-import { parseIntesaXlsx } from '@/lib/import/intesa'
+import { getInstitutionForUser } from '@/lib/institutions'
+import { providerParser } from '@/lib/providers'
+import { PARSERS } from '@/lib/import/registry'
 import { normalizeDescription, resolveMerchant, resolveIntesaCategory } from '@/lib/merchants'
 import { previewRows, insertBatch, type InsertableTransaction, type PreviewRow } from '@/lib/transactions'
 
 // ── Shared: parse XLSX + resolve merchants ────────────────────────────────────
+// Il parser è scelto dal provider dell'istituzione del conto. Se il provider non
+// ha un parser (banca personalizzata o non ancora supportata), l'import è negato.
 
 async function parsedRowsForAccount(userId: number, accountId: number, file: File) {
   const account = getAccountForUser(userId, accountId)
   if (!account) throw new Error('Conto non trovato o non autorizzato')
 
+  const institution = getInstitutionForUser(userId, account.institution_id)
+  const parserKey = providerParser(institution?.provider)
+  if (!parserKey) {
+    throw new Error(
+      'Import dell\'estratto conto non supportato per questa banca. ' +
+      'Puoi inserire i movimenti manualmente.',
+    )
+  }
+  const parse = PARSERS[parserKey]
+
   const buffer = Buffer.from(await file.arrayBuffer())
-  const parsed = parseIntesaXlsx(buffer)
+  const parsed = parse(buffer)
 
   const rows: InsertableTransaction[] = parsed.map((p) => {
     const normalized = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
     const merchant = resolveMerchant(normalized)
 
-    // Priority: merchant alias → Intesa category fallback
+    // Priority: merchant alias → categoria fornita dalla banca (fallback)
     const categoryId = merchant?.categoryId ?? resolveIntesaCategory(p.intesaCategory)
 
     return {
       owner_id:         userId,
       bank_account_id:  accountId,
       booked_date:      p.bookedDate,
+      value_date:       p.valueDate ?? null,
       amount_minor:     p.amountMinor,
       currency:         p.currency,
       description_raw:  p.descriptionRaw,
@@ -35,7 +50,7 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
     }
   })
 
-  return { account, rows }
+  return { account, rows, parserKey }
 }
 
 // ── Preview (no writes) ───────────────────────────────────────────────────────
@@ -100,12 +115,12 @@ export async function commitImportAction(formData: FormData): Promise<CommitResu
   }
 
   try {
-    const { rows } = await parsedRowsForAccount(user.id, accountId, file)
+    const { rows, parserKey } = await parsedRowsForAccount(user.id, accountId, file)
 
     const result = insertBatch({
       ownerId:       user.id,
       bankAccountId: accountId,
-      source:        'intesa_xlsx',
+      source:        parserKey,
       filename:      file.name,
       rows,
     })

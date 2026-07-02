@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser, getAccountBalanceMinor, estimateInterest } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
+import { providerParser } from '@/lib/providers'
 import { listTransactions, listAllCategories } from '@/lib/transactions'
 import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
@@ -50,6 +51,7 @@ export default async function AccountPage({ params }: Props) {
   const lastDate = hasTxns ? formatDate(transactions[0].booked_date) : null
 
   const interest = estimateInterest(balanceMinor, account.interest_rate)
+  const importSupported = providerParser(institution?.provider) !== null
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -95,14 +97,21 @@ export default async function AccountPage({ params }: Props) {
       </Card>
 
       {/* Azioni */}
-      <div className="flex gap-3">
-        <Link
-          href={`/dashboard/accounts/${id}/import`}
-          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-[--brand] text-[--brand-fg] hover:bg-[--brand-hover] transition-all duration-150"
-        >
-          <Upload className="size-4" />
-          Importa movimenti
-        </Link>
+      <div className="flex gap-3 items-center flex-wrap">
+        {importSupported ? (
+          <Link
+            href={`/dashboard/accounts/${id}/import`}
+            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-[--brand] text-[--brand-fg] hover:bg-[--brand-hover] transition-all duration-150"
+          >
+            <Upload className="size-4" />
+            Importa movimenti
+          </Link>
+        ) : (
+          <span className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--faint] cursor-not-allowed" title="Import non supportato per questa banca">
+            <Upload className="size-4" />
+            Import non disponibile
+          </span>
+        )}
         <Link
           href={`/dashboard/reports?account=${id}`}
           className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-all duration-150"

@@ -10,16 +10,9 @@
 import * as XLSX from 'xlsx'
 import { createHash } from 'crypto'
 import { toMinor } from '@/lib/money'
+import type { ParsedRow } from './types'
 
-export interface ParsedRow {
-  bookedDate:      string  // YYYY-MM-DD
-  amountMinor:     number  // signed integer minor units
-  currency:        string
-  descriptionRaw:  string  // "Operazione" column — short clean name
-  counterpartyRaw: string  // "Dettagli" column — full raw description
-  intesaCategory:  string  // Intesa's own label — used as fallback category
-  dedupHash:       string  // SHA-256 of raw fields + in-file occurrence index
-}
+export type { ParsedRow }
 
 // Excel epoch: Jan 1, 1900 (with the intentional 1900 leap-year bug offset)
 const EXCEL_EPOCH_MS = new Date(Date.UTC(1899, 11, 30)).getTime()

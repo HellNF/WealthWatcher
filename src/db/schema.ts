@@ -50,6 +50,7 @@ export const institutions = sqliteTable(
     owner_id:   integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     name:       text('name').notNull(),
     kind:       text('kind', { enum: ['bank', 'broker', 'both'] as const }).notNull().default('bank'),
+    provider:   text('provider'),   // id catalogo (src/lib/providers.ts); null = banca personalizzata
     created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
