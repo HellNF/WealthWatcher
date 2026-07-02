@@ -8,6 +8,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV DATABASE_PATH=:memory:
 RUN npm run build
 
 FROM node:20-alpine AS runner
