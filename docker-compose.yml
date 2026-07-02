@@ -7,5 +7,7 @@ services:
       - ./data:/data
       - ./SPEC.md:/app/SPEC.md:ro
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - DATABASE_PATH=/data/chat.db
+      - DATABASE_PATH=/data/wealthwatcher.db
