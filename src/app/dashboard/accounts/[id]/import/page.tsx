@@ -18,6 +18,20 @@ interface Props {
 const HINTS: Record<string, string> = {
   intesa_xlsx: 'Esporta “Lista Operazioni” da Intesa Sanpaolo → Estratti Conto in formato Excel (.xlsx) e caricala qui.',
   bbva_xlsx:   'Esporta i movimenti da BBVA (sezione Movimenti → Esporta) in formato Excel (.xlsx) e caricali qui.',
+  revolut_csv: 'Vai su Revolut → Conti → seleziona il conto → Estratto conto → CSV (lingua inglese). Carica il file .csv qui.',
+}
+
+// Estensioni accettate per tipo di parser.
+const FILE_ACCEPT: Record<string, string> = {
+  intesa_xlsx: '.xlsx,.xls',
+  bbva_xlsx:   '.xlsx,.xls',
+  revolut_csv: '.csv',
+}
+
+const FILE_LABEL: Record<string, string> = {
+  intesa_xlsx: 'File Excel (.xlsx)',
+  bbva_xlsx:   'File Excel (.xlsx)',
+  revolut_csv: 'File CSV (.csv)',
 }
 
 export default async function ImportPage({ params }: Props) {
@@ -75,7 +89,11 @@ export default async function ImportPage({ params }: Props) {
         </p>
       </div>
 
-      <ImportForm accountId={id} />
+      <ImportForm
+        accountId={id}
+        fileAccept={FILE_ACCEPT[parserKey] ?? '.xlsx,.xls,.csv'}
+        fileLabel={FILE_LABEL[parserKey] ?? 'File estratto conto'}
+      />
     </main>
   )
 }

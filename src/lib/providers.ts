@@ -17,7 +17,7 @@ export const PROVIDERS: BankProvider[] = [
   { id: 'bbva',           name: 'BBVA',                       defaultKind: 'bank',   parser: 'bbva_xlsx' },
   // Predefiniti senza parser (import non ancora supportato)
   { id: 'paypal',         name: 'PayPal',                     defaultKind: 'bank',   parser: null },
-  { id: 'revolut',        name: 'Revolut',                    defaultKind: 'both',   parser: null },
+  { id: 'revolut',        name: 'Revolut',                    defaultKind: 'both',   parser: 'revolut_csv' },
   { id: 'n26',            name: 'N26',                        defaultKind: 'bank',   parser: null },
   { id: 'trade_republic', name: 'Trade Republic',             defaultKind: 'both',   parser: null },
   { id: 'fineco',         name: 'Fineco',                     defaultKind: 'both',   parser: null },

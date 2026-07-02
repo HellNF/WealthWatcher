@@ -84,9 +84,14 @@ describe('provider dispatch', () => {
 
   test('provider senza parser e custom → null', () => {
     expect(providerParser('paypal')).toBeNull()
-    expect(providerParser('revolut')).toBeNull()
+    expect(providerParser('n26')).toBeNull()
     expect(providerParser(null)).toBeNull()
     expect(providerParser('inesistente')).toBeNull()
+  })
+
+  test('revolut ha parser csv', () => {
+    expect(providerParser('revolut')).toBe('revolut_csv')
+    expect(typeof PARSERS[providerParser('revolut')!]).toBe('function')
   })
 
   test('getProvider ritorna nome e kind di default', () => {

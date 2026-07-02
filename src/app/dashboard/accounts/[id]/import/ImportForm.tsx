@@ -36,7 +36,15 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-export default function ImportForm({ accountId }: { accountId: number }) {
+export default function ImportForm({
+  accountId,
+  fileAccept = '.xlsx,.xls',
+  fileLabel  = 'File Excel (.xlsx)',
+}: {
+  accountId:  number
+  fileAccept?: string
+  fileLabel?:  string
+}) {
   const [step, setStep] = useState<Step>({ kind: 'pick' })
   const [isPending, startTransition] = useTransition()
 
@@ -81,13 +89,13 @@ export default function ImportForm({ accountId }: { accountId: number }) {
           <form onSubmit={handlePreview} className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1 space-y-1.5">
               <label className="text-sm font-medium text-[--ink]">
-                File Excel (.xlsx)
+                {fileLabel}
               </label>
               <div className="relative">
                 <input
                   type="file"
                   name="file"
-                  accept=".xlsx,.xls"
+                  accept={fileAccept}
                   required
                   onChange={() => setStep({ kind: 'pick' })}
                   className="w-full text-sm text-[--muted]
