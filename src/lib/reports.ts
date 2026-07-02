@@ -5,8 +5,15 @@ export interface CategoryTotal {
   category_id:   number | null
   category_name: string | null
   kind:          string | null
+  color:         string | null
   total_minor:   number
   count:         number
+}
+
+export interface DailyPoint {
+  day:           string   // "01".."31"
+  outflowMinor:  number   // positive value (abs of outflows)
+  inflowMinor:   number   // positive value
 }
 
 export interface MerchantTotal {
@@ -21,8 +28,10 @@ export interface MonthlyReport {
   month:            string   // YYYY-MM
   totalOutflow:     number   // negative sum (negative minor units)
   totalInflow:      number   // positive sum
+  txCount:          number
   byCategory:       CategoryTotal[]
   byMerchant:       MerchantTotal[]
+  dailyTrend:       DailyPoint[]
 }
 
 /**
@@ -43,11 +52,12 @@ export function monthlyReport(
     .prepare(
       `SELECT
          COALESCE(SUM(CASE WHEN amount_minor < 0 THEN amount_minor ELSE 0 END), 0) AS total_outflow,
-         COALESCE(SUM(CASE WHEN amount_minor > 0 THEN amount_minor ELSE 0 END), 0) AS total_inflow
+         COALESCE(SUM(CASE WHEN amount_minor > 0 THEN amount_minor ELSE 0 END), 0) AS total_inflow,
+         COUNT(*) AS tx_count
        FROM transactions t
        WHERE t.owner_id = ? AND substr(t.booked_date, 1, 7) = ? ${accountFilter}`,
     )
-    .get(...baseArgs) as { total_outflow: number; total_inflow: number }
+    .get(...baseArgs) as { total_outflow: number; total_inflow: number; tx_count: number }
 
   const byCategory = sqlite
     .prepare(
@@ -55,6 +65,7 @@ export function monthlyReport(
          t.category_id,
          c.name  AS category_name,
          c.kind  AS kind,
+         c.color AS color,
          SUM(t.amount_minor)   AS total_minor,
          COUNT(*)              AS count
        FROM transactions t
@@ -66,6 +77,25 @@ export function monthlyReport(
        ORDER BY total_minor ASC`,
     )
     .all(...baseArgs) as CategoryTotal[]
+
+  const dailyRaw = sqlite
+    .prepare(
+      `SELECT
+         substr(t.booked_date, 9, 2) AS day,
+         COALESCE(SUM(CASE WHEN t.amount_minor < 0 THEN -t.amount_minor ELSE 0 END), 0) AS outflow_minor,
+         COALESCE(SUM(CASE WHEN t.amount_minor > 0 THEN  t.amount_minor ELSE 0 END), 0) AS inflow_minor
+       FROM transactions t
+       WHERE t.owner_id = ? AND substr(t.booked_date, 1, 7) = ? ${accountFilter}
+       GROUP BY day
+       ORDER BY day`,
+    )
+    .all(...baseArgs) as { day: string; outflow_minor: number; inflow_minor: number }[]
+
+  const dailyTrend: DailyPoint[] = dailyRaw.map((r) => ({
+    day:          r.day,
+    outflowMinor: r.outflow_minor,
+    inflowMinor:  r.inflow_minor,
+  }))
 
   const byMerchant = sqlite
     .prepare(
@@ -91,8 +121,10 @@ export function monthlyReport(
     month,
     totalOutflow: totals.total_outflow,
     totalInflow:  totals.total_inflow,
+    txCount:      totals.tx_count,
     byCategory,
     byMerchant,
+    dailyTrend,
   }
 }
 

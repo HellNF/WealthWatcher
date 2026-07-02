@@ -1,0 +1,86 @@
+'use client'
+
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from 'recharts'
+import type { DailyPoint } from '@/lib/reports'
+import { useTheme } from '@/components/providers/ThemeProvider'
+
+interface Props {
+  data:     DailyPoint[]
+  currency: string
+}
+
+function fmt(minor: number, currency: string) {
+  return (minor / 100).toLocaleString('it-IT', {
+    style: 'currency', currency, maximumFractionDigits: 0,
+  })
+}
+
+export default function SpendingTrend({ data, currency }: Props) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
+  const colors = isDark
+    ? { outflow: '#f87171', inflow: '#34d399', grid: 'oklch(0.26 0.01 160)', axis: 'oklch(0.42 0.01 160)', tooltipBg: '#1a2421', tooltipBorder: 'oklch(0.26 0.01 160)' }
+    : { outflow: '#dc2626', inflow: '#059669', grid: 'oklch(0.88 0.005 160)', axis: 'oklch(0.55 0.01 160)', tooltipBg: '#fff', tooltipBorder: 'oklch(0.88 0.005 160)' }
+
+  if (data.length === 0) {
+    return <p className="text-sm text-[--faint] py-8 text-center">Nessun dato disponibile.</p>
+  }
+
+  const avgOutflow = Math.round(data.reduce((s, d) => s + d.outflowMinor, 0) / data.length)
+
+  const chartData = data.map((d) => ({
+    day:     d.day,
+    uscite:  d.outflowMinor,
+    entrate: d.inflowMinor,
+  }))
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={2}>
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+        <XAxis
+          dataKey="day"
+          tick={{ fill: colors.axis, fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          interval={4}
+        />
+        <YAxis
+          tickFormatter={(v) => fmt(v, currency)}
+          tick={{ fill: colors.axis, fontSize: 10 }}
+          tickLine={false}
+          axisLine={false}
+          width={72}
+        />
+        <Tooltip
+          formatter={(value, name) => [
+            fmt(Number(value), currency),
+            name === 'uscite' ? 'Uscite' : 'Entrate',
+          ]}
+          labelFormatter={(l) => `Giorno ${String(l)}`}
+          contentStyle={{
+            background: colors.tooltipBg,
+            border: `1px solid ${colors.tooltipBorder}`,
+            borderRadius: 10,
+            fontSize: 12,
+            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
+          }}
+        />
+        {avgOutflow > 0 && (
+          <ReferenceLine
+            y={avgOutflow}
+            stroke={colors.axis}
+            strokeDasharray="4 2"
+            label={{ value: 'media', position: 'insideTopRight', fill: colors.axis, fontSize: 10 }}
+          />
+        )}
+        <Bar dataKey="uscite"  fill={colors.outflow} opacity={0.85} radius={[3, 3, 0, 0]} maxBarSize={20} />
+        <Bar dataKey="entrate" fill={colors.inflow}  opacity={0.70} radius={[3, 3, 0, 0]} maxBarSize={20} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
