@@ -4,31 +4,23 @@ import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { isEmailAllowed, upsertUser, normalizeEmail } from '@/lib/users'
 
-/**
- * Dev credentials provider: lets us sign in without Google OAuth credentials.
- * For now we enable it whenever AUTH_DEV_LOGIN=true, even in production,
- * because this environment is self-hosted and access is still gated by allowlist.
- */
-const devLoginEnabled = process.env.AUTH_DEV_LOGIN === 'true'
-
-const providers: NextAuthConfig['providers'] = [Google]
-
-if (devLoginEnabled) {
-  providers.push(
-    Credentials({
-      id: 'dev',
-      name: 'Dev Login',
-      credentials: { email: { label: 'Email', type: 'email' } },
-      authorize(credentials) {
-        const email = typeof credentials?.email === 'string' ? credentials.email : ''
-        if (!email || !isEmailAllowed(email)) return null
-        const user = upsertUser({ email, name: email.split('@')[0] })
-        if (!user) return null
-        return { id: String(user.id), email: user.email, name: user.name ?? undefined }
-      },
-    }),
-  )
-}
+// Login via email (senza password): l'accesso è già gated dalla whitelist.
+// Sempre attivo — provider legittimo per un'app self-hosted.
+const providers: NextAuthConfig['providers'] = [
+  Google,
+  Credentials({
+    id: 'email',
+    name: 'Email',
+    credentials: { email: { label: 'Email', type: 'email' } },
+    authorize(credentials) {
+      const email = typeof credentials?.email === 'string' ? credentials.email : ''
+      if (!email || !isEmailAllowed(email)) return null
+      const user = upsertUser({ email, name: email.split('@')[0] })
+      if (!user) return null
+      return { id: String(user.id), email: user.email, name: user.name ?? undefined }
+    },
+  }),
+]
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Self-hosted behind a reverse proxy / VPN.

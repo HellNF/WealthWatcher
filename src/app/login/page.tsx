@@ -3,9 +3,6 @@ import { AuthError } from 'next-auth'
 import { signIn } from '@/auth'
 import { BrandMark } from '@/components/ui'
 
-const devLoginEnabled =
-  process.env.NODE_ENV !== 'production' && process.env.AUTH_DEV_LOGIN === 'true'
-
 export default async function LoginPage({
   searchParams,
 }: {
@@ -19,13 +16,12 @@ export default async function LoginPage({
     await signIn('google', { redirectTo })
   }
 
-  async function devSignIn(formData: FormData) {
+  async function emailSignIn(formData: FormData) {
     'use server'
     try {
-      await signIn('dev', { email: String(formData.get('email') ?? ''), redirectTo })
+      await signIn('email', { email: String(formData.get('email') ?? ''), redirectTo })
     } catch (e) {
-      // AuthError = accesso rifiutato dall'allowlist. Il redirect è un segnale di controllo
-      // e deve essere rilanciato; non va catturato qui.
+      // AuthError = accesso rifiutato dalla whitelist.
       if (e instanceof AuthError) redirect('/login?error=denied')
       throw e
     }
@@ -50,10 +46,33 @@ export default async function LoginPage({
           {error === 'denied' && (
             <div className="rounded-lg border border-[--danger]/30 bg-[--danger-subtle] px-3 py-2.5">
               <p className="text-sm text-[--danger]">
-                Accesso negato: questa email non è in allowlist.
+                Accesso negato: questa email non è nella whitelist.
               </p>
             </div>
           )}
+
+          {/* Email login (sempre disponibile) */}
+          <form action={emailSignIn} className="space-y-3">
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="La tua email"
+              className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+            />
+            <button
+              type="submit"
+              className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium hover:bg-[--brand-hover] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+            >
+              Accedi
+            </button>
+          </form>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 border-t border-[--border]" />
+            <span className="text-xs text-[--faint]">oppure</span>
+            <div className="flex-1 border-t border-[--border]" />
+          </div>
 
           <form action={googleSignIn}>
             <button
@@ -63,29 +82,10 @@ export default async function LoginPage({
               Continua con Google
             </button>
           </form>
-
-          {devLoginEnabled && (
-            <form action={devSignIn} className="space-y-3 pt-3 border-t border-[--border]">
-              <p className="text-xs text-[--warning] font-medium">Dev login — solo in locale</p>
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="email in allowlist"
-                className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
-              />
-              <button
-                type="submit"
-                className="w-full h-9 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium hover:bg-[--brand-hover] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
-              >
-                Entra (dev)
-              </button>
-            </form>
-          )}
         </div>
 
         <p className="text-center text-xs text-[--faint]">
-          Accesso riservato agli utenti autorizzati.
+          Accesso riservato agli utenti in whitelist.
         </p>
       </div>
     </div>

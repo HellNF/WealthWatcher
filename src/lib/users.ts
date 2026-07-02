@@ -25,6 +25,31 @@ export function isEmailAllowed(email: string): boolean {
   return getAllowedRole(email) !== null
 }
 
+export function listAllowedEmails(): { email: string; role: Role; note: string | null; created_at: number }[] {
+  return db
+    .select()
+    .from(allowedEmails)
+    .orderBy(allowedEmails.created_at)
+    .all() as { email: string; role: Role; note: string | null; created_at: number }[]
+}
+
+export function addAllowedEmail(email: string, role: Role = 'member'): boolean {
+  const norm = normalizeEmail(email)
+  if (!norm) return false
+  sqlite
+    .prepare(`INSERT OR IGNORE INTO allowed_emails (email, role) VALUES (?, ?)`)
+    .run(norm, role)
+  return true
+}
+
+export function removeAllowedEmail(email: string): void {
+  sqlite.prepare(`DELETE FROM allowed_emails WHERE email = ?`).run(normalizeEmail(email))
+}
+
+export function updateAllowedEmailRole(email: string, role: Role): void {
+  sqlite.prepare(`UPDATE allowed_emails SET role = ? WHERE email = ?`).run(role, normalizeEmail(email))
+}
+
 export function getUserByEmail(email: string): User | undefined {
   return db
     .select()
