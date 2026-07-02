@@ -120,6 +120,26 @@ export const merchantAliases = sqliteTable('merchant_aliases', {
   created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
 })
 
+// ── category_rules ────────────────────────────────────────────────────────────
+// Per-user keyword rules: if normalised(description) contains pattern → assign category.
+// Priority: higher number wins. Among equal priority, longer pattern wins (more specific).
+// Applied BEFORE merchant-alias matching during import and recategorisation.
+export const categoryRules = sqliteTable(
+  'category_rules',
+  {
+    id:          integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:    integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    pattern:     text('pattern').notNull(),      // lowercase substring to match
+    category_id: integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
+    priority:    integer('priority').notNull().default(0),
+    created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('category_rules_owner_pattern_uniq').on(t.owner_id, t.pattern),
+    index('idx_category_rules_owner').on(t.owner_id),
+  ],
+)
+
 // ── import_batches ────────────────────────────────────────────────────────────
 // Audit trail for every CSV import: provenance + dedup counts (SPEC §5.1.2).
 export const importBatches = sqliteTable(
@@ -414,3 +434,4 @@ export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
 export type UserSettings        = InferSelectModel<typeof userSettings>
 export type KidDocument         = InferSelectModel<typeof kidDocuments>
 export type Asset               = InferSelectModel<typeof assets>
+export type CategoryRule        = InferSelectModel<typeof categoryRules>

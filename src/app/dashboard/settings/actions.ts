@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
 import { setOpenAiKey, clearOpenAiKey } from '@/lib/userSettings'
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
+import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
+import { recategorizeAll } from '@/lib/categorization'
 
 type ActionState = { error?: string; success?: string } | undefined
 
@@ -76,4 +78,37 @@ export async function updateAllowedEmailRoleAction(email: string, role: string):
   if (!roleParse.success) return { error: 'Ruolo non valido' }
   updateAllowedEmailRole(email, roleParse.data)
   revalidatePath('/dashboard/settings', 'page')
+}
+
+// ── Category rules ────────────────────────────────────────────────────────────
+
+export async function createCategoryRuleAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user       = await requireUser()
+  const pattern    = String(formData.get('pattern') ?? '').trim().toLowerCase()
+  const categoryId = parseInt(String(formData.get('category_id') ?? ''), 10)
+
+  if (!pattern)     return { error: 'Il pattern non può essere vuoto.' }
+  if (isNaN(categoryId)) return { error: 'Seleziona una categoria.' }
+
+  const result = createCategoryRule(user.id, pattern, categoryId)
+  if (!result.ok) return { error: result.error }
+  revalidatePath('/dashboard/settings', 'page')
+  return { success: `Regola "${pattern}" creata.` }
+}
+
+export async function deleteCategoryRuleAction(id: number): Promise<void> {
+  const user = await requireUser()
+  deleteCategoryRule(id, user.id)
+  revalidatePath('/dashboard/settings', 'page')
+}
+
+export async function recategorizeAllAction(): Promise<ActionState> {
+  const user   = await requireUser()
+  const result = recategorizeAll(user.id)
+  revalidatePath('/dashboard/accounts', 'layout')
+  revalidatePath('/dashboard/reports',  'layout')
+  return { success: `${result.updated} movimenti aggiornati.` }
 }

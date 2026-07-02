@@ -1,4 +1,4 @@
-// src/lib/merchants.ts — Merchant resolution and category fallback.
+// src/lib/merchants.ts — Merchant resolution, category rules, and category fallback.
 import { eq } from 'drizzle-orm'
 import { db, sqlite } from '@/db'
 import { categories } from '@/db/schema'
@@ -83,4 +83,79 @@ export function resolveMerchant(normalizedDesc: string): ResolvedMerchant | null
 
   if (!row) return null
   return { merchantId: row.merchant_id, categoryId: row.default_category_id }
+}
+
+// ── Category rules ────────────────────────────────────────────────────────────
+
+export interface CategoryRuleRow {
+  id:            number
+  pattern:       string
+  category_id:   number
+  category_name: string
+  priority:      number
+  created_at:    number
+}
+
+/**
+ * Check per-user keyword rules against a normalised description.
+ * Returns the category_id of the highest-priority matching rule, or null.
+ */
+export function resolveCategoryRule(normalizedDesc: string, ownerId: number): number | null {
+  const row = sqlite
+    .prepare(
+      `SELECT cr.category_id
+       FROM category_rules cr
+       WHERE cr.owner_id = ?
+         AND ? LIKE '%' || cr.pattern || '%'
+       ORDER BY cr.priority DESC, length(cr.pattern) DESC
+       LIMIT 1`,
+    )
+    .get(ownerId, normalizedDesc) as { category_id: number } | undefined
+  return row?.category_id ?? null
+}
+
+export function listCategoryRules(ownerId: number): CategoryRuleRow[] {
+  return sqlite
+    .prepare(
+      `SELECT cr.id, cr.pattern, cr.category_id, c.name AS category_name,
+              cr.priority, cr.created_at
+       FROM category_rules cr
+       JOIN categories c ON c.id = cr.category_id
+       WHERE cr.owner_id = ?
+       ORDER BY cr.priority DESC, length(cr.pattern) DESC`,
+    )
+    .all(ownerId) as CategoryRuleRow[]
+}
+
+export function createCategoryRule(
+  ownerId:    number,
+  pattern:    string,
+  categoryId: number,
+  priority:   number = 0,
+): { ok: true; id: number } | { ok: false; error: string } {
+  const clean = pattern.trim().toLowerCase()
+  if (!clean) return { ok: false, error: 'Il pattern non può essere vuoto.' }
+  try {
+    const result = sqlite
+      .prepare(
+        `INSERT INTO category_rules (owner_id, pattern, category_id, priority)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .run(ownerId, clean, categoryId, priority)
+    return { ok: true, id: Number(result.lastInsertRowid) }
+  } catch {
+    return { ok: false, error: `Regola già esistente per il pattern "${clean}".` }
+  }
+}
+
+export function deleteCategoryRule(id: number, ownerId: number): void {
+  sqlite
+    .prepare('DELETE FROM category_rules WHERE id = ? AND owner_id = ?')
+    .run(id, ownerId)
+}
+
+export function updateCategoryRulePriority(id: number, ownerId: number, priority: number): void {
+  sqlite
+    .prepare('UPDATE category_rules SET priority = ? WHERE id = ? AND owner_id = ?')
+    .run(priority, id, ownerId)
 }

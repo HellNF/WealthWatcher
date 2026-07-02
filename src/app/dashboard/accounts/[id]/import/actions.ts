@@ -4,7 +4,7 @@ import { getAccountForUser } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { providerParser } from '@/lib/providers'
 import { PARSERS } from '@/lib/import/registry'
-import { normalizeDescription, resolveMerchant, resolveIntesaCategory } from '@/lib/merchants'
+import { normalizeDescription, resolveMerchant, resolveCategoryRule, resolveIntesaCategory } from '@/lib/merchants'
 import { previewRows, insertBatch, type InsertableTransaction, type PreviewRow } from '@/lib/transactions'
 
 // ── Shared: parse XLSX + resolve merchants ────────────────────────────────────
@@ -29,11 +29,12 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
   const parsed = parse(buffer)
 
   const rows: InsertableTransaction[] = parsed.map((p) => {
-    const normalized = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
-    const merchant = resolveMerchant(normalized)
+    const normalized  = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
+    const ruleCategory = resolveCategoryRule(normalized, userId)  // user rules — highest priority
+    const merchant    = resolveMerchant(normalized)
 
-    // Priority: merchant alias → categoria fornita dalla banca (fallback)
-    const categoryId = merchant?.categoryId ?? resolveIntesaCategory(p.intesaCategory)
+    // Priority: user rule → merchant alias → bank-provided category
+    const categoryId = ruleCategory ?? merchant?.categoryId ?? resolveIntesaCategory(p.intesaCategory)
 
     return {
       owner_id:         userId,

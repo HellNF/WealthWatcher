@@ -1,18 +1,23 @@
 import { requireUser } from '@/lib/dal'
 import { hasOpenAiKey, getOpenAiKeySetAt } from '@/lib/userSettings'
 import { listAllowedEmails } from '@/lib/users'
+import { listCategoryRules } from '@/lib/merchants'
+import { listAllCategories } from '@/lib/transactions'
 import OpenAiKeyForm from './OpenAiKeyForm'
 import AllowlistManager from './AllowlistManager'
+import CategoryRulesManager from './CategoryRulesManager'
 import { Breadcrumb, Card, CardHeader, CardTitle, CardDescription } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
-  const user   = await requireUser()
-  const hasKey = hasOpenAiKey(user.id)
-  const setAt  = getOpenAiKeySetAt(user.id)
-  const isAdmin = user.role === 'admin'
+  const user      = await requireUser()
+  const hasKey    = hasOpenAiKey(user.id)
+  const setAt     = getOpenAiKeySetAt(user.id)
+  const isAdmin   = user.role === 'admin'
   const allowlist = isAdmin ? listAllowedEmails() : []
+  const rules     = listCategoryRules(user.id)
+  const categories = listAllCategories()
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -20,6 +25,22 @@ export default async function SettingsPage() {
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Impostazioni' },
       ]} />
+
+      {/* Regole di categorizzazione — visibile a tutti */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <div>
+            <CardTitle>Regole di categorizzazione</CardTitle>
+            <CardDescription>
+              Se la descrizione di un movimento contiene la parola chiave, viene
+              assegnata automaticamente la categoria scelta. Queste regole hanno
+              priorità su tutto: si applicano durante l&apos;import e possono essere
+              ri-applicate allo storico.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CategoryRulesManager rules={rules} categories={categories} />
+      </Card>
 
       <Card className="max-w-xl">
         <CardHeader>
