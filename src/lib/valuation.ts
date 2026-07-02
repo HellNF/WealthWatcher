@@ -7,6 +7,7 @@ import { and, eq, desc, gte } from 'drizzle-orm'
 import type { ValuationSnapshot } from '@/db/schema'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
+import { listAssets } from '@/lib/assets'
 import { convertToEur } from '@/lib/fx/convert'
 import { refreshFxRates } from '@/lib/fx/rates'
 
@@ -46,12 +47,14 @@ function getAccountBalances(userId: number): AccountBalance[] {
 // ── Net-worth computation ─────────────────────────────────────────────────────
 
 export interface NetWorthResult {
-  netWorthEurMinor:   number
+  netWorthEurMinor:    number
   investmentsEurMinor: number
-  accountsEurMinor:   number
+  accountsEurMinor:    number
+  otherAssetsEurMinor: number
   breakdown: {
     portfolios: { portfolioId: number; name: string; currency: string; eurMinor: number | null; originalMinor: number | null }[]
     accounts:   { accountId: number; name: string; currency: string; eurMinor: number | null; originalMinor: number }[]
+    otherAssets: { assetId: number; name: string; kind: string; currency: string; eurMinor: number | null; originalMinor: number }[]
   }
   stale: boolean
 }
@@ -59,10 +62,12 @@ export interface NetWorthResult {
 export async function computeNetWorth(userId: number, date: string): Promise<NetWorthResult> {
   let investmentsEurMinor = 0
   let accountsEurMinor    = 0
+  let otherAssetsEurMinor = 0
   let stale               = false
 
   const portfolioBreakdown: NetWorthResult['breakdown']['portfolios'] = []
   const accountBreakdown:   NetWorthResult['breakdown']['accounts']   = []
+  const otherAssetsBreakdown: NetWorthResult['breakdown']['otherAssets'] = []
 
   // ── Investments ──
   const portfolios = listPortfolios(userId)
@@ -118,11 +123,30 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
     })
   }
 
+  // ── Altri beni (liquidità, immobili, veicoli, altro) ──
+  for (const asset of listAssets(userId)) {
+    const eur = await convertToEur(asset.value_minor, asset.currency, date)
+    if (eur === null) {
+      stale = true
+    } else {
+      otherAssetsEurMinor += eur
+    }
+    otherAssetsBreakdown.push({
+      assetId:       asset.id,
+      name:          asset.name,
+      kind:          asset.kind,
+      currency:      asset.currency,
+      eurMinor:      eur,
+      originalMinor: asset.value_minor,
+    })
+  }
+
   return {
-    netWorthEurMinor:    investmentsEurMinor + accountsEurMinor,
+    netWorthEurMinor:    investmentsEurMinor + accountsEurMinor + otherAssetsEurMinor,
     investmentsEurMinor,
     accountsEurMinor,
-    breakdown: { portfolios: portfolioBreakdown, accounts: accountBreakdown },
+    otherAssetsEurMinor,
+    breakdown: { portfolios: portfolioBreakdown, accounts: accountBreakdown, otherAssets: otherAssetsBreakdown },
     stale,
   }
 }
@@ -137,20 +161,22 @@ export async function takeSnapshot(userId: number, date?: string): Promise<Valua
 
   sqlite.prepare(`
     INSERT INTO valuation_snapshots
-      (owner_id, date, net_worth_eur_minor, investments_eur_minor, accounts_eur_minor, breakdown, stale)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (owner_id, date, net_worth_eur_minor, investments_eur_minor, accounts_eur_minor, other_assets_eur_minor, breakdown, stale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (owner_id, date) DO UPDATE SET
-      net_worth_eur_minor   = excluded.net_worth_eur_minor,
-      investments_eur_minor = excluded.investments_eur_minor,
-      accounts_eur_minor    = excluded.accounts_eur_minor,
-      breakdown             = excluded.breakdown,
-      stale                 = excluded.stale
+      net_worth_eur_minor    = excluded.net_worth_eur_minor,
+      investments_eur_minor  = excluded.investments_eur_minor,
+      accounts_eur_minor     = excluded.accounts_eur_minor,
+      other_assets_eur_minor = excluded.other_assets_eur_minor,
+      breakdown              = excluded.breakdown,
+      stale                  = excluded.stale
   `).run(
     userId,
     d,
     result.netWorthEurMinor,
     result.investmentsEurMinor,
     result.accountsEurMinor,
+    result.otherAssetsEurMinor,
     JSON.stringify(result.breakdown),
     result.stale ? 1 : 0,
   )

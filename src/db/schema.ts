@@ -329,6 +329,7 @@ export const valuationSnapshots = sqliteTable(
     net_worth_eur_minor:   integer('net_worth_eur_minor').notNull(),
     investments_eur_minor: integer('investments_eur_minor').notNull(),
     accounts_eur_minor:    integer('accounts_eur_minor').notNull(),
+    other_assets_eur_minor: integer('other_assets_eur_minor').notNull().default(0), // liquidità, immobili, ecc.
     breakdown:             text('breakdown'),               // JSON
     stale:                 integer('stale').notNull().default(0), // 1 if any value couldn't be converted
     created_at:            integer('created_at').notNull().default(sql`(unixepoch())`),
@@ -368,6 +369,30 @@ export const kidDocuments = sqliteTable('kid_documents', {
   created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
 })
 
+// ── assets ────────────────────────────────────────────────────────────────────
+// Altri beni tracciati manualmente che concorrono al patrimonio netto: liquidità
+// (contanti non su conto), immobili, veicoli, altro. Estendibile aggiungendo kind.
+// value_minor è con segno: negativo = passività/debito (es. mutuo).
+export const assets = sqliteTable(
+  'assets',
+  {
+    id:          integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:    integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    name:        text('name').notNull(),
+    kind:        text('kind', {
+                   enum: ['cash', 'real_estate', 'vehicle', 'other'] as const,
+                 }).notNull().default('cash'),
+    value_minor: integer('value_minor').notNull(),          // valore corrente, con segno
+    currency:    text('currency').notNull().default('EUR'),
+    note:        text('note'),
+    updated_at:  integer('updated_at').notNull().default(sql`(unixepoch())`),
+    created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_assets_owner').on(t.owner_id),
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -387,3 +412,4 @@ export type PriceHistory        = InferSelectModel<typeof priceHistory>
 export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
 export type UserSettings        = InferSelectModel<typeof userSettings>
 export type KidDocument         = InferSelectModel<typeof kidDocuments>
+export type Asset               = InferSelectModel<typeof assets>

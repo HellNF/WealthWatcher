@@ -1,15 +1,18 @@
 import { requireUser } from '@/lib/dal'
 import { listInstitutions } from '@/lib/institutions'
 import { getInstitutionValueEur } from '@/lib/institutionValuation'
+import { listAssets } from '@/lib/assets'
 import AddInstitutionForm from './AddInstitutionForm'
+import AddAssetForm from './AddAssetForm'
+import AssetRow from './AssetRow'
 import NetWorthChart from './NetWorthChart'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 import {
-  Card, CardHeader, CardTitle,
+  Card,
   Stat, Badge, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
-import { Building2, ChevronRight, TrendingUp } from 'lucide-react'
+import { Building2, ChevronRight, Wallet } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +57,8 @@ export default async function DashboardPage() {
   const instValues = await Promise.all(
     institutions.map((inst) => getInstitutionValueEur(user.id, inst.id, today)),
   )
+
+  const assets = listAssets(user.id)
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -105,6 +110,13 @@ export default async function DashboardPage() {
                   value={formatEurCompact(latest.accounts_eur_minor)}
                   size="sm"
                 />
+                {latest.other_assets_eur_minor !== 0 && (
+                  <Stat
+                    label="Altri beni"
+                    value={formatEurCompact(latest.other_assets_eur_minor)}
+                    size="sm"
+                  />
+                )}
               </div>
             )}
           </div>
@@ -165,6 +177,36 @@ export default async function DashboardPage() {
                 </Link>
               )
             })}
+          </Card>
+        )}
+      </section>
+
+      {/* ── Altri beni ────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-[--ink]">Altri beni</h2>
+          <p className="text-sm text-[--muted]">
+            Liquidità, immobili, veicoli e altro — concorrono al patrimonio netto.
+          </p>
+        </div>
+
+        <Card>
+          <AddAssetForm />
+        </Card>
+
+        {assets.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={Wallet}
+              title="Nessun bene aggiunto"
+              description="Aggiungi contanti, un immobile o un veicolo per includerli nel patrimonio."
+            />
+          </Card>
+        ) : (
+          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
+            {assets.map((asset) => (
+              <AssetRow key={asset.id} asset={asset} />
+            ))}
           </Card>
         )}
       </section>
