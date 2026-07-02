@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# database
-/data/*.db
+# database (keep the dir, ignore data + WAL/SHM + backups)
+/data/*
+!/data/.gitkeep

@@ -47,7 +47,25 @@ export function readSpec(): { html: string; headings: Heading[] } {
     },
   })
 
-  const html = localMarked.parse(content) as string
+  let html = localMarked.parse(content) as string
+
+  const implementedPhrases = [
+    'Auth.js con Google OAuth',
+    'Allowlist obbligatoria: OAuth autentica, non autorizza.',
+    'Net worth totale — prominente in alto',
+    'Breakdown per istituzione — quanto su ogni banca/broker',
+    'Grafici andamento — trend storico di net worth e portafogli',
+    'Import CSV (1 banca) con dedup robusta + preview, normalizzazione merchant, categorizzazione, report mensile',
+    'Normalizzazione counterparty/Merchant (prerequisito)',
+    'Report mensile delle uscite con breakdown per merchant e per categoria',
+  ]
+
+  for (const phrase of implementedPhrases) {
+    html = html.replaceAll(
+      phrase,
+      `<span class="text-emerald-400 font-semibold">✅</span> ${phrase}`,
+    )
+  }
 
   return { html, headings }
 }
