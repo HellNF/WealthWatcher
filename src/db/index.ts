@@ -28,18 +28,12 @@ function initDb() {
   const db = drizzle(sqlite, { schema })
 
   // Skip all data operations during `next build` — multiple parallel workers
-<<<<<<< HEAD
-  // would race on migrate() causing "table already exists" errors. Migrations
-  // and seeds run at first real request (dev/prod server startup).
-  const isBuild = process.env.NEXT_PHASE === 'phase-production-build'
-=======
   // would race on migrate() causing "table already exists" errors.
   // `NEXT_PHASE` is not always available in every build worker, so also detect
   // build from the CLI args as a fallback.
   const isBuild =
     process.env.NEXT_PHASE === 'phase-production-build' ||
     process.argv.some((arg) => arg.includes('next') && arg.includes('build'))
->>>>>>> aa4ee8f (.)
 
   if (!isBuild) {
     // Apply versioned SQL migrations from drizzle/ (idempotent, ordered by filename).
