@@ -41,7 +41,13 @@ export default function AllocationChart({ positions }: Props) {
     (p) => parseFloat(p.remainingQty) > 0 && (p.marketValueMinor ?? p.costBasisMinor) > 0,
   )
 
-  if (active.length < 2) return null
+  if (active.length === 0) {
+    return (
+      <p className="text-sm text-[--muted] py-4 text-center">
+        Nessuna posizione aperta con valore disponibile.
+      </p>
+    )
+  }
 
   const data = active.map((p) => ({
     name:     shortName(p.name),
