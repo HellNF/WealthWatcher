@@ -82,6 +82,14 @@ export async function updateAllowedEmailRoleAction(email: string, role: string):
 
 // ── Category rules ────────────────────────────────────────────────────────────
 
+function parseAmountField(raw: FormDataEntryValue | null): number | null {
+  const s = String(raw ?? '').trim().replace(',', '.')
+  if (!s) return null
+  const n = parseFloat(s)
+  if (isNaN(n) || n < 0) return null
+  return Math.round(n * 100)  // convert € to minor units
+}
+
 export async function createCategoryRuleAction(
   _prev: ActionState,
   formData: FormData,
@@ -89,11 +97,16 @@ export async function createCategoryRuleAction(
   const user       = await requireUser()
   const pattern    = String(formData.get('pattern') ?? '').trim().toLowerCase()
   const categoryId = parseInt(String(formData.get('category_id') ?? ''), 10)
+  const amtMin     = parseAmountField(formData.get('amount_min'))
+  const amtMax     = parseAmountField(formData.get('amount_max'))
 
-  if (!pattern)     return { error: 'Il pattern non può essere vuoto.' }
+  if (!pattern)          return { error: 'Il pattern non può essere vuoto.' }
   if (isNaN(categoryId)) return { error: 'Seleziona una categoria.' }
+  if (amtMin !== null && amtMax !== null && amtMin > amtMax) {
+    return { error: 'L\'importo minimo non può essere maggiore del massimo.' }
+  }
 
-  const result = createCategoryRule(user.id, pattern, categoryId)
+  const result = createCategoryRule(user.id, pattern, categoryId, 0, amtMin, amtMax)
   if (!result.ok) return { error: result.error }
   revalidatePath('/dashboard/settings', 'page')
   return { success: `Regola "${pattern}" creata.` }

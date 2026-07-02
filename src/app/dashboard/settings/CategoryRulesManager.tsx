@@ -9,8 +9,21 @@ import {
 import {
   Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge,
 } from '@/components/ui'
-import { Plus, Trash2, RefreshCw, Tag } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
 import type { CategoryRuleRow } from '@/lib/merchants'
+
+function fmtAmount(minor: number): string {
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+}
+
+function AmountFilter({ min, max }: { min: number | null; max: number | null }) {
+  if (min === null && max === null) return <span className="text-[--faint] text-xs">qualsiasi</span>
+  if (min !== null && max !== null)
+    return <span className="text-xs text-[--muted]">{fmtAmount(min)} – {fmtAmount(max)}</span>
+  if (min !== null)
+    return <span className="text-xs text-[--muted]">≥ {fmtAmount(min)}</span>
+  return <span className="text-xs text-[--muted]">≤ {fmtAmount(max!)}</span>
+}
 
 interface Category { id: number; name: string; kind: string }
 
@@ -35,12 +48,10 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
         </code>
       </Td>
       <Td>
-        <Badge variant="neutral">{rule.category_name}</Badge>
+        <AmountFilter min={rule.amount_minor_min} max={rule.amount_minor_max} />
       </Td>
       <Td>
-        {rule.priority !== 0 && (
-          <span className="text-xs tabular-nums text-[--muted]">{rule.priority}</span>
-        )}
+        <Badge variant="neutral">{rule.category_name}</Badge>
       </Td>
       <Td>
         <Button
@@ -103,8 +114,8 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
             <TableHead>
               <Tr>
                 <Th>Parola chiave</Th>
+                <Th>Importo</Th>
                 <Th>Categoria</Th>
-                <Th>Priorità</Th>
                 <Th />
               </Tr>
             </TableHead>
@@ -118,58 +129,95 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
       )}
 
       {/* Form nuova regola */}
-      <form action={createAction} className="flex items-end gap-3 flex-wrap">
-        <div className="flex-1 min-w-40 space-y-1">
-          <label htmlFor="rule-pattern" className="text-xs font-medium text-[--muted]">
-            Parola chiave
-          </label>
-          <input
-            id="rule-pattern"
-            name="pattern"
-            type="text"
-            required
-            placeholder="es. netflix, amazon, abbonamento…"
-            className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
-          />
+      <form action={createAction} className="space-y-3">
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="flex-1 min-w-40 space-y-1">
+            <label htmlFor="rule-pattern" className="text-xs font-medium text-[--muted]">
+              Parola chiave
+            </label>
+            <input
+              id="rule-pattern"
+              name="pattern"
+              type="text"
+              required
+              placeholder="es. netflix, apple, abbonamento…"
+              className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+            />
+          </div>
+
+          {/* Filtro importo opzionale */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[--muted] flex items-center gap-1">
+              <Euro className="size-3" />
+              Da (opz.)
+            </label>
+            <input
+              name="amount_min"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              className="w-24 h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[--muted] flex items-center gap-1">
+              <Euro className="size-3" />
+              A (opz.)
+            </label>
+            <input
+              name="amount_max"
+              type="text"
+              inputMode="decimal"
+              placeholder="9,99"
+              className="w-24 h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+            />
+          </div>
+
+          <div className="min-w-40 space-y-1">
+            <label htmlFor="rule-category" className="text-xs font-medium text-[--muted]">
+              Categoria
+            </label>
+            <select
+              id="rule-category"
+              name="category_id"
+              required
+              className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[--ring]"
+            >
+              <option value="">— scegli —</option>
+              {expenseCategories.length > 0 && (
+                <optgroup label="Uscite">
+                  {expenseCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {incomeCategories.length > 0 && (
+                <optgroup label="Entrate">
+                  {incomeCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {otherCategories.length > 0 && (
+                <optgroup label="Altro">
+                  {otherCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+
+          <Button type="submit" variant="primary" size="sm" loading={isCreating} disabled={isCreating}>
+            <Plus className="size-3.5" />
+            Aggiungi
+          </Button>
         </div>
-        <div className="min-w-40 space-y-1">
-          <label htmlFor="rule-category" className="text-xs font-medium text-[--muted]">
-            Categoria
-          </label>
-          <select
-            id="rule-category"
-            name="category_id"
-            required
-            className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[--ring]"
-          >
-            <option value="">— scegli —</option>
-            {expenseCategories.length > 0 && (
-              <optgroup label="Uscite">
-                {expenseCategories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </optgroup>
-            )}
-            {incomeCategories.length > 0 && (
-              <optgroup label="Entrate">
-                {incomeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </optgroup>
-            )}
-            {otherCategories.length > 0 && (
-              <optgroup label="Altro">
-                {otherCategories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </div>
-        <Button type="submit" variant="primary" size="sm" loading={isCreating} disabled={isCreating}>
-          <Plus className="size-3.5" />
-          Aggiungi regola
-        </Button>
+
+        <p className="text-xs text-[--faint]">
+          I campi importo filtrano sull&apos;importo assoluto del movimento (es. Da 0 A 5 cattura
+          pagamenti fino a €5). Lasciali vuoti per applicare la regola a qualsiasi importo.
+        </p>
       </form>
 
       {createState?.error   && <p className="text-sm text-[--danger]">{createState.error}</p>}

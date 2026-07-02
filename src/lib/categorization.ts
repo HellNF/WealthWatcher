@@ -3,9 +3,10 @@ import { sqlite } from '@/db'
 import { normalizeDescription, resolveCategoryRule, resolveMerchant } from './merchants'
 
 interface TxnStub {
-  id:              number
-  description_raw: string
+  id:               number
+  description_raw:  string
   counterparty_raw: string | null
+  amount_minor:     number
 }
 
 /**
@@ -27,7 +28,7 @@ export function recategorizeAll(
 
   const txns = sqlite
     .prepare(
-      `SELECT id, description_raw, counterparty_raw
+      `SELECT id, description_raw, counterparty_raw, amount_minor
        FROM transactions
        WHERE owner_id = ? ${accountFilter}`,
     )
@@ -44,7 +45,7 @@ export function recategorizeAll(
       const normalized = normalizeDescription(
         txn.description_raw + ' ' + (txn.counterparty_raw ?? ''),
       )
-      const ruleCategory = resolveCategoryRule(normalized, ownerId)
+      const ruleCategory = resolveCategoryRule(normalized, ownerId, Math.abs(txn.amount_minor))
       const merchant     = resolveMerchant(normalized)
 
       // Only update when we have something to assign

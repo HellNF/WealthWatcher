@@ -29,8 +29,8 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
   const parsed = parse(buffer)
 
   const rows: InsertableTransaction[] = parsed.map((p) => {
-    const normalized  = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
-    const ruleCategory = resolveCategoryRule(normalized, userId)  // user rules — highest priority
+    const normalized   = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
+    const ruleCategory = resolveCategoryRule(normalized, userId, Math.abs(p.amountMinor))
     const merchant    = resolveMerchant(normalized)
 
     // Priority: user rule → merchant alias → bank-provided category

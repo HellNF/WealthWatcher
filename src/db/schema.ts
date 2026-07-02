@@ -127,12 +127,15 @@ export const merchantAliases = sqliteTable('merchant_aliases', {
 export const categoryRules = sqliteTable(
   'category_rules',
   {
-    id:          integer('id').primaryKey({ autoIncrement: true }),
-    owner_id:    integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    pattern:     text('pattern').notNull(),      // lowercase substring to match
-    category_id: integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
-    priority:    integer('priority').notNull().default(0),
-    created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+    id:               integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:         integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    pattern:          text('pattern').notNull(),         // lowercase substring to match
+    category_id:      integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
+    priority:         integer('priority').notNull().default(0),
+    // Optional amount filter — matched against ABS(amount_minor). Both nullable = any amount.
+    amount_minor_min: integer('amount_minor_min'),       // inclusive lower bound
+    amount_minor_max: integer('amount_minor_max'),       // inclusive upper bound
+    created_at:       integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
     uniqueIndex('category_rules_owner_pattern_uniq').on(t.owner_id, t.pattern),

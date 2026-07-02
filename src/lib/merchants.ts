@@ -88,29 +88,43 @@ export function resolveMerchant(normalizedDesc: string): ResolvedMerchant | null
 // ── Category rules ────────────────────────────────────────────────────────────
 
 export interface CategoryRuleRow {
-  id:            number
-  pattern:       string
-  category_id:   number
-  category_name: string
-  priority:      number
-  created_at:    number
+  id:               number
+  pattern:          string
+  category_id:      number
+  category_name:    string
+  priority:         number
+  amount_minor_min: number | null
+  amount_minor_max: number | null
+  created_at:       number
 }
 
 /**
- * Check per-user keyword rules against a normalised description.
+ * Check per-user keyword rules against a normalised description and optional amount.
+ * `absAmountMinor` should be Math.abs(transaction.amount_minor).
  * Returns the category_id of the highest-priority matching rule, or null.
+ * Rules with amount constraints win over unconstrained rules at equal priority.
  */
-export function resolveCategoryRule(normalizedDesc: string, ownerId: number): number | null {
+export function resolveCategoryRule(
+  normalizedDesc: string,
+  ownerId:        number,
+  absAmountMinor?: number,
+): number | null {
+  const amt = absAmountMinor ?? null
   const row = sqlite
     .prepare(
       `SELECT cr.category_id
        FROM category_rules cr
        WHERE cr.owner_id = ?
          AND ? LIKE '%' || cr.pattern || '%'
-       ORDER BY cr.priority DESC, length(cr.pattern) DESC
+         AND (cr.amount_minor_min IS NULL OR ? >= cr.amount_minor_min)
+         AND (cr.amount_minor_max IS NULL OR ? <= cr.amount_minor_max)
+       ORDER BY
+         cr.priority DESC,
+         (cr.amount_minor_min IS NOT NULL OR cr.amount_minor_max IS NOT NULL) DESC,
+         length(cr.pattern) DESC
        LIMIT 1`,
     )
-    .get(ownerId, normalizedDesc) as { category_id: number } | undefined
+    .get(ownerId, normalizedDesc, amt, amt) as { category_id: number } | undefined
   return row?.category_id ?? null
 }
 
@@ -118,7 +132,7 @@ export function listCategoryRules(ownerId: number): CategoryRuleRow[] {
   return sqlite
     .prepare(
       `SELECT cr.id, cr.pattern, cr.category_id, c.name AS category_name,
-              cr.priority, cr.created_at
+              cr.priority, cr.amount_minor_min, cr.amount_minor_max, cr.created_at
        FROM category_rules cr
        JOIN categories c ON c.id = cr.category_id
        WHERE cr.owner_id = ?
@@ -128,20 +142,23 @@ export function listCategoryRules(ownerId: number): CategoryRuleRow[] {
 }
 
 export function createCategoryRule(
-  ownerId:    number,
-  pattern:    string,
-  categoryId: number,
-  priority:   number = 0,
+  ownerId:         number,
+  pattern:         string,
+  categoryId:      number,
+  priority:        number = 0,
+  amountMinorMin?: number | null,
+  amountMinorMax?: number | null,
 ): { ok: true; id: number } | { ok: false; error: string } {
   const clean = pattern.trim().toLowerCase()
   if (!clean) return { ok: false, error: 'Il pattern non può essere vuoto.' }
   try {
     const result = sqlite
       .prepare(
-        `INSERT INTO category_rules (owner_id, pattern, category_id, priority)
-         VALUES (?, ?, ?, ?)`,
+        `INSERT INTO category_rules
+           (owner_id, pattern, category_id, priority, amount_minor_min, amount_minor_max)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(ownerId, clean, categoryId, priority)
+      .run(ownerId, clean, categoryId, priority, amountMinorMin ?? null, amountMinorMax ?? null)
     return { ok: true, id: Number(result.lastInsertRowid) }
   } catch {
     return { ok: false, error: `Regola già esistente per il pattern "${clean}".` }
