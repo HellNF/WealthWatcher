@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getPortfolioForUser, updatePortfolio, deletePortfolio } from '@/lib/portfolios'
+import { backfillPortfolioHistory, type BackfillResult } from '@/lib/prices/backfill'
+import { simulateSaleFifo, type TaxSimResult } from '@/lib/taxSim'
 import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from '@/lib/instruments'
 import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
@@ -179,6 +181,31 @@ export async function fetchHistoryAction(symbol: string, period: string): Promis
   await requireUser()
   if (!VALID_PERIODS.includes(period as Period)) return []
   return getHistoricalPrices(symbol, period as Period)
+}
+
+export async function simulateSaleAction(
+  portfolioId:      number,
+  instrumentId:     number,
+  qtyToSell:        number,
+  sellPricePerUnit: number,
+): Promise<TaxSimResult> {
+  const user = await requireUser()
+  return simulateSaleFifo(user.id, portfolioId, instrumentId, qtyToSell, sellPricePerUnit)
+}
+
+export async function backfillHistoryAction(
+  portfolioId: number,
+): Promise<{ results: BackfillResult[] } | { error: string }> {
+  const user = await requireUser()
+  const portfolio = getPortfolioForUser(user.id, portfolioId)
+  if (!portfolio) return { error: 'Portafoglio non trovato' }
+  try {
+    const results = await backfillPortfolioHistory(user.id, portfolioId)
+    revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+    return { results }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Errore durante il backfill' }
+  }
 }
 
 // ── KID extraction ────────────────────────────────────────────────────────────

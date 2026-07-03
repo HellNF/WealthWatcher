@@ -152,7 +152,7 @@ describe('runFifo — no floating point drift', () => {
 
 describe('computePosition', () => {
   const instrument = {
-    symbol: 'VWCE.DE', name: 'Vanguard FTSE All-World',
+    id: 0, symbol: 'VWCE.DE', name: 'Vanguard FTSE All-World',
     currency: 'EUR', last_price: null, last_price_at: null,
   }
 

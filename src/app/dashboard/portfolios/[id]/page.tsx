@@ -16,6 +16,9 @@ import InstrumentPriceChart from './InstrumentPriceChart'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renamePortfolioAction, deletePortfolioAction } from './actions'
 import { Breadcrumb, Card, Stat, Badge, ConfirmDelete } from '@/components/ui'
+import { AddSection } from '@/components/dashboard/AddSection'
+import PriceHistoryBackfillButton from './PriceHistoryBackfillButton'
+import TaxSimulator from './TaxSimulator'
 
 export const dynamic = 'force-dynamic'
 
@@ -150,11 +153,71 @@ export default async function PortfolioPage({ params }: Props) {
       </section>
 
       {/* ── Operazioni ──────────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold text-[--ink]">Operazioni</h2>
-        <AddTxnForm portfolioId={id} />
+      <AddSection
+        title="Operazioni"
+        addLabel="Aggiungi"
+        form={<AddTxnForm portfolioId={id} />}
+      >
         <TxnList txns={txnsWithSymbol} portfolioId={id} />
-      </section>
+      </AddSection>
+
+      {/* ── Tax-Loss Harvesting ─────────────────────────────────────────── */}
+      {positions.filter(p => (p.unrealizedPlMinor ?? 0) < 0 && parseFloat(p.remainingQty) > 0).length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-[--ink]">Posizioni in perdita — Tax-Loss Harvesting</h2>
+          <Card className="space-y-1 divide-y divide-[--border]">
+            {positions
+              .filter(p => (p.unrealizedPlMinor ?? 0) < 0 && parseFloat(p.remainingQty) > 0)
+              .map(pos => {
+                const loss = Math.abs(pos.unrealizedPlMinor ?? 0)
+                const credit = Math.round(loss * 0.26)
+                return (
+                  <div key={pos.symbol} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[--ink]">{pos.symbol}</p>
+                      <p className="text-xs text-[--muted] truncate">{pos.name}</p>
+                    </div>
+                    <div className="text-right shrink-0 space-y-0.5">
+                      <p className="text-sm font-medium tabular-nums text-[--danger]">
+                        {fromMinor(-loss, pos.currency)} non realizzata
+                      </p>
+                      <p className="text-xs text-[--brand-text] tabular-nums">
+                        Credito fiscale potenziale: {fromMinor(credit, pos.currency)}
+                      </p>
+                      <p className="text-xs text-[--faint]">26% × perdita · compensabile entro 4 anni</p>
+                    </div>
+                  </div>
+                )
+              })}
+          </Card>
+        </section>
+      )}
+
+      {/* ── Simulatore fiscale ──────────────────────────────────────────── */}
+      {positions.filter(p => parseFloat(p.remainingQty) > 0).length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-[--ink]">Simulatore vendita — Impatto fiscale</h2>
+          <p className="text-xs text-[--muted]">
+            Calcola plusvalenza lorda, imposta sostitutiva (26%) e guadagno netto di una vendita ipotetica
+            secondo il metodo FIFO. Nessuna operazione viene registrata.
+          </p>
+          <Card>
+            <TaxSimulator
+              portfolioId={id}
+              instruments={positions
+                .filter(p => parseFloat(p.remainingQty) > 0)
+                .map(p => ({
+                  instrumentId: p.instrumentId,
+                  symbol:       p.symbol,
+                  name:         p.name,
+                  remainingQty: p.remainingQty,
+                  lastPrice:    p.lastPrice,
+                  currency:     p.currency,
+                }))}
+            />
+          </Card>
+        </section>
+      )}
 
       {/* ── Gestione portafoglio ────────────────────────────────────────── */}
       <section className="space-y-3">
@@ -170,6 +233,9 @@ export default async function PortfolioPage({ params }: Props) {
             label="Elimina portafoglio"
             confirmText="Eliminare il portafoglio e tutte le sue operazioni?"
           />
+        </Card>
+        <Card>
+          <PriceHistoryBackfillButton portfolioId={id} />
         </Card>
       </section>
     </main>

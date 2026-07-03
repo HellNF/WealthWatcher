@@ -28,6 +28,7 @@ export interface LotSnapshot {
 }
 
 export interface Position extends FifoState {
+  instrumentId:      number
   currency:          string
   symbol:            string
   name:              string
@@ -123,7 +124,7 @@ export function runFifo(txns: InvestmentTxn[], currency: string): FifoState {
  * Enrich a FifoState with market-value and unrealised P/L given the current price.
  */
 export function computePosition(
-  instrument: { symbol: string; name: string; currency: string; last_price: string | null; last_price_at: number | null },
+  instrument: { id: number; symbol: string; name: string; currency: string; last_price: string | null; last_price_at: number | null },
   state: FifoState,
 ): Position {
   let marketValueMinor: number | null  = null
@@ -148,6 +149,7 @@ export function computePosition(
 
   return {
     ...state,
+    instrumentId:      instrument.id,
     currency:          instrument.currency,
     symbol:            instrument.symbol,
     name:              instrument.name,
