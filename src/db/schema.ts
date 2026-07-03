@@ -417,6 +417,28 @@ export const assets = sqliteTable(
   ],
 )
 
+// ── budgets ───────────────────────────────────────────────────────────────────
+// Limiti di spesa mensili per-utente. category_id = NULL → tetto mensile totale.
+// Un solo budget per (owner, categoria); unico budget totale per owner.
+// amount_minor è positivo (limite di uscita in centesimi).
+export const budgets = sqliteTable(
+  'budgets',
+  {
+    id:           integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:     integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    category_id:  integer('category_id').references(
+                    () => categories.id,
+                    { onDelete: 'cascade' },
+                  ),                            // NULL = budget complessivo
+    amount_minor: integer('amount_minor').notNull(), // limite in centesimi, positivo
+    created_at:   integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_budgets_owner').on(t.owner_id),
+    // unicità gestita applicativamente (SQLite non supporta partial unique via Drizzle DSL)
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -437,4 +459,5 @@ export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
 export type UserSettings        = InferSelectModel<typeof userSettings>
 export type KidDocument         = InferSelectModel<typeof kidDocuments>
 export type Asset               = InferSelectModel<typeof assets>
+export type Budget              = InferSelectModel<typeof budgets>
 export type CategoryRule        = InferSelectModel<typeof categoryRules>

@@ -11,6 +11,8 @@ import {
   Menu,
   X,
   ChevronRight,
+  Target,
+  TrendingUp,
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -24,9 +26,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard',         icon: LayoutDashboard, exact: true },
-  { label: 'Report',    href: '/dashboard/reports',  icon: BarChart3 },
-  { label: 'Impostazioni', href: '/dashboard/settings', icon: Settings },
+  { label: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true },
+  { label: 'Report',       href: '/dashboard/reports',      icon: BarChart3 },
+  { label: 'Budget',       href: '/dashboard/budgets',      icon: Target },
+  { label: 'Statistiche',  href: '/dashboard/statistiche',  icon: TrendingUp },
+  { label: 'Impostazioni', href: '/dashboard/settings',     icon: Settings },
 ]
 
 interface SidebarProps {

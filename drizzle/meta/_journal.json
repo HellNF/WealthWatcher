@@ -78,6 +78,13 @@
       "when": 1783029228701,
       "tag": "0010_strong_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1783072362897,
+      "tag": "0011_organic_guardian",
+      "breakpoints": true
     }
   ]
 }
