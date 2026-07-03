@@ -133,6 +133,65 @@ export async function getHistoricalPrices(
   }
 }
 
+export interface HistoricalRangeResult {
+  points:   PricePoint[]
+  currency: string | null  // valuta normalizzata (es. GBP, non GBp)
+}
+
+/**
+ * Recupera prezzi giornalieri per un intervallo di date arbitrario.
+ * Applica la stessa normalizzazione subunit di getQuote (GBp→GBP /100).
+ * Usata per il backfill dello storico prezzi su price_history.
+ * Non lancia mai eccezioni — ritorna array vuoto in caso di errore.
+ */
+export async function getHistoricalPricesRange(
+  symbol:   string,
+  fromDate: string,  // ISO YYYY-MM-DD incluso
+  toDate:   string,  // ISO YYYY-MM-DD incluso
+): Promise<HistoricalRangeResult> {
+  try {
+    const yf = await getYf()
+
+    // Ottieni valuta raw per determinare il fattore di normalizzazione
+    let factor   = 1
+    let currency: string | null = null
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const q = await yf.quote(symbol) as any
+      if (q?.currency) {
+        const sub = SUBUNIT_MAP[q.currency as string]
+        if (sub) {
+          factor   = 1 / sub.factor
+          currency = sub.major
+        } else {
+          currency = (q.currency as string).toUpperCase()
+        }
+      }
+    } catch { /* non critico: factor resta 1 */ }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows: any[] = await yf.historical(symbol, {
+      period1:  fromDate,
+      period2:  toDate,
+      interval: '1d',
+    })
+
+    const points: PricePoint[] = rows
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((r: any) => r.close != null)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((r: any) => ({
+        date:  new Date(r.date).toISOString().slice(0, 10),
+        close: (r.close as number) * factor,
+      }))
+
+    return { points, currency }
+  } catch (e) {
+    console.error('[yahoo] getHistoricalPricesRange', symbol, fromDate, toDate, e)
+    return { points: [], currency: null }
+  }
+}
+
 /**
  * Recupera prezzo corrente + TER per un simbolo Yahoo Finance.
  * Non lancia mai eccezioni — ritorna null sui campi non disponibili.
