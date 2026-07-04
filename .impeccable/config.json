@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "zinc-950",
+        "reason": "zinc-950 è #09090b (quasi nero), non grigio: contrasto eccellente su bg-emerald-500 per bottoni primari",
+        "createdAt": "2026-07-04T17:41:15.928Z"
+      }
+    ]
+  }
+}
