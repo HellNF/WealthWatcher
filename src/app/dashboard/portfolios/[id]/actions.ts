@@ -7,7 +7,7 @@ import { getPortfolioForUser, updatePortfolio, deletePortfolio } from '@/lib/por
 import { backfillPortfolioHistory, type BackfillResult } from '@/lib/prices/backfill'
 import { simulateSaleFifo, type TaxSimResult } from '@/lib/taxSim'
 import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from '@/lib/instruments'
-import { insertTxn, deleteTxn } from '@/lib/investmentTxns'
+import { insertTxn, deleteTxn, updateTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { getInstrumentDetails, getHistoricalPrices, type InstrumentDetails, type PricePoint } from '@/lib/prices/yahoo'
@@ -32,6 +32,15 @@ const txnSchema = z.object({
   price_source:    z.enum(SOURCE_VALUES).default('yahoo'),
   isin:            z.string().trim().optional(),
   ter:             z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  // Percentage of White List government bonds (0–100). Drives the synthetic tax rate.
+  // Visible only for 'bond' and 'etf' clusters; defaults to '0' for everything else.
+  whitelist_percentage: z.string().trim()
+    .transform((v) => v.replace(',', '.') || '0')
+    .refine((v) => {
+      const n = parseFloat(v)
+      return !isNaN(n) && n >= 0 && n <= 100
+    }, 'Deve essere un valore tra 0 e 100')
+    .optional(),
   // buy/sell — normalize Italian comma decimal separator at parse time
   quantity:        z.string().trim().transform((v) => v.replace(',', '.')).optional(),
   unit_price:      z.string().trim().transform((v) => v.replace(',', '.')).optional(),
@@ -49,20 +58,21 @@ export async function addTxnAction(
   const user = await requireUser()
 
   const raw = {
-    type:            formData.get('type'),
-    trade_date:      formData.get('trade_date'),
-    symbol:          formData.get('symbol'),
-    instrument_name: formData.get('instrument_name'),
-    cluster:         formData.get('cluster'),
-    currency:        formData.get('currency'),
-    price_source:    formData.get('price_source') || 'yahoo',
-    isin:            formData.get('isin') || undefined,
-    ter:             formData.get('ter') || undefined,
-    quantity:        formData.get('quantity') || undefined,
-    unit_price:      formData.get('unit_price') || undefined,
-    fee:             formData.get('fee') || undefined,
-    amount:          formData.get('amount') || undefined,
-    note:            formData.get('note') || undefined,
+    type:                 formData.get('type'),
+    trade_date:           formData.get('trade_date'),
+    symbol:               formData.get('symbol'),
+    instrument_name:      formData.get('instrument_name'),
+    cluster:              formData.get('cluster'),
+    currency:             formData.get('currency'),
+    price_source:         formData.get('price_source') || 'yahoo',
+    isin:                 formData.get('isin') || undefined,
+    ter:                  formData.get('ter') || undefined,
+    whitelist_percentage: formData.get('whitelist_percentage') || undefined,
+    quantity:             formData.get('quantity') || undefined,
+    unit_price:           formData.get('unit_price') || undefined,
+    fee:                  formData.get('fee') || undefined,
+    amount:               formData.get('amount') || undefined,
+    note:                 formData.get('note') || undefined,
   }
 
   const parsed = txnSchema.safeParse(raw)
@@ -75,13 +85,14 @@ export async function addTxnAction(
   try {
     // Upsert the instrument (creates it if new, returns existing if symbol known)
     const instrument = getOrCreateInstrument({
-      symbol:       d.symbol,
-      name:         d.instrument_name,
-      cluster:      d.cluster,
-      currency:     d.currency,
-      price_source: d.price_source,
-      isin:         d.isin  ?? null,
-      ter:          d.ter   ?? null,
+      symbol:               d.symbol,
+      name:                 d.instrument_name,
+      cluster:              d.cluster,
+      currency:             d.currency,
+      price_source:         d.price_source,
+      isin:                 d.isin  ?? null,
+      ter:                  d.ter   ?? null,
+      whitelist_percentage: d.whitelist_percentage ?? '0',
     })
 
     // Convert fee string to minor units
@@ -120,6 +131,60 @@ export async function deleteTxnAction(
   await takeSnapshot(user.id).catch(() => {})
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+}
+
+const updateTxnSchema = z.object({
+  type:       z.enum(['buy', 'sell', 'dividend', 'fee']),
+  trade_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data non valida (YYYY-MM-DD)'),
+  quantity:   z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  unit_price: z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  fee:        z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  amount:     z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+  note:       z.string().trim().optional(),
+})
+
+export async function updateTxnAction(
+  portfolioId: number,
+  txnId:       number,
+  _prev:       ActionState,
+  formData:    FormData,
+): Promise<ActionState> {
+  const user     = await requireUser()
+  const currency = String(formData.get('currency') || 'EUR')
+
+  const raw = {
+    type:       formData.get('type'),
+    trade_date: formData.get('trade_date'),
+    quantity:   formData.get('quantity')   || undefined,
+    unit_price: formData.get('unit_price') || undefined,
+    fee:        formData.get('fee')        || undefined,
+    amount:     formData.get('amount')     || undefined,
+    note:       formData.get('note')       || undefined,
+  }
+
+  const parsed = updateTxnSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dati non validi' }
+
+  const d = parsed.data
+
+  try {
+    updateTxn(user.id, txnId, {
+      type:         d.type,
+      trade_date:   d.trade_date,
+      quantity:     d.quantity   || null,
+      unit_price:   d.unit_price || null,
+      fee_minor:    d.fee    ? toMinor(d.fee,    currency) : 0,
+      amount_minor: d.amount ? toMinor(d.amount, currency) : null,
+      note:         d.note   || null,
+    })
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Errore durante il salvataggio' }
+  }
+
+  await takeSnapshot(user.id).catch(() => {})
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+  return undefined
 }
 
 // ── Gestione portafoglio (rinomina, elimina) ──────────────────────────────────

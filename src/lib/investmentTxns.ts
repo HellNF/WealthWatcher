@@ -67,6 +67,33 @@ export function listTxns(userId: number, portfolioId: number): InvestmentTxn[] {
     .all() as InvestmentTxn[]
 }
 
+export interface UpdateTxnParams {
+  type:          'buy' | 'sell' | 'dividend' | 'fee'
+  trade_date:    string
+  quantity?:     string | null
+  unit_price?:   string | null
+  fee_minor?:    number
+  amount_minor?: number | null
+  note?:         string | null
+}
+
+/** Update mutable fields (instrument_id/portfolio_id immutabili per integrità FIFO). */
+export function updateTxn(userId: number, txnId: number, data: UpdateTxnParams): void {
+  db
+    .update(investmentTxns)
+    .set({
+      type:         data.type,
+      trade_date:   data.trade_date,
+      quantity:     data.quantity ?? null,
+      unit_price:   data.unit_price ?? null,
+      fee_minor:    data.fee_minor ?? 0,
+      amount_minor: data.amount_minor ?? null,
+      note:         data.note ?? null,
+    })
+    .where(and(eq(investmentTxns.id, txnId), eq(investmentTxns.owner_id, userId)))
+    .run()
+}
+
 /**
  * Delete a transaction (ownership check via owner_id column).
  */
