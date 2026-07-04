@@ -46,9 +46,12 @@ function initDb() {
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         author     TEXT    NOT NULL CHECK(length(author) <= 50),
         content    TEXT    NOT NULL CHECK(length(content) <= 1000),
-        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        resolved   INTEGER NOT NULL DEFAULT 0
       )
     `)
+    // Migrazione colonna per DB esistenti senza resolved
+    try { sqlite.exec(`ALTER TABLE messages ADD COLUMN resolved INTEGER NOT NULL DEFAULT 0`) } catch { /* già presente */ }
 
     seedAdmin(sqlite)
     runSeed(sqlite)

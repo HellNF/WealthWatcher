@@ -5,6 +5,7 @@ import {
   ArrowRight, Sparkles, ShieldCheck, BookOpen,
 } from 'lucide-react'
 import { getMessages } from '@/lib/messages'
+import { getSession } from '@/lib/dal'
 import ChatSection from '@/components/ChatSection'
 
 export const dynamic = 'force-dynamic'
@@ -114,8 +115,10 @@ const FEATURES: {
   },
 ]
 
-export default function Home() {
+export default async function Home() {
   const messages = getMessages()
+  const session  = await getSession()
+  const isAdmin  = session?.role === 'admin'
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
@@ -256,7 +259,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
             {/* chat */}
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[560px] flex flex-col">
-              <ChatSection initialMessages={messages} />
+              <ChatSection initialMessages={messages} isAdmin={isAdmin} />
             </div>
             {/* colonna laterale */}
             <div className="space-y-4">
