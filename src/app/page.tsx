@@ -137,10 +137,9 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 pb-8 flex flex-col lg:flex-row gap-8">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-6 pb-8 space-y-20">
 
-        {/* ── Contenuto principale ────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 py-12 space-y-20">
+        <div className="py-12 space-y-20">
 
         {/* ── Hero ───────────────────────────────────────────────────────────── */}
         <section className="text-center space-y-6 max-w-3xl mx-auto pt-4">
@@ -244,20 +243,18 @@ export default function Home() {
           </Link>
         </section>
 
-        </div>{/* fine contenuto principale */}
-
-        {/* ── Chat panel ──────────────────────────────────────────────────────── */}
-        <div className="lg:w-96 shrink-0">
-          <div className="sticky top-20 flex flex-col h-[calc(100vh-6rem)] rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-medium text-zinc-200">Discussione &amp; Proposte</span>
-            </div>
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <ChatSection initialMessages={messages} />
-            </div>
-          </div>
         </div>
+
+        {/* ── Chat ────────────────────────────────────────────────────────────── */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-xl font-bold text-zinc-50">Discussione &amp; Proposte</h2>
+          </div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[600px] flex flex-col">
+            <ChatSection initialMessages={messages} />
+          </div>
+        </section>
 
       </div>
 
