@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition, useActionState } from 'react'
+import { useState, useTransition, useActionState, useEffect } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { Button, Field, Input } from '@/components/ui'
 import { setBalanceAction, clearBalanceAction } from './balance-actions'
@@ -35,8 +35,11 @@ export default function SetBalanceForm({
   )
   const [clearing, startClear] = useTransition()
 
-  // Chiude il form dopo un salvataggio riuscito.
-  if (state?.success && open) setOpen(false)
+  // Chiude il form dopo un salvataggio riuscito. useEffect (non if sincrono) per
+  // evitare che lo state residuo chiuda immediatamente il form alla seconda apertura.
+  useEffect(() => {
+    if (state?.success) setOpen(false)
+  }, [state])
 
   if (!open) {
     return (
