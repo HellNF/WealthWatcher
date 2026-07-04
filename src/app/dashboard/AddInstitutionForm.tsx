@@ -49,6 +49,16 @@ export default function AddInstitutionForm() {
                 <option value="both">Banca · Broker</option>
               </Select>
             </Field>
+            <Field label="Paese (opt.)" htmlFor="inst-country">
+              <Input
+                id="inst-country"
+                name="country"
+                placeholder="es. IE"
+                maxLength={2}
+                className="w-20 uppercase"
+                title="Codice ISO 2 lettere. Lascia vuoto per intermediari italiani."
+              />
+            </Field>
           </>
         )}
 

@@ -13,8 +13,12 @@ const accountSchema = z.object({
 })
 
 const institutionSchema = z.object({
-  name: z.string().trim().min(1, 'Nome obbligatorio').max(100),
-  kind: z.enum(['bank', 'broker', 'both']),
+  name:    z.string().trim().min(1, 'Nome obbligatorio').max(100),
+  kind:    z.enum(['bank', 'broker', 'both']),
+  country: z.string().trim().toUpperCase()
+             .regex(/^[A-Z]{2}$/, 'Usa il codice ISO di 2 lettere (es. IT, IE, DE)')
+             .optional()
+             .transform(v => (v === '' || v === undefined ? null : v)),
 })
 
 export type ActionState = { error?: string } | undefined
@@ -74,8 +78,9 @@ export async function updateInstitutionAction(
 ): Promise<ActionState> {
   const user = await requireUser()
   const parsed = institutionSchema.safeParse({
-    name: formData.get('name'),
-    kind: formData.get('kind'),
+    name:    formData.get('name'),
+    kind:    formData.get('kind'),
+    country: formData.get('country') ?? '',
   })
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? 'Dati non validi' }

@@ -196,3 +196,159 @@ export function estimateInterest(balanceMinor: number, rate: string | null): Int
   const netAnnualMinor   = Math.round(grossAnnualMinor * (1 - INTEREST_WITHHOLDING))
   return { ratePercent: r, grossAnnualMinor, netAnnualMinor }
 }
+
+export interface InterestWithholdingTotal {
+  /** Interesse lordo annuo totale su tutti i conti (con tasso impostato) */
+  grossAnnualMinor: number
+  /** Ritenuta 26% totale stimata */
+  withholdingMinor: number
+  /** Interesse netto annuo totale (lordo − ritenuta) */
+  netAnnualMinor:   number
+  /** Numero di conti con tasso impostato */
+  accountCount: number
+}
+
+/**
+ * Stima la ritenuta 26% complessiva sugli interessi di tutti i conti correnti
+ * dell'utente che hanno un tasso impostato.
+ */
+export function totalInterestWithholding(userId: number): InterestWithholdingTotal {
+  const accounts = listAccounts(userId)
+  let grossAnnualMinor = 0
+  let accountCount     = 0
+
+  for (const acc of accounts) {
+    const balance = getAccountBalanceMinor(acc.id)
+    const est     = estimateInterest(balance, acc.interest_rate)
+    if (!est) continue
+    grossAnnualMinor += est.grossAnnualMinor
+    accountCount++
+  }
+
+  const withholdingMinor = Math.round(grossAnnualMinor * INTEREST_WITHHOLDING)
+  const netAnnualMinor   = grossAnnualMinor - withholdingMinor
+  return { grossAnnualMinor, withholdingMinor, netAnnualMinor, accountCount }
+}
+
+// ── Giacenza media per imposta di bollo ───────────────────────────────────────
+
+export interface AverageBalanceResult {
+  /** Giacenza media giornaliera ponderata nell'anno, in minor units. */
+  giacenzaMediaMinor: number
+  /**
+   * Frazione dell'anno in cui il conto risulta attivo (0–1).
+   * Usata per il pro-rata dell'imposta di bollo (€34,20 × fractionOfYear).
+   * 1.0 se il conto era già aperto prima dell'anno analizzato.
+   */
+  fractionOfYear: number
+}
+
+const MS_PER_DAY = 86_400_000
+
+function daysBetweenDates(from: string, to: string): number {
+  return Math.round((new Date(to).getTime() - new Date(from).getTime()) / MS_PER_DAY)
+}
+
+/**
+ * Calcola la giacenza media giornaliera ponderata per un dato anno a partire
+ * dal saldo corrente e dall'elenco completo dei movimenti del conto.
+ *
+ * Algoritmo: ricava il saldo alla fine dell'anno (o a oggi se l'anno è in corso)
+ * sottraendo i movimenti successivi al saldo corrente; poi avanza in avanti nel
+ * tempo all'interno dell'anno pesando ogni segmento per i giorni di durata.
+ *
+ * @param currentBalanceMinor  saldo corrente (da getAccountBalanceMinor)
+ * @param movements            tutti i movimenti del conto, ordinati per data ASC
+ * @param year                 anno 4 cifre, es. '2026'
+ * @param anchorDate           anchor_date del conto (ISO YYYY-MM-DD), o null
+ */
+export function averageBalanceFromMovements(
+  currentBalanceMinor: number,
+  movements: { booked_date: string; amount_minor: number }[],
+  year: string,
+  anchorDate: string | null,
+): AverageBalanceResult {
+  const yearStart   = `${year}-01-01`
+  const yearEnd     = `${year}-12-31`
+  const today       = new Date().toISOString().slice(0, 10)
+  const effectiveEnd = yearEnd <= today ? yearEnd : today
+
+  // Numero di giorni nell'anno (366 per bisestili)
+  const y          = parseInt(year, 10)
+  const totalDays  = ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365
+
+  // Saldo alla fine di effectiveEnd: saldo corrente meno i movimenti successivi
+  const sumAfterEnd = movements
+    .filter(m => m.booked_date > effectiveEnd)
+    .reduce((s, m) => s + m.amount_minor, 0)
+  const balanceAtEnd = currentBalanceMinor - sumAfterEnd
+
+  // Movimenti dentro l'anno (fino a effectiveEnd), raggruppati per data
+  const inYear = movements.filter(m => m.booked_date >= yearStart && m.booked_date <= effectiveEnd)
+  const changeByDate = new Map<string, number>()
+  for (const m of inYear) {
+    changeByDate.set(m.booked_date, (changeByDate.get(m.booked_date) ?? 0) + m.amount_minor)
+  }
+  const sortedDates = [...changeByDate.keys()].sort()
+
+  // Saldo all'inizio dell'anno, prima di qualunque movimento dell'anno
+  const sumInYear  = inYear.reduce((s, m) => s + m.amount_minor, 0)
+  let running      = balanceAtEnd - sumInYear
+
+  // Calcola la somma pesata per segmenti
+  let weightedSum  = 0
+  let prevDate     = yearStart
+
+  for (const d of sortedDates) {
+    // Giorni [prevDate, d-1]: balance = running (prima del movimento di d)
+    const days = daysBetweenDates(prevDate, d)
+    if (days > 0) weightedSum += running * days
+    running += changeByDate.get(d)!
+    prevDate = d
+  }
+
+  // Segmento finale [prevDate, effectiveEnd] incluso
+  const finalDays = daysBetweenDates(prevDate, effectiveEnd) + 1
+  if (finalDays > 0) weightedSum += running * finalDays
+
+  // Giorni effettivi su cui è stato calcolato (< totalDays se anno in corso)
+  const effectiveDays = daysBetweenDates(yearStart, effectiveEnd) + 1
+  const giacenzaMediaMinor = effectiveDays > 0 ? Math.round(weightedSum / effectiveDays) : 0
+
+  // fractionOfYear: usata per il pro-rata del bollo
+  // Se il conto esisteva prima dell'anno, la frazione è 1.0; se è aperto durante l'anno,
+  // la frazione è proporzionale ai giorni di apertura.
+  const firstKnown  = movements.length > 0 ? movements[0].booked_date : null
+  const openSince   =
+    (anchorDate && anchorDate <= yearStart) ? null         // anchor prima dell'anno → conto preesistente
+    : anchorDate ?? firstKnown                             // usa anchor o prima transazione
+  const fractionOfYear = !openSince || openSince <= yearStart
+    ? 1.0
+    : Math.min(1, Math.max(0, (daysBetweenDates(openSince, yearEnd) + 1) / totalDays))
+
+  return { giacenzaMediaMinor, fractionOfYear }
+}
+
+/**
+ * Calcola la giacenza media annua di un conto leggendo saldo e movimenti da SQLite.
+ * Usata da `estimatedWealthTaxes` per determinare l'imposta di bollo.
+ */
+export function accountAverageBalanceMinor(accountId: number, year: string): AverageBalanceResult {
+  const currentBalance = getAccountBalanceMinor(accountId)
+
+  const accountRow = sqlite
+    .prepare(`SELECT anchor_date FROM bank_accounts WHERE id = ?`)
+    .get(accountId) as { anchor_date: string | null } | undefined
+  const anchorDate = accountRow?.anchor_date ?? null
+
+  const movements = sqlite
+    .prepare(
+      `SELECT booked_date, amount_minor
+       FROM transactions
+       WHERE bank_account_id = ?
+       ORDER BY booked_date ASC`,
+    )
+    .all(accountId) as { booked_date: string; amount_minor: number }[]
+
+  return averageBalanceFromMovements(currentBalance, movements, year, anchorDate)
+}

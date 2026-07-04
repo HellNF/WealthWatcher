@@ -7,14 +7,16 @@ import type { Instrument } from '@/db/schema'
 export type { Instrument }
 
 export interface CreateInstrumentParams {
-  symbol:          string
-  name:            string
-  cluster:         'etf' | 'bond' | 'stock' | 'crypto' | 'other'
-  currency:        string
-  price_source?:   'yahoo' | 'coingecko' | 'alphavantage' | 'manual'
-  isin?:           string | null
-  ter?:            string | null
-  provider_symbol?: string | null
+  symbol:               string
+  name:                 string
+  cluster:              'etf' | 'bond' | 'stock' | 'crypto' | 'other'
+  currency:             string
+  price_source?:        'yahoo' | 'coingecko' | 'alphavantage' | 'manual'
+  isin?:                string | null
+  ter?:                 string | null
+  provider_symbol?:     string | null
+  /** Percentage of White List government bonds (0–100). Drives the synthetic tax rate. */
+  whitelist_percentage?: string | null
 }
 
 /**
@@ -26,8 +28,8 @@ export function getOrCreateInstrument(params: CreateInstrumentParams): Instrumen
   sqlite
     .prepare(
       `INSERT INTO instruments
-         (symbol, name, cluster, currency, price_source, isin, ter, provider_symbol)
-       VALUES (?,?,?,?,?,?,?,?)
+         (symbol, name, cluster, currency, price_source, isin, ter, provider_symbol, whitelist_percentage)
+       VALUES (?,?,?,?,?,?,?,?,?)
        ON CONFLICT(symbol) DO NOTHING`,
     )
     .run(
@@ -39,6 +41,7 @@ export function getOrCreateInstrument(params: CreateInstrumentParams): Instrumen
       params.isin ?? null,
       params.ter ?? null,
       params.provider_symbol ?? null,
+      params.whitelist_percentage ?? '0',
     )
 
   return db
@@ -76,6 +79,14 @@ export interface KidFields {
   entry_cost?: string | null
   exit_cost?:  string | null
   sri?:        number | null
+}
+
+/**
+ * Update only the whitelist_percentage for an existing instrument.
+ * Called when the user manually edits the fiscal settings of an instrument.
+ */
+export function updateInstrumentWhitelistPct(id: number, whitelistPct: string): void {
+  sqlite.prepare('UPDATE instruments SET whitelist_percentage = ? WHERE id = ?').run(whitelistPct, id)
 }
 
 export function updateInstrumentKidFields(id: number, fields: KidFields): void {

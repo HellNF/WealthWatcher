@@ -10,9 +10,10 @@ interface Props {
   institutionId: number
   name: string
   kind: string
+  country: string | null
 }
 
-export default function EditInstitutionForm({ institutionId, name, kind }: Props) {
+export default function EditInstitutionForm({ institutionId, name, kind, country }: Props) {
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState<State, FormData>(
     updateInstitutionAction.bind(null, institutionId),
@@ -45,6 +46,17 @@ export default function EditInstitutionForm({ institutionId, name, kind }: Props
           <option value="broker">Broker</option>
           <option value="both">Banca · Broker</option>
         </Select>
+      </Field>
+      <Field label="Paese (opt.)" htmlFor="inst-edit-country">
+        <Input
+          id="inst-edit-country"
+          name="country"
+          defaultValue={country ?? ''}
+          placeholder="es. IE"
+          maxLength={2}
+          className="w-20 uppercase"
+          title="Codice ISO 2 lettere. Vuoto = Italia."
+        />
       </Field>
       <div className="flex gap-2 shrink-0">
         <Button type="submit" loading={pending}>Salva</Button>

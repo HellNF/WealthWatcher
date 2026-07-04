@@ -53,10 +53,11 @@ export function createInstitution(
   name: string,
   kind: InstitutionKind,
   provider: string | null = null,
+  country: string | null = null,
 ): Institution {
   const row = db
     .insert(institutions)
-    .values({ owner_id: userId, name, kind, provider })
+    .values({ owner_id: userId, name, kind, provider, country })
     .returning()
     .get()
   // SQLite INSERT RETURNING * always returns the row on success; the cast is safe.
@@ -69,12 +70,13 @@ export function createInstitution(
 export function updateInstitution(
   userId: number,
   id: number,
-  fields: { name?: string; kind?: InstitutionKind; provider?: string | null },
+  fields: { name?: string; kind?: InstitutionKind; provider?: string | null; country?: string | null },
 ): boolean {
-  const patch: Partial<{ name: string; kind: InstitutionKind; provider: string | null }> = {}
-  if (fields.name !== undefined) patch.name = fields.name
-  if (fields.kind !== undefined) patch.kind = fields.kind
+  const patch: Partial<{ name: string; kind: InstitutionKind; provider: string | null; country: string | null }> = {}
+  if (fields.name !== undefined)    patch.name    = fields.name
+  if (fields.kind !== undefined)    patch.kind    = fields.kind
   if (fields.provider !== undefined) patch.provider = fields.provider
+  if (fields.country !== undefined) patch.country = fields.country
   if (Object.keys(patch).length === 0) return false
 
   const res = db

@@ -1,0 +1,1 @@
+ALTER TABLE `instruments` ADD `whitelist_percentage` text DEFAULT '0' NOT NULL;

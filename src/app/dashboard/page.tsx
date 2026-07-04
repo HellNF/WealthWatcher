@@ -144,6 +144,17 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* ── Link alla pagina Tasse ─────────────────────────────────────── */}
+        <div className="mx-6 mb-4">
+          <Link
+            href="/dashboard/tasse"
+            className="inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
+          >
+            <ChevronRight className="size-3.5" />
+            Dettaglio fiscale — tasse latenti, plus/minus realizzate, bollo/IVAFE
+          </Link>
+        </div>
+
         <div className="px-2 pb-4">
           <NetWorthChart snapshots={snapshots} />
         </div>

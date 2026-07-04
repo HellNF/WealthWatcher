@@ -19,16 +19,18 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 interface InstrFields {
-  isin:         string
-  symbol:       string
-  name:         string
-  cluster:      string
-  currency:     string
-  price_source: string
-  ter:          string
+  isin:                 string
+  symbol:               string
+  name:                 string
+  cluster:              string
+  currency:             string
+  price_source:         string
+  ter:                  string
+  whitelist_percentage: string
 }
 const EMPTY: InstrFields = {
   isin: '', symbol: '', name: '', cluster: 'etf', currency: 'EUR', price_source: 'yahoo', ter: '',
+  whitelist_percentage: '',
 }
 
 interface KidReview {
@@ -515,6 +517,30 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             />
           </Field>
         </div>
+
+        {/* ── Whitelist fiscale (solo ETF/Obbligazioni) ─────────────────────── */}
+        {(instr.cluster === 'etf' || instr.cluster === 'bond') && (
+          <Field
+            label="% titoli di Stato White List"
+            htmlFor="txn-whitelist"
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                id="txn-whitelist"
+                name="whitelist_percentage"
+                value={instr.whitelist_percentage}
+                onChange={setField('whitelist_percentage')}
+                placeholder="0"
+                className="w-24 font-mono"
+              />
+              <span className="text-sm text-[--muted]">%</span>
+            </div>
+            <p className="mt-1 text-xs text-[--faint]">
+              Quota del fondo in titoli di Stato White List (0 = nessuna, 100 = BTP/Tit. di Stato puri).
+              Influenza l&apos;aliquota fiscale: da 26% a 12,5%.
+            </p>
+          </Field>
+        )}
 
         {/* ── Campi buy/sell ─────────────────────────────────────────────────── */}
         {isBuySell && (

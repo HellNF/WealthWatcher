@@ -1421,22 +1421,29 @@ export interface CashflowForecastStats {
   thresholdMinor:           number   // 1 mese di spesa media (soglia di allerta)
   crossesThresholdInDays:   number | null  // null = non scende sotto la soglia entro 60 gg
   recurringOutflowMonthly:  number   // totale uscite ricorrenti rilevate/mese
+  /** Quota mensile delle imposte patrimoniali annue (bollo+IVAFE), se nota */
+  wealthTaxMonthlyMinor:    number
 }
 
 /**
  * Proietta il saldo liquido nei prossimi 30/60 giorni usando la media delle
  * ultime 3 mensilità e i pagamenti ricorrenti già rilevati.
  * Input: cashflow storico, ricorrenti e saldo liquido corrente in EUR.
+ *
+ * @param annualWealthTaxMinor  imposta patrimoniale annua stimata (bollo+IVAFE) in EUR minor.
+ *                              Default 0 → comportamento invariato (retro-compatibile).
  */
 export function cashflowForecastStats(
-  cashflow:       MonthlyCashflow[],
-  recurring:      RecurringPayment[],
-  liquidityMinor: number,
+  cashflow:              MonthlyCashflow[],
+  recurring:             RecurringPayment[],
+  liquidityMinor:        number,
+  annualWealthTaxMinor = 0,
 ): CashflowForecastStats {
   const empty: CashflowForecastStats = {
     hasData: false, avgMonthlyInflowMinor: 0, avgMonthlyOutflowMinor: 0,
     avgMonthlyNetMinor: 0, proj30Minor: liquidityMinor, proj60Minor: liquidityMinor,
     thresholdMinor: 0, crossesThresholdInDays: null, recurringOutflowMonthly: 0,
+    wealthTaxMonthlyMinor: 0,
   }
   if (cashflow.length < 2) return empty
 
@@ -1447,15 +1454,19 @@ export function cashflowForecastStats(
 
   const recurringOut = recurring.reduce((s, r) => s + r.monthlyMinor, 0)
 
-  const proj30 = liquidityMinor + avgNet
-  const proj60 = liquidityMinor + avgNet * 2
+  // Quota mensile delle imposte patrimoniali (spalmate su 12 mesi)
+  const wealthTaxMonthly = Math.round(annualWealthTaxMinor / 12)
+
+  // Proiezioni: include la quota mensile del bollo/IVAFE
+  const proj30 = liquidityMinor + avgNet - wealthTaxMonthly
+  const proj60 = liquidityMinor + avgNet * 2 - wealthTaxMonthly * 2
   const threshold = avgOutflow  // 1 mese di spese come soglia di allerta
 
   // Calcola il giorno in cui il saldo scende sotto la soglia (interpolazione lineare)
   let crossDay: number | null = null
-  if (avgNet < 0) {
-    const dailyNet = avgNet / 30
-    const daysToThreshold = (liquidityMinor - threshold) / -dailyNet
+  const effectiveDailyNet = (avgNet - wealthTaxMonthly) / 30
+  if (effectiveDailyNet < 0) {
+    const daysToThreshold = (liquidityMinor - threshold) / -effectiveDailyNet
     if (daysToThreshold > 0 && daysToThreshold <= 60) {
       crossDay = Math.round(daysToThreshold)
     }
@@ -1471,6 +1482,7 @@ export function cashflowForecastStats(
     thresholdMinor:          threshold,
     crossesThresholdInDays:  crossDay,
     recurringOutflowMonthly: recurringOut,
+    wealthTaxMonthlyMinor:   wealthTaxMonthly,
   }
 }
 

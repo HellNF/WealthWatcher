@@ -78,7 +78,7 @@ export default async function InstitutionPage({ params }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <EditInstitutionForm institutionId={id} name={institution.name} kind={institution.kind} />
+            <EditInstitutionForm institutionId={id} name={institution.name} kind={institution.kind} country={institution.country ?? null} />
             <ConfirmDelete
               action={deleteInstitutionAction.bind(null, id)}
               label="Elimina istituzione"

@@ -17,13 +17,15 @@ import {
   cashflowForecastStats,
   dcaRecommendationStats,
 } from '@/lib/analytics'
+import { estimatedWealthTaxes } from '@/lib/tax/wealth'
 import {
   TrendingUp, BarChart2, Target, ShieldCheck,
   Repeat2, Zap, Calendar, AlertCircle, Rocket,
   Activity, Link2, Clock, Gauge, Shuffle,
-  ArrowRight, Wallet,
+  ArrowRight, Wallet, Landmark,
 } from 'lucide-react'
 import { Breadcrumb, Card, Stat, Badge, EmptyState } from '@/components/ui'
+import Link from 'next/link'
 import AllocationOverTime   from './AllocationOverTime'
 import CashflowChart        from './CashflowChart'
 import WeekdayChart         from './WeekdayChart'
@@ -115,7 +117,12 @@ export default async function StatistichePage() {
   const affinity      = affinityStats(user.id)
   const cfVariability = cashflowVariabilityStats(txStats.cashflow)
   const dca           = dcaCounterfactualStats(user.id)
-  const forecast      = cashflowForecastStats(txStats.cashflow, txStats.recurring, liquidityMinor)
+  const currentYear   = new Date().getFullYear().toString()
+  const wealthTaxes   = await estimatedWealthTaxes(user.id, currentYear).catch(() => null)
+  const forecast      = cashflowForecastStats(
+    txStats.cashflow, txStats.recurring, liquidityMinor,
+    wealthTaxes?.totalMinor ?? 0,
+  )
   const dcaRec        = dcaRecommendationStats(user.id, liquidityMinor, txStats.cashflow)
 
   // Flag sezioni
@@ -333,6 +340,29 @@ export default async function StatistichePage() {
           </Card>
         )}
 
+        {/* Rimando alla pagina Tasse per il dettaglio bollo/IVAFE */}
+        {wealthTaxes && wealthTaxes.totalMinor > 0 && (
+          <Card className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-medium text-[--ink]">
+                Imposte patrimoniali stimate {currentYear}:{' '}
+                <span className="font-mono tabular-nums text-[--danger]">
+                  {fmtEur(wealthTaxes.totalMinor)}
+                </span>
+              </p>
+              <p className="text-xs text-[--muted] mt-0.5">
+                Incluse nella proiezione cashflow qui sotto.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/tasse"
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
+            >
+              Dettaglio bollo/IVAFE →
+            </Link>
+          </Card>
+        )}
+
         {/* Cashflow Forecast */}
         {forecast.hasData && (
           <Card className="space-y-5">
@@ -343,6 +373,9 @@ export default async function StatistichePage() {
             <p className="text-xs text-[--muted]">
               Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite.
               Non tiene conto di eventi straordinari. Usa come indicatore di tendenza, non come previsione precisa.
+              {forecast.wealthTaxMonthlyMinor > 0 && (
+                <> Incluse <strong className="text-[--ink]">{fmtEur(forecast.wealthTaxMonthlyMinor)}/mese</strong> di imposte patrimoniali stimate.</>
+              )}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               <Stat
