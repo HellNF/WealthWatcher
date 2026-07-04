@@ -178,11 +178,24 @@ export interface TransactionRow {
   category_id:     number | null
 }
 
+export interface ListTransactionsOpts {
+  from?:  string   // ISO YYYY-MM-DD — incluso
+  to?:    string   // ISO YYYY-MM-DD — incluso
+  limit?: number   // default 50
+}
+
 export function listTransactions(
   userId: number,
   bankAccountId: number,
-  limit = 50,
+  opts: ListTransactionsOpts = {},
 ): TransactionRow[] {
+  const { from, to, limit = 50 } = opts
+  const conds: string[]          = ['t.owner_id = ?', 't.bank_account_id = ?']
+  const args:  (string | number)[] = [userId, bankAccountId]
+  if (from) { conds.push('t.booked_date >= ?'); args.push(from) }
+  if (to)   { conds.push('t.booked_date <= ?'); args.push(to)   }
+  args.push(limit)
+
   return sqlite
     .prepare(
       `SELECT t.id, t.booked_date, t.amount_minor, t.currency,
@@ -192,11 +205,27 @@ export function listTransactions(
        FROM transactions t
        LEFT JOIN categories c ON c.id = t.category_id
        LEFT JOIN merchants  m ON m.id = t.merchant_id
-       WHERE t.owner_id = ? AND t.bank_account_id = ?
+       WHERE ${conds.join(' AND ')}
        ORDER BY t.booked_date DESC, t.id DESC
        LIMIT ?`,
     )
-    .all(userId, bankAccountId, limit) as TransactionRow[]
+    .all(...args) as TransactionRow[]
+}
+
+export function countTransactions(
+  userId: number,
+  bankAccountId: number,
+  opts: Pick<ListTransactionsOpts, 'from' | 'to'> = {},
+): number {
+  const { from, to }               = opts
+  const conds: string[]            = ['owner_id = ?', 'bank_account_id = ?']
+  const args: (string | number)[]  = [userId, bankAccountId]
+  if (from) { conds.push('booked_date >= ?'); args.push(from) }
+  if (to)   { conds.push('booked_date <= ?'); args.push(to)   }
+  const row = sqlite
+    .prepare(`SELECT COUNT(*) AS n FROM transactions WHERE ${conds.join(' AND ')}`)
+    .get(...args) as { n: number }
+  return row.n
 }
 
 export function updateTransactionCategory(

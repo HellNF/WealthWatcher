@@ -4,7 +4,8 @@ import { requireUser } from '@/lib/dal'
 import { getAccountForUser, getAccountBalanceMinor, estimateInterest } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { providerParser } from '@/lib/providers'
-import { listTransactions, listAllCategories } from '@/lib/transactions'
+import { listTransactions, countTransactions, listAllCategories } from '@/lib/transactions'
+import TxnFilters from './TxnFilters'
 import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
 import InterestForm from './InterestForm'
@@ -17,7 +18,8 @@ import { Upload, BarChart3, PiggyBank } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  params: Promise<{ id: string }>
+  params:       Promise<{ id: string }>
+  searchParams: Promise<{ from?: string; to?: string; all?: string }>
 }
 
 function formatDate(iso: string): string {
@@ -25,7 +27,7 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-export default async function AccountPage({ params }: Props) {
+export default async function AccountPage({ params, searchParams }: Props) {
   const { id: idStr } = await params
   const id = parseInt(idStr, 10)
   if (isNaN(id)) notFound()
@@ -34,9 +36,16 @@ export default async function AccountPage({ params }: Props) {
   const account = getAccountForUser(user.id, id)
   if (!account) notFound()
 
-  const institution = getInstitutionForUser(user.id, account.institution_id)
-  const transactions = listTransactions(user.id, id)
-  const categories = listAllCategories()
+  const sp   = await searchParams
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(sp.from ?? '') ? sp.from : undefined
+  const to   = /^\d{4}-\d{2}-\d{2}$/.test(sp.to   ?? '') ? sp.to   : undefined
+  const all  = sp.all === '1'
+  const limit = all ? 99_999 : 50
+
+  const institution  = getInstitutionForUser(user.id, account.institution_id)
+  const transactions = listTransactions(user.id, id, { from, to, limit })
+  const totalCount   = countTransactions(user.id, id, { from, to })
+  const categories   = listAllCategories()
 
   // Saldo: usa il saldo di riferimento manuale se impostato, altrimenti somma i
   // movimenti (fonte unica: getAccountBalanceMinor, condivisa col net worth).
@@ -156,6 +165,7 @@ export default async function AccountPage({ params }: Props) {
       {/* Transazioni */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-[--ink]">Movimenti</h2>
+        <TxnFilters from={from} to={to} shown={transactions.length} total={totalCount} />
         <TransactionTable transactions={transactions} categories={categories} />
       </section>
 
