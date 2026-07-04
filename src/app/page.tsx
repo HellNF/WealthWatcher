@@ -251,8 +251,55 @@ export default function Home() {
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <h2 className="text-xl font-bold text-zinc-50">Discussione &amp; Proposte</h2>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[600px] flex flex-col">
-            <ChatSection initialMessages={messages} />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+            {/* chat */}
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[560px] flex flex-col">
+              <ChatSection initialMessages={messages} />
+            </div>
+            {/* colonna laterale */}
+            <div className="space-y-4">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-3">
+                <p className="text-sm font-semibold text-zinc-100">A cosa serve questa sezione?</p>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Qui puoi lasciare proposte di nuove funzionalità, segnalare bug o discutere
+                  idee per il progetto. Ogni messaggio è visibile a tutti gli utenti.
+                </p>
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-3">
+                <p className="text-sm font-semibold text-zinc-100">Cosa stiamo costruendo</p>
+                <ul className="space-y-2 text-sm text-zinc-400">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    Importazione automatica estratti conto via PSD2/Open Banking
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    Supporto multi-utente e condivisione patrimonio familiare
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    Obiettivi di risparmio con proiezione temporale
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
+                    <span className="text-zinc-500">Notifiche soglie patrimonio via email</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
+                    <span className="text-zinc-500">App mobile (iOS/Android)</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-2">
+                <p className="text-sm font-semibold text-zinc-100">Link rapidi</p>
+                <div className="flex flex-col gap-1.5">
+                  <Link href="/dashboard" className="text-sm text-emerald-400 hover:underline">→ Dashboard</Link>
+                  <Link href="/dashboard/tasse" className="text-sm text-emerald-400 hover:underline">→ Gestione tasse</Link>
+                  <Link href="/dashboard/profilo" className="text-sm text-emerald-400 hover:underline">→ Profilo fiscale</Link>
+                  <Link href="/dashboard/settings" className="text-sm text-emerald-400 hover:underline">→ Impostazioni</Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
