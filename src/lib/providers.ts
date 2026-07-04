@@ -29,6 +29,7 @@ export const PROVIDERS: BankProvider[] = [
   { id: 'mediolanum',     name: 'Banca Mediolanum',           defaultKind: 'both',   parser: null },
   { id: 'hype',           name: 'Hype',                       defaultKind: 'bank',   parser: null },
   { id: 'widiba',         name: 'Widiba',                     defaultKind: 'both',   parser: null },
+  { id: 'directa',       name: 'Directa SIM',                defaultKind: 'broker', parser: null },
 ]
 
 export function getProvider(id: string | null | undefined): BankProvider | undefined {
