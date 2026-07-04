@@ -7,6 +7,8 @@ import {
 import { getMessages } from '@/lib/messages'
 import ChatSection from '@/components/ChatSection'
 
+export const dynamic = 'force-dynamic'
+
 // ── Novità — le ultime feature rilasciate (aggiornare ad ogni milestone) ──────
 
 const NEWS: { label: string; description: string }[] = [
