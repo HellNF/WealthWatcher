@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Target,
   TrendingUp,
+  Landmark,
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Report',       href: '/dashboard/reports',      icon: BarChart3 },
   { label: 'Budget',       href: '/dashboard/budgets',      icon: Target },
   { label: 'Statistiche',  href: '/dashboard/statistiche',  icon: TrendingUp },
+  { label: 'Tasse',        href: '/dashboard/tasse',        icon: Landmark },
   { label: 'Impostazioni', href: '/dashboard/settings',     icon: Settings },
 ]
 
@@ -91,24 +93,30 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   const userFooter = (
     <div className="px-3 py-3 border-t border-[--border] space-y-2">
       <ThemeToggle mode="icon+label" className="w-full justify-center" />
-      <div className="flex items-center gap-2 px-2 py-1">
-        <div className="size-7 rounded-full bg-[--brand-subtle] flex items-center justify-center shrink-0">
-          <span className="text-xs font-semibold text-[--brand-text]">
-            {(user.name ?? user.email ?? '?')[0].toUpperCase()}
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[--ink] truncate">
-            {user.name ?? user.email}
-          </p>
-          {user.role === 'admin' && (
-            <p className="text-[10px] text-[--brand-text]">admin</p>
-          )}
-        </div>
-        <form action={signOutAction}>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/profilo"
+          aria-label="Profilo personale"
+          className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1 rounded-lg hover:bg-[--surface-2] transition-colors duration-100"
+        >
+          <div className="size-7 rounded-full bg-[--brand-subtle] flex items-center justify-center shrink-0">
+            <span className="text-xs font-semibold text-[--brand-text]">
+              {(user.name ?? user.email ?? '?')[0].toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-[--ink] truncate">
+              {user.name ?? user.email}
+            </p>
+            {user.role === 'admin' && (
+              <p className="text-[10px] text-[--brand-text]">admin</p>
+            )}
+          </div>
+        </Link>
+        <form action={signOutAction} className="shrink-0">
           <button
             type="submit"
-            className="text-[--faint] hover:text-[--danger] transition-colors duration-100"
+            className="p-1 text-[--faint] hover:text-[--danger] transition-colors duration-100"
             title="Esci"
             aria-label="Esci dall'account"
           >

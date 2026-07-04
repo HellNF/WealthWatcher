@@ -1,7 +1,27 @@
-// Per-user settings repository. Stores encrypted OpenAI API key in user_settings.
+// Per-user settings repository. Stores encrypted OpenAI API key and user profile.
 import { sqlite } from '@/db'
 import { encryptSecret, decryptSecret } from '@/lib/crypto'
 import type { UserSettings } from '@/db/schema'
+
+export type EmploymentType =
+  | 'employee'
+  | 'self_employed_forfettario'
+  | 'self_employed_ordinario'
+  | 'pensioner'
+  | 'none'
+
+export type CapitalGainsRegime = 'amministrato' | 'dichiarativo'
+
+export interface UserProfile {
+  taxResidency:           string            // ISO alpha-2, default 'IT'
+  birthDate:              string | null     // ISO YYYY-MM-DD
+  displayName:            string | null     // override nome sidebar
+  employmentType:         EmploymentType | null
+  capitalGainsRegime:     CapitalGainsRegime | null
+  annualGrossIncomeMinor: number | null     // EUR minor units
+  forfettarioCoefficient: number | null     // % 0-100
+  forfettarioStartup:     boolean           // 5% agevolata vs 15%
+}
 
 function row(userId: number): UserSettings | undefined {
   return sqlite
@@ -49,4 +69,63 @@ export function clearOpenAiKey(userId: number): void {
     SET openai_api_key_enc = NULL, openai_key_set_at = NULL
     WHERE user_id = ?
   `).run(userId)
+}
+
+// ── Profilo personale / dati fiscali ─────────────────────────────────────────
+
+const VALID_EMPLOYMENT: EmploymentType[] = [
+  'employee', 'self_employed_forfettario', 'self_employed_ordinario', 'pensioner', 'none',
+]
+const VALID_CG_REGIME: CapitalGainsRegime[] = ['amministrato', 'dichiarativo']
+
+function coerceEmploymentType(v: unknown): EmploymentType | null {
+  return VALID_EMPLOYMENT.includes(v as EmploymentType) ? (v as EmploymentType) : null
+}
+function coerceCgRegime(v: unknown): CapitalGainsRegime | null {
+  return VALID_CG_REGIME.includes(v as CapitalGainsRegime) ? (v as CapitalGainsRegime) : null
+}
+
+/** Legge il profilo utente con default sensati per i campi mancanti. */
+export function getUserProfile(userId: number): UserProfile {
+  const r = row(userId)
+  return {
+    taxResidency:           (r as Record<string, unknown>)?.tax_residency as string ?? 'IT',
+    birthDate:              (r as Record<string, unknown>)?.birth_date as string | null ?? null,
+    displayName:            (r as Record<string, unknown>)?.display_name as string | null ?? null,
+    employmentType:         coerceEmploymentType((r as Record<string, unknown>)?.employment_type),
+    capitalGainsRegime:     coerceCgRegime((r as Record<string, unknown>)?.capital_gains_regime),
+    annualGrossIncomeMinor: (r as Record<string, unknown>)?.annual_gross_income_minor as number | null ?? null,
+    forfettarioCoefficient: (r as Record<string, unknown>)?.forfettario_coefficient as number | null ?? null,
+    forfettarioStartup:     !!((r as Record<string, unknown>)?.forfettario_startup),
+  }
+}
+
+/** Aggiorna i campi del profilo (UPSERT). Solo i campi forniti vengono scritti. */
+export function setUserProfile(userId: number, p: Partial<UserProfile>): void {
+  sqlite.prepare(`
+    INSERT INTO user_settings (user_id,
+      tax_residency, birth_date, display_name,
+      employment_type, capital_gains_regime,
+      annual_gross_income_minor, forfettario_coefficient, forfettario_startup)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (user_id) DO UPDATE SET
+      tax_residency              = COALESCE(excluded.tax_residency,              tax_residency),
+      birth_date                 = excluded.birth_date,
+      display_name               = excluded.display_name,
+      employment_type            = excluded.employment_type,
+      capital_gains_regime       = excluded.capital_gains_regime,
+      annual_gross_income_minor  = excluded.annual_gross_income_minor,
+      forfettario_coefficient    = excluded.forfettario_coefficient,
+      forfettario_startup        = excluded.forfettario_startup
+  `).run(
+    userId,
+    p.taxResidency ?? null,
+    p.birthDate    ?? null,
+    p.displayName  ?? null,
+    p.employmentType         ?? null,
+    p.capitalGainsRegime     ?? null,
+    p.annualGrossIncomeMinor ?? null,
+    p.forfettarioCoefficient ?? null,
+    p.forfettarioStartup ? 1 : 0,
+  )
 }

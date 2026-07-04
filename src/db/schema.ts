@@ -51,6 +51,7 @@ export const institutions = sqliteTable(
     name:       text('name').notNull(),
     kind:       text('kind', { enum: ['bank', 'broker', 'both'] as const }).notNull().default('bank'),
     provider:   text('provider'),   // id catalogo (src/lib/providers.ts); null = banca personalizzata
+    country:    text('country'),    // ISO alpha-2 (es. 'IE', 'DE'); null/'IT' = italiano → bollo; altrove → IVAFE
     created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
@@ -231,6 +232,12 @@ export const instruments = sqliteTable(
     provider_symbol: text('provider_symbol'),            // CoinGecko id or override if different from symbol
     last_price:      text('last_price'),                 // decimal string, in `currency`
     last_price_at:   integer('last_price_at'),           // unix epoch of last fetch
+    // Fiscal fields for Italian tax engine
+    // Percentage of asset composition in White List government bonds (0–100).
+    // Drives the synthetic tax rate: α = (w/100 × 0.125) + ((100-w)/100 × 0.26).
+    // Default '0' = full 26% rate (stocks, crypto, corporate bonds).
+    // Set to '100' for BTP / government bonds in White List; intermediate for mixed ETF.
+    whitelist_percentage: text('whitelist_percentage').notNull().default('0'),
     // KID-sourced fields (populated after human review of extracted KID document)
     sri:             integer('sri'),                     // Summary Risk Indicator 1–7
     entry_cost:      text('entry_cost'),                 // decimal string, one-off entry cost %
@@ -372,6 +379,21 @@ export const userSettings = sqliteTable('user_settings', {
   openai_api_key_enc:   text('openai_api_key_enc'),    // AES-256-GCM encrypted, null if not set
   openai_key_set_at:    integer('openai_key_set_at'),  // unix epoch when key was last saved
   created_at:           integer('created_at').notNull().default(sql`(unixepoch())`),
+  // ── Profilo personale e fiscale ───────────────────────────────────────────
+  // ISO alpha-2 residenza fiscale; default 'IT'. Determina regime applicabile.
+  tax_residency:              text('tax_residency').default('IT'),
+  birth_date:                 text('birth_date'),           // ISO YYYY-MM-DD
+  display_name:               text('display_name'),         // override nome sidebar/profilo
+  // Tipo di impiego per stima IRPEF
+  employment_type:            text('employment_type'),      // 'employee'|'self_employed_forfettario'|'self_employed_ordinario'|'pensioner'|'none'
+  // Regime capital gain: l'intermediario trattiene (amministrato) o l'utente dichiara (dichiarativo)
+  capital_gains_regime:       text('capital_gains_regime'), // 'amministrato'|'dichiarativo'
+  // Reddito annuo lordo (EUR minor units) — base stima IRPEF
+  annual_gross_income_minor:  integer('annual_gross_income_minor'),
+  // Regime forfettario: coefficiente redditività % (es. 78 per commercianti)
+  forfettario_coefficient:    integer('forfettario_coefficient'),
+  // 1 = aliquota agevolata 5% (startup ≤5 anni), 0 = aliquota 15%
+  forfettario_startup:        integer('forfettario_startup').default(0),
 })
 
 // ── kid_documents ─────────────────────────────────────────────────────────────
