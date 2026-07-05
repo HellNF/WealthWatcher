@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Cell, Legend,
 } from 'recharts'
 import type { DaySpendingPoint } from '@/lib/analytics'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -17,6 +17,17 @@ function fmtEur(minor: number): string {
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
+}
+
+function computeEma(values: number[], period = 5): (number | null)[] {
+  const k = 2 / (period + 1)
+  const result: (number | null)[] = []
+  let ema: number | null = null
+  for (const v of values) {
+    ema = ema === null ? v : v * k + ema * (1 - k)
+    result.push(ema)
+  }
+  return result
 }
 
 export default function DayOfMonthChart({ data }: Props) {
@@ -39,6 +50,7 @@ export default function DayOfMonthChart({ data }: Props) {
         barHigh:  '#f87171',
         barDim:   '#34d39944',
         ref:      'oklch(0.42 0.01 160)',
+        trend:    '#a78bfa',
         tooltipBg:     '#1a2421',
         tooltipBorder: 'oklch(0.26 0.01 160)',
       }
@@ -49,6 +61,7 @@ export default function DayOfMonthChart({ data }: Props) {
         barHigh:  '#dc2626',
         barDim:   '#05966940',
         ref:      'oklch(0.65 0.008 160)',
+        trend:    '#7c3aed',
         tooltipBg:     '#ffffff',
         tooltipBorder: 'oklch(0.88 0.005 160)',
       }
@@ -61,9 +74,15 @@ export default function DayOfMonthChart({ data }: Props) {
     return sorted[Math.floor(sorted.length * 0.75)]?.avgMinor ?? 0
   })()
 
+  const emaValues = computeEma(data.map((d) => d.avgMinor))
+  const chartData = data.map((d, i) => ({
+    ...d,
+    'Media Mobile Trend': emaValues[i],
+  }))
+
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={220}>
+      <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
         <XAxis
           dataKey="day"
@@ -80,7 +99,7 @@ export default function DayOfMonthChart({ data }: Props) {
           width={80}
         />
         <Tooltip
-          formatter={(value) => [fmtEur(Number(value)), 'Spesa media']}
+          formatter={(value, name) => [fmtEur(Number(value)), name === 'avgMinor' ? 'Spesa media' : String(name)]}
           labelFormatter={(label) => `Giorno ${label} del mese`}
           contentStyle={{
             background: colors.tooltipBg,
@@ -90,8 +109,9 @@ export default function DayOfMonthChart({ data }: Props) {
             boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
           }}
         />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
         <ReferenceLine y={avg} stroke={colors.ref} strokeDasharray="4 4" />
-        <Bar dataKey="avgMinor" radius={[3, 3, 0, 0]} maxBarSize={20}>
+        <Bar dataKey="avgMinor" name="Spesa giornaliera" radius={[3, 3, 0, 0]} maxBarSize={20} legendType="none">
           {data.map((entry, i) => (
             <Cell
               key={i}
@@ -99,7 +119,15 @@ export default function DayOfMonthChart({ data }: Props) {
             />
           ))}
         </Bar>
-      </BarChart>
+        <Line
+          type="monotone"
+          dataKey="Media Mobile Trend"
+          stroke={colors.trend}
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
+        />
+      </ComposedChart>
     </ResponsiveContainer>
   )
 }

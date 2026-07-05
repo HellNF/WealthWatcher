@@ -22,7 +22,7 @@ import {
   TrendingUp, BarChart2, Target, ShieldCheck,
   Repeat2, Zap, Calendar, AlertCircle, Rocket,
   Activity, Link2, Clock, Gauge, Shuffle,
-  ArrowRight, Wallet, Landmark,
+  ArrowRight, Wallet,
 } from 'lucide-react'
 import { Breadcrumb, Card, Stat, Badge, EmptyState } from '@/components/ui'
 import Link from 'next/link'
@@ -43,6 +43,7 @@ function fmtEur(minor: number): string {
 }
 function fmtPct(n: number | null, dec = 1): string {
   if (n === null) return '—'
+  if (!isFinite(n) || isNaN(n)) return '0,0%'
   return n.toLocaleString('it-IT', {
     minimumFractionDigits: dec, maximumFractionDigits: dec,
   }) + '%'
@@ -74,11 +75,16 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+function ClusterHeader({ icon: Icon, label, title }: { icon: React.ElementType; label: string; title: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon className="size-4 text-[--brand-text]" strokeWidth={1.75} />
-      <h2 className="text-base font-semibold text-[--ink]">{title}</h2>
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[--brand-subtle]">
+        <Icon className="size-4 text-[--brand-text]" strokeWidth={1.75} />
+      </div>
+      <div>
+        <p className="text-xs font-semibold text-[--brand-text] uppercase tracking-widest leading-none mb-0.5">{label}</p>
+        <h2 className="text-base font-semibold text-[--ink] leading-tight">{title}</h2>
+      </div>
     </div>
   )
 }
@@ -129,9 +135,9 @@ export default async function StatistichePage() {
   const hasCashflow  = txStats.cashflow.length >= 2
   const hasRecurring = recurringCost.length > 0
   const hasOutliers  = txStats.outliers.length > 0
-  const hasMWRR         = mwrr.length > 0
-  const hasDCA          = dca.hasData
-  const hasInvSection   = hasMWRR || dca.hasBuyTxns
+  const hasMWRR      = mwrr.length > 0
+  const hasDCA       = dca.hasData
+  const hasInvSection = hasMWRR || dca.hasBuyTxns
 
   // Savings rate media ultimi 6 mesi
   const recentCf = txStats.cashflow.slice(-6).filter((m) => m.inflow > 0)
@@ -145,18 +151,18 @@ export default async function StatistichePage() {
     : 'oklch(0.65 0.008 160)'
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-12">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-14">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Statistiche' },
       ]} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          1 — PATRIMONIO
+          CLUSTER A — PERFORMANCE & VOLATILITÀ
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
         <div className="flex items-center gap-2">
-          <SectionHeader icon={TrendingUp} title="Patrimonio" />
+          <ClusterHeader icon={TrendingUp} label="Cluster A" title="Performance & Volatilità" />
           {nwStats.hasStaleSnapshots && (
             <Badge variant="warning" className="ml-2">valori parziali</Badge>
           )}
@@ -172,6 +178,7 @@ export default async function StatistichePage() {
           </Card>
         ) : (
           <>
+            {/* CAGR + variazione per periodo */}
             <Card className="space-y-5">
               <h3 className="text-sm font-semibold text-[--ink]">Crescita per periodo</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -198,16 +205,14 @@ export default async function StatistichePage() {
               </div>
             </Card>
 
-            <Card className="space-y-4">
-              <h3 className="text-sm font-semibold text-[--ink]">Composizione del patrimonio nel tempo</h3>
-              <AllocationOverTime data={nwStats.allocationTimeSeries} />
-            </Card>
-
+            {/* Volatilità e stabilità */}
             <Card className="space-y-5">
               <h3 className="text-sm font-semibold text-[--ink]">Volatilità e stabilità</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 <Stat label="Mese migliore"
-                  value={nwStats.volatility.bestMonthPct !== null ? sign(nwStats.volatility.bestMonthPct) + fmtPct(nwStats.volatility.bestMonthPct) : '—'}
+                  value={nwStats.volatility.bestMonthPct !== null
+                    ? sign(nwStats.volatility.bestMonthPct) + fmtPct(nwStats.volatility.bestMonthPct)
+                    : '—'}
                   size="sm" />
                 <Stat label="Mese peggiore"
                   value={nwStats.volatility.worstMonthPct !== null ? fmtPct(nwStats.volatility.worstMonthPct) : '—'}
@@ -220,15 +225,21 @@ export default async function StatistichePage() {
                   sub="deviazione standard rendimenti" size="sm" />
               </div>
             </Card>
+
+            {/* Composizione nel tempo */}
+            <Card className="space-y-4">
+              <h3 className="text-sm font-semibold text-[--ink]">Composizione del patrimonio nel tempo</h3>
+              <AllocationOverTime data={nwStats.allocationTimeSeries} />
+            </Card>
           </>
         )}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          2 — PIANIFICAZIONE & PROIEZIONI
+          CLUSTER B — PROIEZIONI FI/RE
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <SectionHeader icon={Rocket} title="Pianificazione e proiezioni" />
+        <ClusterHeader icon={Rocket} label="Cluster B" title="Proiezioni di Indipendenza (FI/RE)" />
 
         {/* FI/RE Tracker */}
         <Card className="space-y-5">
@@ -278,14 +289,191 @@ export default async function StatistichePage() {
           )}
         </Card>
 
-        {/* Runway Index */}
+        {/* Rimando alla pagina Tasse */}
+        {wealthTaxes && wealthTaxes.totalMinor > 0 && (
+          <Card className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-medium text-[--ink]">
+                Imposte patrimoniali stimate {currentYear}:{' '}
+                <span className="font-mono tabular-nums text-[--danger]">
+                  {fmtEur(wealthTaxes.totalMinor)}
+                </span>
+              </p>
+              <p className="text-xs text-[--muted] mt-0.5">Incluse nella proiezione cashflow qui sotto.</p>
+            </div>
+            <Link
+              href="/dashboard/tasse"
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
+            >
+              Dettaglio bollo/IVAFE →
+            </Link>
+          </Card>
+        )}
+
+        {/* Cashflow Forecast */}
+        {forecast.hasData && (
+          <Card className="space-y-5">
+            <div className="flex items-center gap-2">
+              <ArrowRight className="size-4 text-[--muted]" strokeWidth={1.75} />
+              <h3 className="text-sm font-semibold text-[--ink]">Proiezione cashflow — Prossimi 30/60 giorni</h3>
+            </div>
+            <p className="text-xs text-[--muted]">
+              Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite.
+              Non tiene conto di eventi straordinari.
+              {forecast.wealthTaxMonthlyMinor > 0 && (
+                <> Incluse <strong className="text-[--ink]">{fmtEur(forecast.wealthTaxMonthlyMinor)}/mese</strong> di imposte patrimoniali stimate.</>
+              )}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <Stat label="Saldo liquido attuale" value={fmtEur(liquidityMinor)} size="sm" />
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Tra 30 giorni</p>
+                <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj30Minor >= forecast.thresholdMinor ? 'text-[--ink]' : 'text-[--danger]'}`}>
+                  {fmtEur(forecast.proj30Minor)}
+                </p>
+                {forecast.proj30Minor < forecast.thresholdMinor && (
+                  <p className="text-xs text-[--danger]">sotto 1 mese di spese</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Tra 60 giorni</p>
+                <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj60Minor >= forecast.thresholdMinor ? 'text-[--ink]' : 'text-[--danger]'}`}>
+                  {fmtEur(forecast.proj60Minor)}
+                </p>
+                {forecast.proj60Minor < forecast.thresholdMinor && (
+                  <p className="text-xs text-[--danger]">sotto 1 mese di spese</p>
+                )}
+              </div>
+              <Stat
+                label="Flusso netto/mese"
+                value={(forecast.avgMonthlyNetMinor >= 0 ? '+' : '') + fmtEur(forecast.avgMonthlyNetMinor)}
+                sub={forecast.avgMonthlyNetMinor < 0 ? 'spesa netta mensile' : 'risparmio netto mensile'}
+                size="sm"
+              />
+            </div>
+            {forecast.crossesThresholdInDays !== null && (
+              <div className="flex items-center gap-2 rounded-lg bg-[--danger-subtle] px-3 py-2.5">
+                <AlertCircle className="size-4 text-[--danger] shrink-0" strokeWidth={1.75} />
+                <p className="text-xs text-[--danger-text]">
+                  Al trend attuale il saldo liquido scende sotto 1 mese di spese entro{' '}
+                  <strong>{forecast.crossesThresholdInDays} giorni</strong>.
+                  Considera di ridurre le uscite o trasferire liquidità.
+                </p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Smart DCA */}
+        {dcaRec.hasData && (
+          <Card className="space-y-5">
+            <div className="flex items-center gap-2">
+              <Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />
+              <h3 className="text-sm font-semibold text-[--ink]">Smart DCA — Come investire la liquidità in eccesso</h3>
+            </div>
+            <p className="text-xs text-[--muted]">
+              Hai <strong className="text-[--ink]">{fmtEur(dcaRec.excessCashMinor)}</strong> di liquidità
+              al di sopra del buffer di emergenza ({fmtEur(dcaRec.emergencyBufferMinor)} · 3 mesi di spese).
+              Per mantenere l&apos;attuale composizione del portafoglio senza vendere nulla, distribuiscila così:
+            </p>
+            <div className="divide-y divide-[--border]">
+              {dcaRec.recommendations.map((r) => (
+                <div key={r.instrumentId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-[--ink]">
+                        <span className="font-mono">{r.symbol}</span>
+                      </p>
+                      <span className="text-xs text-[--muted] truncate hidden sm:block">{r.name}</span>
+                      <span className="inline-flex items-center rounded-md bg-[--surface-2] px-1.5 py-0.5 text-xs text-[--muted]">
+                        {r.cluster}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[--faint] mt-0.5">{r.pctOfPortfolio}% del portafoglio investito</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-base font-bold font-mono tabular-nums text-[--brand-text]">{fmtEur(r.suggestedMinor)}</p>
+                    <p className="text-xs text-[--faint]">{r.currency}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-[--faint] border-t border-[--border] pt-3">
+              I suggerimenti sono proporzionali al costo storico investito in ogni strumento.
+              Non costituiscono consulenza finanziaria.
+            </p>
+          </Card>
+        )}
+
+        {/* Stress Test Decumulo */}
+        <Card className="space-y-5">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-[--muted]" strokeWidth={1.75} />
+            <h3 className="text-sm font-semibold text-[--ink]">Stress Test decumulo — Speranza di vita del capitale</h3>
+          </div>
+          <p className="text-xs text-[--muted]">
+            Simulazione di quanti anni il patrimonio attuale ({fmtEur(totalNWMinor)}) sostiene la spesa corrente:
+            scenario normale (crescita al CAGR) e scenario stress (max drawdown storico applicato subito, poi crescita al CAGR).
+          </p>
+          {!decumulo.hasData ? (
+            <p className="text-sm text-[--faint]">Importa almeno 6 mesi di movimenti e accumula snapshot per attivare questa analisi.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-[--border] p-5 space-y-3">
+                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Scenario normale</p>
+                <p className="text-xs text-[--faint]">
+                  Crescita al CAGR {cagrPct !== null ? fmtPct(cagrPct) : '—'}/anno · {fmtEur(decumulo.avgMonthlyExpensesMinor)}/mese di spesa
+                </p>
+                <p
+                  className="text-3xl font-bold font-mono tabular-nums leading-none"
+                  style={{ color: decumulo.normalSurvivalYears === null ? 'var(--brand)' : decumulo.normalSurvivalYears >= 30 ? 'var(--brand-text)' : decumulo.normalSurvivalYears >= 10 ? '#f59e0b' : 'var(--danger)' }}
+                >
+                  {fmtYears(decumulo.normalSurvivalYears)}
+                </p>
+                {decumulo.normalSurvivalYears === null && (
+                  <p className="text-xs text-[--brand-text]">Il portafoglio cresce più di quanto si preleva</p>
+                )}
+              </div>
+              <div className="rounded-xl border border-[--border] p-5 space-y-3">
+                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">
+                  Scenario stress
+                  {decumulo.maxDrawdownPct !== null && (
+                    <span className="text-[--danger] ml-1">({fmtPct(decumulo.maxDrawdownPct)} drawdown)</span>
+                  )}
+                </p>
+                <p className="text-xs text-[--faint]">
+                  {decumulo.stressedNetWorthMinor !== null ? fmtEur(decumulo.stressedNetWorthMinor) : '—'} dopo drawdown · poi CAGR storico
+                </p>
+                {decumulo.maxDrawdownPct === null ? (
+                  <p className="text-sm text-[--faint]">Nessun drawdown storico registrato ancora</p>
+                ) : (
+                  <p
+                    className="text-3xl font-bold font-mono tabular-nums leading-none"
+                    style={{ color: decumulo.stressedSurvivalYears === null ? 'var(--brand-text)' : decumulo.stressedSurvivalYears >= 20 ? '#f59e0b' : 'var(--danger)' }}
+                  >
+                    {fmtYears(decumulo.stressedSurvivalYears)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </Card>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          CLUSTER C — RUNWAY INDEX & FONDO EMERGENZA
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section className="space-y-6">
+        <ClusterHeader icon={ShieldCheck} label="Cluster C" title="Runway Index & Fondo Emergenza" />
+
+        {/* Runway — 3 scenari */}
         <Card className="space-y-5">
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-[--muted]" strokeWidth={1.75} />
-            <h3 className="text-sm font-semibold text-[--ink]">Runway Index — Autonomia finanziaria</h3>
+            <h3 className="text-sm font-semibold text-[--ink]">Autonomia finanziaria — 3 scenari di spesa</h3>
           </div>
           <p className="text-xs text-[--muted]">
-            Quanti giorni dura la liquidità attuale ({fmtEur(runway.liquidityMinor)}) in tre scenari di spesa basati sugli ultimi 12 mesi.
+            Quanti giorni dura la liquidità attuale ({fmtEur(runway.liquidityMinor)}) in tre scenari basati sugli ultimi 12 mesi.
           </p>
           {!runway.hasData ? (
             <p className="text-sm text-[--faint]">Importa movimenti per calcolare l&apos;autonomia finanziaria.</p>
@@ -339,196 +527,13 @@ export default async function StatistichePage() {
             )}
           </Card>
         )}
-
-        {/* Rimando alla pagina Tasse per il dettaglio bollo/IVAFE */}
-        {wealthTaxes && wealthTaxes.totalMinor > 0 && (
-          <Card className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-sm font-medium text-[--ink]">
-                Imposte patrimoniali stimate {currentYear}:{' '}
-                <span className="font-mono tabular-nums text-[--danger]">
-                  {fmtEur(wealthTaxes.totalMinor)}
-                </span>
-              </p>
-              <p className="text-xs text-[--muted] mt-0.5">
-                Incluse nella proiezione cashflow qui sotto.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/tasse"
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
-            >
-              Dettaglio bollo/IVAFE →
-            </Link>
-          </Card>
-        )}
-
-        {/* Cashflow Forecast */}
-        {forecast.hasData && (
-          <Card className="space-y-5">
-            <div className="flex items-center gap-2">
-              <ArrowRight className="size-4 text-[--muted]" strokeWidth={1.75} />
-              <h3 className="text-sm font-semibold text-[--ink]">Proiezione cashflow — Prossimi 30/60 giorni</h3>
-            </div>
-            <p className="text-xs text-[--muted]">
-              Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite.
-              Non tiene conto di eventi straordinari. Usa come indicatore di tendenza, non come previsione precisa.
-              {forecast.wealthTaxMonthlyMinor > 0 && (
-                <> Incluse <strong className="text-[--ink]">{fmtEur(forecast.wealthTaxMonthlyMinor)}/mese</strong> di imposte patrimoniali stimate.</>
-              )}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              <Stat
-                label="Saldo liquido attuale"
-                value={fmtEur(liquidityMinor)}
-                size="sm"
-              />
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Tra 30 giorni</p>
-                <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj30Minor >= forecast.thresholdMinor ? 'text-[--ink]' : 'text-[--danger]'}`}>
-                  {fmtEur(forecast.proj30Minor)}
-                </p>
-                {forecast.proj30Minor < forecast.thresholdMinor && (
-                  <p className="text-xs text-[--danger]">sotto 1 mese di spese</p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Tra 60 giorni</p>
-                <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj60Minor >= forecast.thresholdMinor ? 'text-[--ink]' : 'text-[--danger]'}`}>
-                  {fmtEur(forecast.proj60Minor)}
-                </p>
-                {forecast.proj60Minor < forecast.thresholdMinor && (
-                  <p className="text-xs text-[--danger]">sotto 1 mese di spese</p>
-                )}
-              </div>
-              <Stat
-                label="Flusso netto/mese"
-                value={(forecast.avgMonthlyNetMinor >= 0 ? '+' : '') + fmtEur(forecast.avgMonthlyNetMinor)}
-                sub={forecast.avgMonthlyNetMinor < 0 ? 'spesa netta mensile' : 'risparmio netto mensile'}
-                size="sm"
-              />
-            </div>
-            {forecast.crossesThresholdInDays !== null && (
-              <div className="flex items-center gap-2 rounded-lg bg-[--danger-subtle] px-3 py-2.5">
-                <AlertCircle className="size-4 text-[--danger] shrink-0" strokeWidth={1.75} />
-                <p className="text-xs text-[--danger-text]">
-                  Al trend attuale il saldo liquido scende sotto 1 mese di spese entro{' '}
-                  <strong>{forecast.crossesThresholdInDays} giorni</strong>.
-                  Considera di ridurre le uscite o trasferire liquidità.
-                </p>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* DCA Recommender */}
-        {dcaRec.hasData && (
-          <Card className="space-y-5">
-            <div className="flex items-center gap-2">
-              <Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />
-              <h3 className="text-sm font-semibold text-[--ink]">Smart DCA — Come investire la liquidità in eccesso</h3>
-            </div>
-            <p className="text-xs text-[--muted]">
-              Hai <strong className="text-[--ink]">{fmtEur(dcaRec.excessCashMinor)}</strong> di liquidità
-              al di sopra del buffer di emergenza ({fmtEur(dcaRec.emergencyBufferMinor)} · 3 mesi di spese).
-              Per mantenere l&apos;attuale composizione del portafoglio senza vendere nulla, distribuiscila così:
-            </p>
-            <div className="divide-y divide-[--border]">
-              {dcaRec.recommendations.map((r) => (
-                <div key={r.instrumentId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-[--ink]">
-                        <span className="font-mono">{r.symbol}</span>
-                      </p>
-                      <span className="text-xs text-[--muted] truncate hidden sm:block">{r.name}</span>
-                      <span className="inline-flex items-center rounded-md bg-[--surface-2] px-1.5 py-0.5 text-xs text-[--muted]">
-                        {r.cluster}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[--faint] mt-0.5">
-                      {r.pctOfPortfolio}% del portafoglio investito
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-base font-bold font-mono tabular-nums text-[--brand-text]">
-                      {fmtEur(r.suggestedMinor)}
-                    </p>
-                    <p className="text-xs text-[--faint]">{r.currency}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-[--faint] border-t border-[--border] pt-3">
-              I suggerimenti sono proporzionali al costo storico investito in ogni strumento.
-              Non costituiscono consulenza finanziaria.
-            </p>
-          </Card>
-        )}
-
-        {/* Stress Test Decumulo */}
-        <Card className="space-y-5">
-          <div className="flex items-center gap-2">
-            <Clock className="size-4 text-[--muted]" strokeWidth={1.75} />
-            <h3 className="text-sm font-semibold text-[--ink]">Stress Test decumulo — Speranza di vita del capitale</h3>
-          </div>
-          <p className="text-xs text-[--muted]">
-            Simulazione di quanti anni il patrimonio attuale ({fmtEur(totalNWMinor)}) sostiene la spesa corrente:
-            scenario normale (crescita al CAGR) e scenario stress (max drawdown storico applicato subito, poi crescita al CAGR).
-          </p>
-          {!decumulo.hasData ? (
-            <p className="text-sm text-[--faint]">Importa almeno 6 mesi di movimenti e accumula snapshot per attivare questa analisi.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Scenario normale */}
-              <div className="rounded-xl border border-[--border] p-5 space-y-3">
-                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Scenario normale</p>
-                <p className="text-xs text-[--faint]">
-                  Crescita al CAGR {cagrPct !== null ? fmtPct(cagrPct) : '—'}/anno · {fmtEur(decumulo.avgMonthlyExpensesMinor)}/mese di spesa
-                </p>
-                <p
-                  className="text-3xl font-bold font-mono tabular-nums leading-none"
-                  style={{ color: decumulo.normalSurvivalYears === null ? 'var(--brand)' : decumulo.normalSurvivalYears >= 30 ? 'var(--brand-text)' : decumulo.normalSurvivalYears >= 10 ? '#f59e0b' : 'var(--danger)' }}
-                >
-                  {fmtYears(decumulo.normalSurvivalYears)}
-                </p>
-                {decumulo.normalSurvivalYears === null && (
-                  <p className="text-xs text-[--brand-text]">Il portafoglio cresce più di quanto si preleva</p>
-                )}
-              </div>
-
-              {/* Scenario stress */}
-              <div className="rounded-xl border border-[--border] p-5 space-y-3">
-                <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">
-                  Scenario stress
-                  {decumulo.maxDrawdownPct !== null && (
-                    <span className="text-[--danger] ml-1">({fmtPct(decumulo.maxDrawdownPct)} drawdown)</span>
-                  )}
-                </p>
-                <p className="text-xs text-[--faint]">
-                  {decumulo.stressedNetWorthMinor !== null ? fmtEur(decumulo.stressedNetWorthMinor) : '—'} dopo drawdown · poi CAGR storico
-                </p>
-                {decumulo.maxDrawdownPct === null ? (
-                  <p className="text-sm text-[--faint]">Nessun drawdown storico registrato ancora</p>
-                ) : (
-                  <p
-                    className="text-3xl font-bold font-mono tabular-nums leading-none"
-                    style={{ color: decumulo.stressedSurvivalYears === null ? 'var(--brand-text)' : decumulo.stressedSurvivalYears >= 20 ? '#f59e0b' : 'var(--danger)' }}
-                  >
-                    {fmtYears(decumulo.stressedSurvivalYears)}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </Card>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          3 — TRANSAZIONI
+          CLUSTER D — PATTERN COMPORTAMENTALI
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <SectionHeader icon={BarChart2} title="Transazioni" />
+        <ClusterHeader icon={Activity} label="Cluster D" title="Pattern Comportamentali" />
 
         {!hasCashflow && !hasRecurring && !hasOutliers ? (
           <Card>
@@ -540,7 +545,7 @@ export default async function StatistichePage() {
           </Card>
         ) : (
           <>
-            {/* Cashflow + savings rate + prevedibilità */}
+            {/* Cashflow mensile + savings rate + prevedibilità */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-2 space-y-4">
                 <h3 className="text-sm font-semibold text-[--ink]">Cashflow mensile storico</h3>
@@ -563,8 +568,6 @@ export default async function StatistichePage() {
                     )
                   })()}
                 </Card>
-
-                {/* Indice di prevedibilità (Coefficiente di variazione) */}
                 {cfVariability.hasData && (
                   <Card className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -594,6 +597,33 @@ export default async function StatistichePage() {
                   </Card>
                 )}
               </div>
+            </div>
+
+            {/* Ciclo mensile + weekday */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {daySpending.length > 0 && (
+                <Card className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
+                    <h3 className="text-sm font-semibold text-[--ink]">Ciclo di spesa mensile</h3>
+                  </div>
+                  <p className="text-xs text-[--muted]">
+                    Spesa media per giorno del mese (1–31). Barre rosse = picchi sopra il 75° percentile.
+                    La linea viola mostra la media mobile esponenziale (trend).
+                  </p>
+                  <DayOfMonthChart data={daySpending} />
+                </Card>
+              )}
+              {txStats.weekday.length > 0 && (
+                <Card className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
+                    <h3 className="text-sm font-semibold text-[--ink]">Spesa per giorno della settimana</h3>
+                  </div>
+                  <p className="text-xs text-[--muted]">Importo medio per transazione in uscita.</p>
+                  <WeekdayChart data={txStats.weekday} />
+                </Card>
+              )}
             </div>
 
             {/* Lifestyle Creep */}
@@ -632,32 +662,6 @@ export default async function StatistichePage() {
               </Card>
             )}
 
-            {/* Pattern giorno della settimana + ciclo mensile */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {txStats.weekday.length > 0 && (
-                <Card className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
-                    <h3 className="text-sm font-semibold text-[--ink]">Spesa per giorno della settimana</h3>
-                  </div>
-                  <p className="text-xs text-[--muted]">Importo medio per transazione in uscita.</p>
-                  <WeekdayChart data={txStats.weekday} />
-                </Card>
-              )}
-              {daySpending.length > 0 && (
-                <Card className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
-                    <h3 className="text-sm font-semibold text-[--ink]">Ciclo di spesa mensile</h3>
-                  </div>
-                  <p className="text-xs text-[--muted]">
-                    Spesa media per giorno del mese (1–31). Picchi subito dopo il giorno di stipendio indicano impulsività post-accredito.
-                  </p>
-                  <DayOfMonthChart data={daySpending} />
-                </Card>
-              )}
-            </div>
-
             {/* Trigger di spesa — Affinity Analysis */}
             {affinity.length > 0 && (
               <Card className="space-y-4">
@@ -667,7 +671,6 @@ export default async function StatistichePage() {
                 </div>
                 <p className="text-xs text-[--muted]">
                   Coppie di categorie in cui una spesa in A è seguita entro 72 ore da una spesa in B con probabilità ≥ 20%.
-                  Indica pattern comportamentali che aumentano il costo reale di certe categorie.
                 </p>
                 <div className="divide-y divide-[--border]">
                   {affinity.map((pair, i) => (
@@ -707,7 +710,7 @@ export default async function StatistichePage() {
               </Card>
             )}
 
-            {/* Effetto Ricchezza — Pearson */}
+            {/* Effetto Ricchezza */}
             {wealthEffect.hasData && (
               <Card className="space-y-5">
                 <div className="flex items-center gap-2">
@@ -715,8 +718,8 @@ export default async function StatistichePage() {
                   <h3 className="text-sm font-semibold text-[--ink]">Effetto Ricchezza — Correlazione patrimonio↔spesa</h3>
                 </div>
                 <p className="text-xs text-[--muted]">
-                  Pearson r tra la variazione mensile del patrimonio (escluso denaro fresco depositato) e
-                  la variazione della spesa del mese successivo. Positivo = quando il patrimonio sale, tendi a spendere di più il mese dopo.
+                  Pearson r tra la variazione mensile del patrimonio e la variazione della spesa del mese successivo.
+                  Positivo = quando il patrimonio sale, tendi a spendere di più il mese dopo.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                   <div className="space-y-1">
@@ -750,7 +753,7 @@ export default async function StatistichePage() {
               </Card>
             )}
 
-            {/* Pagamenti ricorrenti + ROI */}
+            {/* Pagamenti ricorrenti */}
             {hasRecurring && (
               <Card className="space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -820,127 +823,118 @@ export default async function StatistichePage() {
                 </div>
               </Card>
             )}
+
+            {/* Investimenti */}
+            {hasInvSection && (
+              <>
+                {hasMWRR && (
+                  <Card className="space-y-4">
+                    <h3 className="text-sm font-semibold text-[--ink]">Rendimento reale per portafoglio (MWRR)</h3>
+                    <p className="text-xs text-[--muted]">
+                      Il <strong className="text-[--ink]">MWRR</strong> (IRR) misura il rendimento annualizzato tenendo conto del <em>timing</em> dei tuoi acquisti e vendite.
+                    </p>
+                    <div className="divide-y divide-[--border]">
+                      {mwrr.map((p) => (
+                        <div key={p.portfolioId} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[--ink] truncate">{p.portfolioName}</p>
+                            <p className="text-xs text-[--faint]">{p.txnCount} operazioni · {p.periodYears} anni · {p.currency}</p>
+                          </div>
+                          {p.currentValueMinor !== null && (
+                            <span className="text-sm tabular-nums text-[--muted] shrink-0">{fmtEur(p.currentValueMinor)}</span>
+                          )}
+                          <div className="text-right shrink-0">
+                            {p.mwrrPct !== null ? (
+                              <span className="text-lg font-bold font-mono tabular-nums"
+                                style={{ color: p.mwrrPct >= 0 ? 'var(--brand-text)' : 'var(--danger)' }}>
+                                {sign(p.mwrrPct)}{fmtPct(p.mwrrPct)}/a
+                              </span>
+                            ) : (
+                              <span className="text-sm text-[--faint]">n/d</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {dca.hasBuyTxns && (
+                  <Card className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Shuffle className="size-4 text-[--muted]" strokeWidth={1.75} />
+                      <h3 className="text-sm font-semibold text-[--ink]">DCA Counterfactual — Il tuo timing vs investimento automatico</h3>
+                    </div>
+                    <p className="text-xs text-[--muted]">
+                      Confronta il rendimento dei tuoi acquisti reali con quello che avresti ottenuto investendo
+                      la stessa somma totale in <strong className="text-[--ink]">rate mensili uguali</strong> (Dollar-Cost Averaging puro).
+                    </p>
+                    {!hasDCA ? (
+                      <p className="text-sm text-[--faint]">
+                        Ci vogliono almeno 3 mesi dal primo acquisto per calcolare il confronto DCA.
+                        Assicurati che le operazioni abbiano quantità e prezzo unitario compilati.
+                      </p>
+                    ) : (
+                      <>
+                        {dca.results.some((r) => !r.hasHistory) && (
+                          <p className="text-xs text-[--faint] bg-[--surface-2] rounded-lg px-3 py-2">
+                            Gli strumenti con &ldquo;storico mancante&rdquo; richiedono il backfill dei prezzi storici
+                            dalla pagina del portafoglio → sezione &ldquo;Gestione&rdquo; → &ldquo;Scarica storico prezzi&rdquo;.
+                          </p>
+                        )}
+                        <div className="divide-y divide-[--border]">
+                          {dca.results.map((r) => (
+                            <div key={r.instrumentId} className="py-3 first:pt-0 last:pb-0 space-y-1">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-[--ink] truncate">{r.name}</p>
+                                  <p className="text-xs text-[--faint]">
+                                    <span className="font-mono">{r.symbol}</span>
+                                    {' · '}{r.years} anni · investito {fmtEur(r.totalCostMinor)}
+                                  </p>
+                                </div>
+                                {!r.hasHistory ? (
+                                  <Badge variant="neutral">storico mancante</Badge>
+                                ) : r.diffPct !== null ? (
+                                  <Badge variant={r.diffPct > 0 ? 'gain' : r.diffPct < -0.5 ? 'loss' : 'neutral'}>
+                                    {sign(r.diffPct)}{r.diffPct.toFixed(2)}%/a vs DCA
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              {r.hasHistory && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                  <div>
+                                    <p className="text-xs text-[--faint]">CAGR reale</p>
+                                    <p className={`text-sm font-medium tabular-nums ${pctColor(r.actualCAGR)}`}>
+                                      {r.actualCAGR !== null ? sign(r.actualCAGR) + fmtPct(r.actualCAGR) : '—'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-[--faint]">CAGR DCA</p>
+                                    <p className="text-sm font-medium tabular-nums text-[--muted]">
+                                      {r.dcaCAGR !== null ? sign(r.dcaCAGR) + fmtPct(r.dcaCAGR) : '—'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-[--faint]">Valore DCA oggi</p>
+                                    <p className="text-sm font-medium tabular-nums text-[--muted]">
+                                      {r.dcaValueMinor !== null ? fmtEur(r.dcaValueMinor) : '—'}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                )}
+              </>
+            )}
           </>
         )}
       </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          4 — INVESTIMENTI
-      ═══════════════════════════════════════════════════════════════════ */}
-      {hasInvSection && (
-        <section className="space-y-6">
-          <SectionHeader icon={TrendingUp} title="Investimenti" />
-
-          {/* MWRR */}
-          {hasMWRR && (
-            <Card className="space-y-4">
-              <h3 className="text-sm font-semibold text-[--ink]">Rendimento reale per portafoglio (MWRR)</h3>
-              <p className="text-xs text-[--muted]">
-                Il <strong className="text-[--ink]">MWRR</strong> (IRR) misura il rendimento annualizzato tenendo conto del <em>timing</em> dei tuoi acquisti e vendite.
-                Un MWRR inferiore al rendimento dell&apos;asset indica acquisti ai massimi o vendite nei ribassi.
-              </p>
-              <div className="divide-y divide-[--border]">
-                {mwrr.map((p) => (
-                  <div key={p.portfolioId} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[--ink] truncate">{p.portfolioName}</p>
-                      <p className="text-xs text-[--faint]">{p.txnCount} operazioni · {p.periodYears} anni · {p.currency}</p>
-                    </div>
-                    {p.currentValueMinor !== null && (
-                      <span className="text-sm tabular-nums text-[--muted] shrink-0">{fmtEur(p.currentValueMinor)}</span>
-                    )}
-                    <div className="text-right shrink-0">
-                      {p.mwrrPct !== null ? (
-                        <span className="text-lg font-bold font-mono tabular-nums"
-                          style={{ color: p.mwrrPct >= 0 ? 'var(--brand-text)' : 'var(--danger)' }}>
-                          {sign(p.mwrrPct)}{fmtPct(p.mwrrPct)}/a
-                        </span>
-                      ) : (
-                        <span className="text-sm text-[--faint]">n/d</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* DCA Counterfactual */}
-          {dca.hasBuyTxns && (
-            <Card className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Shuffle className="size-4 text-[--muted]" strokeWidth={1.75} />
-                <h3 className="text-sm font-semibold text-[--ink]">DCA Counterfactual — Il tuo timing vs investimento automatico</h3>
-              </div>
-              <p className="text-xs text-[--muted]">
-                Confronta il rendimento dei tuoi acquisti reali con quello che avresti ottenuto investendo
-                la stessa somma totale in <strong className="text-[--ink]">rate mensili uguali</strong> (Dollar-Cost Averaging puro).
-                Differenza &gt; 0 = il tuo timing ha battuto il DCA.
-              </p>
-
-              {!hasDCA ? (
-                <p className="text-sm text-[--faint]">
-                  Ci vogliono almeno 3 mesi dal primo acquisto registrato per calcolare il confronto DCA.
-                  Se hai già storico sufficiente, assicurati che le operazioni abbiano quantità e prezzo unitario compilati.
-                </p>
-              ) : (
-                <>
-                  {dca.results.some((r) => !r.hasHistory) && (
-                    <p className="text-xs text-[--faint] bg-[--surface-2] rounded-lg px-3 py-2">
-                      Gli strumenti con &ldquo;storico mancante&rdquo; richiedono il backfill dei prezzi storici
-                      dalla pagina del portafoglio → sezione &ldquo;Gestione&rdquo; → &ldquo;Scarica storico prezzi&rdquo;.
-                    </p>
-                  )}
-                  <div className="divide-y divide-[--border]">
-                    {dca.results.map((r) => (
-                      <div key={r.instrumentId} className="py-3 first:pt-0 last:pb-0 space-y-1">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[--ink] truncate">{r.name}</p>
-                            <p className="text-xs text-[--faint]">
-                              <span className="font-mono">{r.symbol}</span>
-                              {' · '}{r.years} anni · investito {fmtEur(r.totalCostMinor)}
-                            </p>
-                          </div>
-                          {!r.hasHistory ? (
-                            <Badge variant="neutral">storico mancante</Badge>
-                          ) : r.diffPct !== null ? (
-                            <Badge variant={r.diffPct > 0 ? 'gain' : r.diffPct < -0.5 ? 'loss' : 'neutral'}>
-                              {sign(r.diffPct)}{r.diffPct.toFixed(2)}%/a vs DCA
-                            </Badge>
-                          ) : null}
-                        </div>
-                        {r.hasHistory && (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-xs text-[--faint]">CAGR reale</p>
-                              <p className={`text-sm font-medium tabular-nums ${pctColor(r.actualCAGR)}`}>
-                                {r.actualCAGR !== null ? sign(r.actualCAGR) + fmtPct(r.actualCAGR) : '—'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-[--faint]">CAGR DCA</p>
-                              <p className="text-sm font-medium tabular-nums text-[--muted]">
-                                {r.dcaCAGR !== null ? sign(r.dcaCAGR) + fmtPct(r.dcaCAGR) : '—'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-[--faint]">Valore DCA oggi</p>
-                              <p className="text-sm font-medium tabular-nums text-[--muted]">
-                                {r.dcaValueMinor !== null ? fmtEur(r.dcaValueMinor) : '—'}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </Card>
-          )}
-        </section>
-      )}
     </main>
   )
 }
