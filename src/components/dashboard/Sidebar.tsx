@@ -29,16 +29,36 @@ interface NavItem {
   exact?: boolean
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true },
-  { label: 'Report',       href: '/dashboard/reports',      icon: BarChart3 },
-  { label: 'Budget',       href: '/dashboard/budgets',      icon: Target },
-  { label: 'Statistiche',  href: '/dashboard/statistiche',  icon: TrendingUp },
-  { label: 'Tasse',        href: '/dashboard/tasse',        icon: Landmark },
-  { label: 'Mutui',        href: '/dashboard/mutui',        icon: Home },
-  { label: 'Obiettivi',    href: '/dashboard/obiettivi',    icon: PiggyBank },
-  { label: 'Scadenziario', href: '/dashboard/scadenziario', icon: CalendarClock },
-  { label: 'Impostazioni', href: '/dashboard/settings',     icon: Settings },
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Dashboard',
+    items: [
+      { label: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true },
+      { label: 'Report',       href: '/dashboard/reports',      icon: BarChart3 },
+      { label: 'Statistiche',  href: '/dashboard/statistiche',  icon: TrendingUp },
+      { label: 'Scadenziario', href: '/dashboard/scadenziario', icon: CalendarClock },
+    ],
+  },
+  {
+    label: 'Patrimonio',
+    items: [
+      { label: 'Tasse',        href: '/dashboard/tasse',        icon: Landmark },
+      { label: 'Mutui',        href: '/dashboard/mutui',        icon: Home },
+      { label: 'Obiettivi',    href: '/dashboard/obiettivi',    icon: PiggyBank },
+      { label: 'Budget',       href: '/dashboard/budgets',      icon: Target },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { label: 'Impostazioni', href: '/dashboard/settings',     icon: Settings },
+    ],
+  },
 ]
 
 interface SidebarProps {
@@ -70,29 +90,38 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   }
 
   const navContent = (
-    <nav className="flex-1 px-3 py-2 space-y-0.5" aria-label="Navigazione principale">
-      {NAV_ITEMS.map((item) => {
-        const active = isActive(item)
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100',
-              active
-                ? 'bg-[--brand-subtle] text-[--brand-text] font-medium'
-                : 'text-[--muted] hover:bg-[--surface-2] hover:text-[--ink]',
-            )}
-            aria-current={active ? 'page' : undefined}
-          >
-            <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
-            <span>{item.label}</span>
-            {active && (
-              <ChevronRight className="size-3.5 ml-auto text-[--brand]" />
-            )}
-          </Link>
-        )
-      })}
+    <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Navigazione principale">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label}>
+          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[--faint]">
+            {group.label}
+          </p>
+          <div className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = isActive(item)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100',
+                    active
+                      ? 'bg-[--brand-subtle] text-[--brand-text] font-medium'
+                      : 'text-[--muted] hover:bg-[--surface-2] hover:text-[--ink]',
+                  )}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
+                  <span>{item.label}</span>
+                  {active && (
+                    <ChevronRight className="size-3.5 ml-auto text-[--brand]" />
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   )
 

@@ -5,6 +5,8 @@ import { listAssets } from '@/lib/assets'
 import { listAccounts } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import { cashRunwayAlert } from '@/lib/alerts/liquidity'
+import { latentTaxStats } from '@/lib/tax/latent'
+import { estimatedWealthTaxes } from '@/lib/tax/wealth'
 import AddInstitutionForm from './AddInstitutionForm'
 import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
@@ -16,7 +18,7 @@ import {
   Stat, Badge, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
-import { Building2, ChevronRight, Wallet, AlertTriangle } from 'lucide-react'
+import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,9 +63,12 @@ export default async function DashboardPage() {
     : null
 
   const today = new Date().toISOString().slice(0, 10)
-  const instValues = await Promise.all(
-    institutions.map((inst) => getInstitutionValueEur(user.id, inst.id, today)),
-  )
+  const currentYear = new Date().getFullYear().toString()
+  const [instValues, latentTax, wealthTaxes] = await Promise.all([
+    Promise.all(institutions.map((inst) => getInstitutionValueEur(user.id, inst.id, today))),
+    latentTaxStats(user.id).catch(() => null),
+    estimatedWealthTaxes(user.id, currentYear).catch(() => null),
+  ])
 
   const assets     = listAssets(user.id)
   const accounts   = listAccounts(user.id)
@@ -125,22 +130,35 @@ export default async function DashboardPage() {
                     {formatEur(latest.net_worth_eur_minor)}
                   </span>
                   {delta !== null && (
-                    <Badge variant={delta >= 0 ? 'gain' : 'loss'} className="mb-1">
-                      {delta >= 0 ? '+' : ''}
-                      {formatEurCompact(delta)}
-                    </Badge>
-                  )}
-                  {latest.stale === 1 && (
-                    <Badge variant="warning" className="mb-1">parziale</Badge>
+                    delta === 0 ? (
+                      <span className="mb-1 text-sm font-mono tabular-nums text-[--muted]">
+                        0,00 € (0,00%)
+                      </span>
+                    ) : (
+                      <Badge variant={delta > 0 ? 'gain' : 'loss'} className="mb-1">
+                        {delta > 0 ? '+' : '−'}
+                        {formatEurCompact(Math.abs(delta))}
+                        {prev && prev.net_worth_eur_minor !== 0 && (
+                          <> ({delta > 0 ? '+' : '−'}{(Math.abs(delta) / prev.net_worth_eur_minor * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</>
+                        )}
+                      </Badge>
+                    )
                   )}
                 </div>
               ) : (
                 <span className="text-[--muted] text-sm">Calcolo in corso…</span>
               )}
               {latest && (
-                <p className="text-xs text-[--faint]">
-                  Aggiornato al {latest.date}
-                </p>
+                <div className="flex items-center gap-1.5 text-xs text-[--faint]">
+                  {latest.stale === 1 ? (
+                    <Info className="size-3 text-[--warning] shrink-0" strokeWidth={1.75} />
+                  ) : (
+                    <CheckCircle2 className="size-3 text-[--brand-text] shrink-0" strokeWidth={1.75} />
+                  )}
+                  <span className={latest.stale === 1 ? 'text-[--warning]' : ''}>
+                    {latest.stale === 1 ? 'Dati parziali · ' : ''}Aggiornato al {latest.date}
+                  </span>
+                </div>
               )}
             </div>
 
@@ -168,16 +186,51 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Link alla pagina Tasse ─────────────────────────────────────── */}
-        <div className="mx-6 mb-4">
-          <Link
-            href="/dashboard/tasse"
-            className="inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
-          >
-            <ChevronRight className="size-3.5" />
-            Dettaglio fiscale — tasse latenti, plus/minus realizzate, bollo/IVAFE
-          </Link>
-        </div>
+        {/* ── Micro-Card Fiscale ────────────────────────────────────────── */}
+        {latest && (latentTax || wealthTaxes) ? (
+          <div className="mx-6 mb-4 rounded-xl border border-[--border] bg-[--surface-2] overflow-hidden">
+            <div className="grid grid-cols-3 divide-x divide-[--border]">
+              <div className="px-4 py-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Lordo</p>
+                <p className="font-mono tabular-nums text-sm font-semibold text-[--ink]">
+                  {formatEur(latest.net_worth_eur_minor)}
+                </p>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Imposte stimate</p>
+                <p className="font-mono tabular-nums text-sm font-semibold text-[--danger]">
+                  −{formatEur((latentTax?.latentTaxMinor ?? 0) + (wealthTaxes?.totalMinor ?? 0))}
+                </p>
+                <p className="text-[10px] text-[--faint] mt-0.5">latenti + bollo</p>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Netto reale</p>
+                <p className="font-mono tabular-nums text-sm font-semibold text-[--brand-text]">
+                  {formatEur(latest.net_worth_eur_minor - (latentTax?.latentTaxMinor ?? 0) - (wealthTaxes?.totalMinor ?? 0))}
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-[--border] px-4 py-2 flex justify-center">
+              <Link
+                href="/dashboard/tasse"
+                className="inline-flex items-center gap-1 text-xs text-[--brand-text] hover:underline"
+              >
+                <ChevronRight className="size-3" />
+                Dettaglio fiscale completo
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-6 mb-4">
+            <Link
+              href="/dashboard/tasse"
+              className="inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
+            >
+              <ChevronRight className="size-3.5" />
+              Dettaglio fiscale — tasse latenti, plus/minus realizzate, bollo/IVAFE
+            </Link>
+          </div>
+        )}
 
         <div className="px-2 pb-4">
           <NetWorthChart snapshots={snapshots} />

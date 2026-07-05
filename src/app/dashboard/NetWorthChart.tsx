@@ -41,23 +41,22 @@ export default function NetWorthChart({ snapshots }: Props) {
     value: s.net_worth_eur_minor,
   }))
 
-  // Token values matched to OKLCH definitions in globals.css
   const colors = isDark
     ? {
-        brand:    '#34d399', // emerald-400
-        grid:     'oklch(0.26 0.01 160)',
-        axis:     'oklch(0.42 0.01 160)',
+        brand:    '#34d399',
+        grid:     '#262626',
+        axis:     '#a3a3a3',
         tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-        tooltipLabel:  'oklch(0.62 0.01 160)',
+        tooltipBorder: '#2d3d38',
+        tooltipLabel:  '#a3a3a3',
       }
     : {
-        brand:    '#059669', // emerald-600
-        grid:     'oklch(0.88 0.005 160)',
-        axis:     'oklch(0.65 0.008 160)',
+        brand:    '#059669',
+        grid:     '#e5e5e5',
+        axis:     '#6b7280',
         tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-        tooltipLabel:  'oklch(0.45 0.01 160)',
+        tooltipBorder: '#e5e7eb',
+        tooltipLabel:  '#6b7280',
       }
 
   return (
@@ -65,7 +64,7 @@ export default function NetWorthChart({ snapshots }: Props) {
       <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={colors.brand} stopOpacity={isDark ? 0.25 : 0.15} />
+            <stop offset="0%"   stopColor={colors.brand} stopOpacity={isDark ? 0.35 : 0.22} />
             <stop offset="100%" stopColor={colors.brand} stopOpacity={0} />
           </linearGradient>
         </defs>
