@@ -105,6 +105,78 @@ export function deleteTxn(userId: number, txnId: number): void {
 }
 
 /**
+ * Upsert di una posizione crypto in modalità "holdings".
+ * Cancella tutte le transazioni esistenti dello strumento nel portafoglio e inserisce
+ * un unico acquisto sintetico con la quantità corrente. Se avgCost non è fornito,
+ * usa 0 come prezzo unitario (il P/L sarà inaccurato ma la quantità è corretta).
+ */
+export function setCryptoHolding(
+  userId:       number,
+  portfolioId:  number,
+  instrumentId: number,
+  quantity:     string,   // quantità decimale, es. "2.5"
+  avgCost?:     string,   // prezzo medio di carico in EUR, opzionale
+): InvestmentTxn {
+  const portfolio = getPortfolioForUser(userId, portfolioId)
+  if (!portfolio) throw new Error('Portafoglio non trovato o non autorizzato')
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Rimuove transazioni precedenti dello stesso strumento in questo portafoglio.
+  db
+    .delete(investmentTxns)
+    .where(
+      and(
+        eq(investmentTxns.portfolio_id, portfolioId),
+        eq(investmentTxns.instrument_id, instrumentId),
+        eq(investmentTxns.owner_id, userId),
+      ),
+    )
+    .run()
+
+  return db
+    .insert(investmentTxns)
+    .values({
+      owner_id:      userId,
+      portfolio_id:  portfolioId,
+      instrument_id: instrumentId,
+      type:          'buy',
+      trade_date:    today,
+      quantity,
+      unit_price:    avgCost ?? '0',
+      fee_minor:     0,
+      amount_minor:  null,
+      currency:      'EUR',
+      note:          'posizione aggiornata (modalità holdings)',
+    })
+    .returning()
+    .get() as InvestmentTxn
+}
+
+/**
+ * Rimuove tutte le transazioni di uno strumento nel portafoglio (modalità holdings).
+ */
+export function removeCryptoHolding(
+  userId:       number,
+  portfolioId:  number,
+  instrumentId: number,
+): void {
+  const portfolio = getPortfolioForUser(userId, portfolioId)
+  if (!portfolio) throw new Error('Portafoglio non trovato o non autorizzato')
+
+  db
+    .delete(investmentTxns)
+    .where(
+      and(
+        eq(investmentTxns.portfolio_id, portfolioId),
+        eq(investmentTxns.instrument_id, instrumentId),
+        eq(investmentTxns.owner_id, userId),
+      ),
+    )
+    .run()
+}
+
+/**
  * Group transactions by instrument_id, returning a map suitable for the FIFO engine.
  * Already sorted by (trade_date, id) — the required FIFO order.
  */

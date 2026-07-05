@@ -6,9 +6,10 @@ import { getPortfolioForUser } from '@/lib/portfolios'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { getInstrument } from '@/lib/instruments'
 import { appendPriceHistory } from '@/lib/priceHistory'
-import { yahooProvider }         from './yahoo'
-import { coingeckoProvider }     from './coingecko'
-import { alphaVantageProvider }  from './alphavantage'
+import { yahooProvider }            from './yahoo'
+import { coingeckoProvider }        from './coingecko'
+import { alphaVantageProvider }     from './alphavantage'
+import { coinMarketCapProvider }    from './coinmarketcap'
 import type { Instrument } from '@/db/schema'
 import type { Quote } from './provider'
 
@@ -37,6 +38,7 @@ export async function resolveQuote(instrument: Instrument): Promise<Quote | null
     }
   } else if (price_source === 'coingecko') {
     providers.push(() => coingeckoProvider.getQuote(symbol, provider_symbol))
+    providers.push(() => coinMarketCapProvider.getQuote(symbol, provider_symbol))
     providers.push(() => yahooProvider.getQuote(symbol, provider_symbol))
   } else if (price_source === 'alphavantage') {
     providers.push(() => alphaVantageProvider.getQuote(symbol, provider_symbol))

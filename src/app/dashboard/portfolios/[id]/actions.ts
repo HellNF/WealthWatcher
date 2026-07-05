@@ -11,6 +11,9 @@ import { insertTxn, deleteTxn, updateTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { getInstrumentDetails, getHistoricalPrices, type InstrumentDetails, type PricePoint } from '@/lib/prices/yahoo'
+import { searchCoins, getCoinHistory, type CoinSearchResult } from '@/lib/prices/coingecko'
+import { getInstrumentBySymbol } from '@/lib/instruments'
+import { setCryptoHolding, removeCryptoHolding } from '@/lib/investmentTxns'
 import { toMinor, dec } from '@/lib/money'
 import { getOpenAiKey } from '@/lib/userSettings'
 import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
@@ -245,6 +248,14 @@ type Period = typeof VALID_PERIODS[number]
 export async function fetchHistoryAction(symbol: string, period: string): Promise<PricePoint[]> {
   await requireUser()
   if (!VALID_PERIODS.includes(period as Period)) return []
+
+  // Crypto via CoinGecko
+  const instr = getInstrumentBySymbol(symbol)
+  if (instr?.price_source === 'coingecko') {
+    const coinId = (instr.provider_symbol ?? symbol).toLowerCase()
+    return getCoinHistory(coinId, period as Period)
+  }
+
   return getHistoricalPrices(symbol, period as Period)
 }
 
@@ -271,6 +282,81 @@ export async function backfillHistoryAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Errore durante il backfill' }
   }
+}
+
+// ── Crypto holdings (modalità portfolio = 'holdings') ────────────────────────
+
+export async function searchCryptoAction(query: string): Promise<CoinSearchResult[]> {
+  await requireUser()
+  return searchCoins(query)
+}
+
+const holdingSchema = z.object({
+  coin_id:     z.string().trim().min(1),                     // CoinGecko coin id
+  coin_symbol: z.string().trim().min(1).toUpperCase(),
+  coin_name:   z.string().trim().min(1),
+  quantity:    z.string().trim().transform((v) => v.replace(',', '.')),
+  avg_cost:    z.string().trim().transform((v) => v.replace(',', '.')).optional(),
+})
+
+export async function upsertCryptoHoldingAction(
+  portfolioId: number,
+  _prev:       ActionState,
+  formData:    FormData,
+): Promise<ActionState> {
+  const user = await requireUser()
+
+  const raw = {
+    coin_id:     formData.get('coin_id'),
+    coin_symbol: formData.get('coin_symbol'),
+    coin_name:   formData.get('coin_name'),
+    quantity:    formData.get('quantity'),
+    avg_cost:    formData.get('avg_cost') || undefined,
+  }
+
+  const parsed = holdingSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Dati non validi' }
+  }
+
+  const d = parsed.data
+  const qtyNum = parseFloat(d.quantity)
+  if (isNaN(qtyNum) || qtyNum <= 0) return { error: 'Quantità deve essere maggiore di zero' }
+  if (d.avg_cost !== undefined) {
+    const n = parseFloat(d.avg_cost)
+    if (isNaN(n) || n < 0) return { error: 'Prezzo medio non valido' }
+  }
+
+  try {
+    const instrument = getOrCreateInstrument({
+      symbol:          d.coin_symbol,
+      name:            d.coin_name,
+      cluster:         'crypto',
+      currency:        'EUR',
+      price_source:    'coingecko',
+      provider_symbol: d.coin_id,
+    })
+
+    setCryptoHolding(user.id, portfolioId, instrument.id, d.quantity, d.avg_cost ?? undefined)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Errore durante il salvataggio' }
+  }
+
+  await takeSnapshot(user.id).catch(() => {})
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/portfolios/${portfolioId}`)
+  return undefined
+}
+
+export async function removeCryptoHoldingAction(
+  portfolioId:  number,
+  instrumentId: number,
+): Promise<void> {
+  const user = await requireUser()
+  removeCryptoHolding(user.id, portfolioId, instrumentId)
+  await takeSnapshot(user.id).catch(() => {})
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/portfolios/${portfolioId}`)
 }
 
 // ── KID extraction ────────────────────────────────────────────────────────────

@@ -50,14 +50,15 @@ export function getPortfolioForUser(
 }
 
 export function createPortfolio(
-  userId: number,
+  userId:        number,
   institutionId: number,
-  name: string,
-  currency: string,
+  name:          string,
+  currency:      string,
+  mode:          'transactions' | 'holdings' = 'transactions',
 ): InvestmentPortfolio {
   return db
     .insert(investmentPortfolios)
-    .values({ owner_id: userId, institution_id: institutionId, name, currency })
+    .values({ owner_id: userId, institution_id: institutionId, name, currency, mode })
     .returning()
     .get() as InvestmentPortfolio
 }

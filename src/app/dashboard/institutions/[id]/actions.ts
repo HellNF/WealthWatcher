@@ -56,6 +56,10 @@ export async function addPortfolio(
   const institution = getInstitutionForUser(user.id, institutionId)
   if (!institution) return { error: 'Istituzione non trovata' }
 
+  const modeRaw = formData.get('mode')
+  const mode: 'transactions' | 'holdings' =
+    modeRaw === 'holdings' ? 'holdings' : 'transactions'
+
   const parsed = accountSchema.safeParse({
     name:     formData.get('name'),
     currency: formData.get('currency'),
@@ -64,7 +68,7 @@ export async function addPortfolio(
     return { error: parsed.error.issues[0]?.message ?? 'Dati non validi' }
   }
 
-  createPortfolio(user.id, institutionId, parsed.data.name, parsed.data.currency)
+  createPortfolio(user.id, institutionId, parsed.data.name, parsed.data.currency, mode)
   revalidatePath(`/dashboard/institutions/${institutionId}`)
   return undefined
 }

@@ -11,6 +11,7 @@ import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm from './AddTxnForm'
+import HoldingsManager from './HoldingsManager'
 import AllocationChart from './AllocationChart'
 import InstrumentPriceChart from './InstrumentPriceChart'
 import RenameForm from '@/components/dashboard/RenameForm'
@@ -52,11 +53,15 @@ export default async function PortfolioPage({ params }: Props) {
     }
   }
 
-  const rawTxns = listTxns(user.id, id)
-  const txnsWithSymbol = rawTxns.map((t) => {
-    const instr = getInstrument(t.instrument_id)
-    return { ...t, symbol: instr?.symbol ?? '?', instrument_name: instr?.name ?? '' }
-  })
+  const isHoldings = portfolio.mode === 'holdings'
+
+  // In transactions mode, list all txns with symbol for the operations log.
+  const txnsWithSymbol = !isHoldings
+    ? listTxns(user.id, id).map((t) => {
+        const instr = getInstrument(t.instrument_id)
+        return { ...t, symbol: instr?.symbol ?? '?', instrument_name: instr?.name ?? '' }
+      })
+    : []
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
@@ -146,20 +151,25 @@ export default async function PortfolioPage({ params }: Props) {
         </div>
       )}
 
-      {/* ── Posizioni ───────────────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-[--ink]">Posizioni</h2>
-        <PositionsTable positions={positions} portfolioId={id} />
-      </section>
+      {/* ── Posizioni / Holdings ────────────────────────────────────────── */}
+      {isHoldings ? (
+        <HoldingsManager positions={positions} portfolioId={id} />
+      ) : (
+        <>
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-[--ink]">Posizioni</h2>
+            <PositionsTable positions={positions} portfolioId={id} />
+          </section>
 
-      {/* ── Operazioni ──────────────────────────────────────────────────── */}
-      <AddSection
-        title="Operazioni"
-        addLabel="Aggiungi"
-        form={<AddTxnForm portfolioId={id} />}
-      >
-        <TxnList txns={txnsWithSymbol} portfolioId={id} />
-      </AddSection>
+          <AddSection
+            title="Operazioni"
+            addLabel="Aggiungi"
+            form={<AddTxnForm portfolioId={id} />}
+          >
+            <TxnList txns={txnsWithSymbol} portfolioId={id} />
+          </AddSection>
+        </>
+      )}
 
       {/* ── Link gestione fiscale ───────────────────────────────────────── */}
       <Card className="flex items-center justify-between gap-4 flex-wrap">

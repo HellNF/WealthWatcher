@@ -1,10 +1,11 @@
 // Backfill dello storico prezzi giornalieri su price_history.
-// Per ogni strumento del portafoglio: scarica da Yahoo Finance dalla prima
-// trade_date fino a oggi, salta le date già presenti (ON CONFLICT DO NOTHING).
+// Per ogni strumento del portafoglio: scarica da Yahoo Finance (o CoinGecko per le crypto)
+// dalla prima trade_date fino a oggi, salta le date già presenti (ON CONFLICT DO NOTHING).
 import { sqlite } from '@/db'
 import { getInstrument } from '@/lib/instruments'
 import { appendPriceHistory } from '@/lib/priceHistory'
 import { getHistoricalPricesRange } from './yahoo'
+import { getCoinHistory } from './coingecko'
 
 export interface BackfillResult {
   symbol:   string
@@ -19,7 +20,7 @@ export async function backfillInstrumentHistory(
   const instrument = getInstrument(instrumentId)
   if (!instrument) return { symbol: '?', inserted: 0, error: 'strumento non trovato' }
 
-  if (instrument.price_source !== 'yahoo') {
+  if (instrument.price_source !== 'yahoo' && instrument.price_source !== 'coingecko') {
     return {
       symbol:  instrument.symbol,
       inserted: 0,
@@ -35,17 +36,33 @@ export async function backfillInstrumentHistory(
       .get(instrumentId) as { n: number }
   ).n
 
-  const { points, currency } = await getHistoricalPricesRange(instrument.symbol, fromDate, today)
-  const storeCurrency = currency ?? instrument.currency
+  if (instrument.price_source === 'coingecko') {
+    // CoinGecko: usa il periodo più lungo disponibile (5 anni) e filtra da fromDate.
+    const coinId = (instrument.provider_symbol ?? instrument.symbol).toLowerCase()
+    const points = await getCoinHistory(coinId, '5y')
+    for (const p of points) {
+      if (p.date < fromDate) continue
+      appendPriceHistory(
+        instrumentId,
+        p.date,
+        p.close.toFixed(8).replace(/\.?0+$/, ''),
+        'EUR',
+        'coingecko',
+      )
+    }
+  } else {
+    const { points, currency } = await getHistoricalPricesRange(instrument.symbol, fromDate, today)
+    const storeCurrency = currency ?? instrument.currency
 
-  for (const p of points) {
-    appendPriceHistory(
-      instrumentId,
-      p.date,
-      p.close.toFixed(6).replace(/\.?0+$/, ''),
-      storeCurrency,
-      'yahoo',
-    )
+    for (const p of points) {
+      appendPriceHistory(
+        instrumentId,
+        p.date,
+        p.close.toFixed(6).replace(/\.?0+$/, ''),
+        storeCurrency,
+        'yahoo',
+      )
+    }
   }
 
   const after = (

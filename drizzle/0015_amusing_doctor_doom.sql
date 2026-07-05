@@ -1,0 +1,1 @@
+ALTER TABLE `investment_portfolios` ADD `mode` text DEFAULT 'transactions' NOT NULL;

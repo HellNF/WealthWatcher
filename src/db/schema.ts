@@ -263,6 +263,11 @@ export const investmentPortfolios = sqliteTable(
                       .references(() => users.id, { onDelete: 'cascade' }),
     name:           text('name').notNull(),
     currency:       text('currency').notNull().default('EUR'), // reporting currency
+    // 'transactions' = standard buy/sell/dividend log (default)
+    // 'holdings'     = snapshot-style crypto wallet (one synthetic buy per coin)
+    mode:           text('mode', { enum: ['transactions', 'holdings'] as const })
+                      .notNull()
+                      .default('transactions'),
     created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [

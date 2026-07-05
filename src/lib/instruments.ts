@@ -57,6 +57,14 @@ export function getInstrument(id: number): Instrument | undefined {
     | undefined
 }
 
+export function getInstrumentBySymbol(symbol: string): Instrument | undefined {
+  return db
+    .select()
+    .from(instruments)
+    .where(eq(instruments.symbol, symbol.toUpperCase()))
+    .get() as Instrument | undefined
+}
+
 export function listInstruments(): Instrument[] {
   return db.select().from(instruments).all() as Instrument[]
 }
