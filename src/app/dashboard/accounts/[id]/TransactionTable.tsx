@@ -6,6 +6,7 @@ import type { TransactionRow } from '@/lib/transactions'
 import {
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
   Badge, EmptyState,
+  DataCard, DataCardHeader, DataRow,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { ReceiptText, Wand2, X, Check } from 'lucide-react'
@@ -43,7 +44,6 @@ function CategorySelect({
     setRuleMsg(null)
     startTransition(() => updateCategoryAction(txnId, catId))
     if (catId !== null) {
-      // pre-fill keyword with the first meaningful word of the description (≥4 chars)
       const words = descriptionRaw.toLowerCase().replace(/[^a-zàèéìòù0-9 ]/g, ' ').split(/\s+/)
       const kw    = words.find((w) => w.length >= 4) ?? words[0] ?? ''
       setKeyword(kw)
@@ -66,7 +66,7 @@ function CategorySelect({
   }
 
   return (
-    <div className="space-y-1.5 min-w-[160px]">
+    <div className="space-y-1.5 w-full">
       <select
         value={selectedId ?? ''}
         onChange={handleChange}
@@ -144,52 +144,89 @@ export default function TransactionTable({
   }
 
   return (
-    <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
-      <Table>
-        <TableHead>
-          <Tr>
-            <Th>Data</Th>
-            <Th>Descrizione</Th>
-            <Th>Categoria</Th>
-            <Th className="text-right">Importo</Th>
-          </Tr>
-        </TableHead>
-        <TableBody>
-          {transactions.map((txn) => (
-            <Tr key={txn.id}>
-              <Td className="text-[--muted] text-xs whitespace-nowrap">
-                {formatDate(txn.booked_date)}
-              </Td>
-              <Td className="max-w-xs">
-                <div className="truncate">
-                  {txn.merchant_name ? (
-                    <>
-                      <span className="font-medium text-[--ink]">{txn.merchant_name}</span>
-                      <span className="text-[--faint] ml-2 text-xs">{txn.description_raw}</span>
-                    </>
-                  ) : (
-                    <span className="text-[--ink]">{txn.description_raw}</span>
-                  )}
-                </div>
-              </Td>
-              <Td>
+    <>
+      {/* ── Desktop: tabella ───────────────────────────────────────────────── */}
+      <div className="hidden sm:block">
+        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+          <Table>
+            <TableHead>
+              <Tr>
+                <Th>Data</Th>
+                <Th>Descrizione</Th>
+                <Th>Categoria</Th>
+                <Th className="text-right">Importo</Th>
+              </Tr>
+            </TableHead>
+            <TableBody>
+              {transactions.map((txn) => (
+                <Tr key={txn.id}>
+                  <Td className="text-[--muted] text-xs whitespace-nowrap">
+                    {formatDate(txn.booked_date)}
+                  </Td>
+                  <Td className="max-w-xs">
+                    <div className="truncate">
+                      {txn.merchant_name ? (
+                        <>
+                          <span className="font-medium text-[--ink]">{txn.merchant_name}</span>
+                          <span className="text-[--faint] ml-2 text-xs">{txn.description_raw}</span>
+                        </>
+                      ) : (
+                        <span className="text-[--ink]">{txn.description_raw}</span>
+                      )}
+                    </div>
+                  </Td>
+                  <Td>
+                    <CategorySelect
+                      txnId={txn.id}
+                      currentCategoryId={txn.category_id}
+                      descriptionRaw={txn.description_raw}
+                      categories={categories}
+                    />
+                  </Td>
+                  <Td numeric>
+                    <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
+                      {txn.amount_minor >= 0 ? '+' : ''}
+                      {fromMinor(txn.amount_minor, txn.currency)}
+                    </Badge>
+                  </Td>
+                </Tr>
+              ))}
+            </TableBody>
+          </Table>
+        </TableWrapper>
+      </div>
+
+      {/* ── Mobile: card impilate ──────────────────────────────────────────── */}
+      <div className="sm:hidden space-y-2">
+        {transactions.map((txn) => (
+          <DataCard key={txn.id}>
+            <DataCardHeader
+              title={txn.merchant_name || txn.description_raw}
+              subtitle={!txn.merchant_name ? undefined : txn.description_raw}
+              badge={
+                <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
+                  {txn.amount_minor >= 0 ? '+' : ''}
+                  {fromMinor(txn.amount_minor, txn.currency)}
+                </Badge>
+              }
+            />
+            <div className="divide-y divide-[--border]">
+              <DataRow label="Data">
+                <span className="tabular-nums">{formatDate(txn.booked_date)}</span>
+              </DataRow>
+              <div className="py-2 space-y-1.5">
+                <span className="text-xs text-[--muted]">Categoria</span>
                 <CategorySelect
                   txnId={txn.id}
                   currentCategoryId={txn.category_id}
                   descriptionRaw={txn.description_raw}
                   categories={categories}
                 />
-              </Td>
-              <Td numeric>
-                <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
-                  {txn.amount_minor >= 0 ? '+' : ''}
-                  {fromMinor(txn.amount_minor, txn.currency)}
-                </Badge>
-              </Td>
-            </Tr>
-          ))}
-        </TableBody>
-      </Table>
-    </TableWrapper>
+              </div>
+            </div>
+          </DataCard>
+        ))}
+      </div>
+    </>
   )
 }

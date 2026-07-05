@@ -37,3 +37,5 @@ export { BrandMark } from './BrandMark'
 export { ThemeToggle } from './ThemeToggle'
 
 export { ConfirmDelete } from './ConfirmDelete'
+
+export { DataCard, DataCardHeader, DataRow } from './DataCard'

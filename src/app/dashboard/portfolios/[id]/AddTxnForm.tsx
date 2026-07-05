@@ -283,7 +283,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
               <input type="hidden" name="cluster"        value={instr.cluster}                 form="kid-confirm-form" />
               <input type="hidden" name="currency"       value={instr.currency}                form="kid-confirm-form" />
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Name */}
                 <Field
                   label="Nome strumento"
@@ -419,7 +419,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
         </div>
 
         {/* ── Tipo + data ────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Tipo" htmlFor="txn-type">
             <Select
               id="txn-type"
@@ -447,7 +447,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
         <input type="hidden" name="isin" value={instr.isin} />
 
         {/* ── Strumento ─────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Simbolo (ticker)" htmlFor="txn-symbol">
             <Input
               id="txn-symbol"
@@ -544,7 +544,7 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
 
         {/* ── Campi buy/sell ─────────────────────────────────────────────────── */}
         {isBuySell && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Quantità" htmlFor="txn-qty">
               <Input
                 id="txn-qty"

@@ -145,7 +145,7 @@ export default async function StatistichePage() {
     : 'oklch(0.65 0.008 160)'
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-12">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-12">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Statistiche' },
@@ -911,7 +911,7 @@ export default async function StatistichePage() {
                           ) : null}
                         </div>
                         {r.hasHistory && (
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                               <p className="text-xs text-[--faint]">CAGR reale</p>
                               <p className={`text-sm font-medium tabular-nums ${pctColor(r.actualCAGR)}`}>

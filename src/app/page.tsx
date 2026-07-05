@@ -124,7 +124,7 @@ export default async function Home() {
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur px-6 py-4">
+      <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-md bg-emerald-500 flex items-center justify-center text-sm font-bold text-zinc-950">
@@ -142,7 +142,7 @@ export default async function Home() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-6xl mx-auto w-full px-6 pb-8 space-y-20">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pb-8 space-y-20">
 
         <div className="py-12 space-y-20">
 
@@ -233,7 +233,7 @@ export default async function Home() {
         </section>
 
         {/* ── CTA finale ─────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-8 py-10 text-center space-y-4">
+        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 sm:px-8 py-8 sm:py-10 text-center space-y-4">
           <h2 className="text-2xl font-bold text-zinc-50">Pronto a iniziare?</h2>
           <p className="text-zinc-400 max-w-lg mx-auto">
             Aggiungi le tue istituzioni, importa i movimenti e ottieni subito una visione
@@ -241,7 +241,7 @@ export default async function Home() {
           </p>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 h-11 px-8 rounded-xl bg-emerald-500 text-zinc-950 font-semibold hover:bg-emerald-400 transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-6 sm:px-8 rounded-xl bg-emerald-500 text-zinc-950 font-semibold hover:bg-emerald-400 transition-colors"
           >
             Entra nella dashboard
             <ArrowRight className="size-4" />
@@ -258,7 +258,7 @@ export default async function Home() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
             {/* chat */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[560px] flex flex-col">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden h-[70vh] sm:h-[560px] flex flex-col">
               <ChatSection initialMessages={messages} isAdmin={isAdmin} />
             </div>
             {/* colonna laterale */}
@@ -311,7 +311,7 @@ export default async function Home() {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-zinc-800 px-6 py-6">
+      <footer className="border-t border-zinc-800 px-4 sm:px-6 py-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 flex-wrap text-xs text-zinc-500">
           <span>WealthWatcher — gestione patrimoniale personale</span>
           <div className="flex items-center gap-4">

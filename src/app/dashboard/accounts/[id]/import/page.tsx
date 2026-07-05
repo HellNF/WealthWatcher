@@ -58,7 +58,7 @@ export default async function ImportPage({ params }: Props) {
 
   if (!parserKey) {
     return (
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-6">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         {crumbs}
         <Card>
           <EmptyState
@@ -77,7 +77,7 @@ export default async function ImportPage({ params }: Props) {
   }
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-6">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       {crumbs}
 
       <div>

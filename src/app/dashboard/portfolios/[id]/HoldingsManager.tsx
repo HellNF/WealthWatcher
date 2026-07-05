@@ -14,6 +14,7 @@ import {
   Button, Badge, EmptyState, Field, Input,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
   Card, CardHeader, CardTitle,
+  DataCard, DataCardHeader, DataRow,
 } from '@/components/ui'
 import { TrendingUp } from 'lucide-react'
 
@@ -96,8 +97,6 @@ function CoinSearchBox({ onSelect }: { onSelect: (coin: CoinSearchResult) => voi
 }
 
 // ── Form di aggiunta / modifica ────────────────────────────────────────────────
-// Chiama direttamente il server action (senza useActionState) per poter
-// rilevare il successo e chiudere il form automaticamente.
 
 function HoldingForm({
   portfolioId,
@@ -140,7 +139,8 @@ function HoldingForm({
         <p className="text-xs text-[--muted] font-mono">{coin.symbol}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* Grid 1 colonna su mobile, 2 su sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Quantità posseduta" htmlFor="hf-qty">
           <Input
             id="hf-qty"
@@ -228,7 +228,7 @@ export default function HoldingsManager({
 
       {/* ── Tabella posizioni ─────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-base font-semibold text-[--ink]">Posizioni crypto</h2>
           <Button
             variant="secondary"
@@ -266,110 +266,207 @@ export default function HoldingsManager({
               )
             })()}
 
-            <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
-              <Table>
-                <TableHead>
-                  <Tr>
-                    <Th>Cripto</Th>
-                    <Th className="text-right">Quantità</Th>
-                    <Th className="text-right">P.M. carico</Th>
-                    <Th className="text-right">Prezzo att.</Th>
-                    <Th className="text-right">Valore EUR</Th>
-                    <Th className="text-right">P/L</Th>
-                    <Th className="text-right"></Th>
-                  </Tr>
-                </TableHead>
-                <TableBody>
-                  {active.map((pos) => {
-                    const avgCost = pos.costBasisMinor /
-                      Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
-                    const pl = pos.unrealizedPlMinor
-                    return (
-                      <Tr key={pos.instrumentId}>
-                        <Td>
-                          <p className="font-medium text-[--ink]">{pos.name}</p>
-                          <p className="text-xs text-[--muted]">{pos.symbol}</p>
-                        </Td>
-                        <Td numeric>
+            {/* ── Desktop: tabella ─────────────────────────────────────────── */}
+            <div className="hidden sm:block">
+              <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+                <Table>
+                  <TableHead>
+                    <Tr>
+                      <Th>Cripto</Th>
+                      <Th className="text-right">Quantità</Th>
+                      <Th className="text-right">P.M. carico</Th>
+                      <Th className="text-right">Prezzo att.</Th>
+                      <Th className="text-right">Valore EUR</Th>
+                      <Th className="text-right">P/L</Th>
+                      <Th className="text-right"></Th>
+                    </Tr>
+                  </TableHead>
+                  <TableBody>
+                    {active.map((pos) => {
+                      const avgCost = pos.costBasisMinor /
+                        Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+                      const pl = pos.unrealizedPlMinor
+                      return (
+                        <Tr key={pos.instrumentId}>
+                          <Td>
+                            <p className="font-medium text-[--ink]">{pos.name}</p>
+                            <p className="text-xs text-[--muted]">{pos.symbol}</p>
+                          </Td>
+                          <Td numeric>
+                            {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
+                              maximumFractionDigits: 8,
+                            })}
+                          </Td>
+                          <Td numeric>
+                            <span className="text-[--muted] text-xs">
+                              {avgCost > 0
+                                ? avgCost.toLocaleString('it-IT', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 4,
+                                  })
+                                : '—'}
+                            </span>
+                          </Td>
+                          <Td numeric>
+                            {pos.lastPrice ? (
+                              <div className="text-right">
+                                <span className="text-[--ink]">
+                                  {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 6,
+                                  })}
+                                </span>
+                                <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
+                              </div>
+                            ) : (
+                              <Badge variant="warning">stale</Badge>
+                            )}
+                          </Td>
+                          <Td numeric>
+                            <span className="text-[--ink]">
+                              {pos.marketValueMinor !== null
+                                ? fromMinor(pos.marketValueMinor, 'EUR')
+                                : '—'}
+                            </span>
+                          </Td>
+                          <Td numeric>
+                            {pl !== null ? (
+                              <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
+                                {pl >= 0 ? '+' : ''}{fromMinor(pl, 'EUR')}
+                                {pos.unrealizedPlPct && (
+                                  <span className="ml-1 opacity-75">
+                                    ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
+                                  </span>
+                                )}
+                              </Badge>
+                            ) : (
+                              <span className="text-[--faint] text-xs">—</span>
+                            )}
+                          </Td>
+                          <Td numeric>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(
+                                  editingId === pos.instrumentId ? null : pos.instrumentId,
+                                )}
+                                className="p-1.5 rounded-lg text-[--faint] hover:text-[--brand] hover:bg-[--brand-subtle] transition-colors"
+                                title="Modifica quantità"
+                              >
+                                <Pencil className="size-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemove(pos.instrumentId)}
+                                disabled={removePending}
+                                className="p-1.5 rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] transition-colors disabled:opacity-40"
+                                title="Rimuovi posizione"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </Td>
+                        </Tr>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableWrapper>
+            </div>
+
+            {/* ── Mobile: card impilate ─────────────────────────────────────── */}
+            <div className="sm:hidden space-y-2">
+              {active.map((pos) => {
+                const avgCost = pos.costBasisMinor /
+                  Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+                const pl = pos.unrealizedPlMinor
+                return (
+                  <DataCard key={pos.instrumentId}>
+                    <DataCardHeader
+                      title={pos.name}
+                      subtitle={pos.symbol}
+                      badge={!pos.lastPrice ? <Badge variant="warning">stale</Badge> : undefined}
+                      actions={
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(
+                              editingId === pos.instrumentId ? null : pos.instrumentId,
+                            )}
+                            className="p-1.5 rounded-lg text-[--faint] hover:text-[--brand] hover:bg-[--brand-subtle] transition-colors"
+                            title="Modifica quantità"
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(pos.instrumentId)}
+                            disabled={removePending}
+                            className="p-1.5 rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] transition-colors disabled:opacity-40"
+                            title="Rimuovi posizione"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      }
+                    />
+                    <div className="divide-y divide-[--border]">
+                      <DataRow label="Valore EUR">
+                        <span className="font-medium">
+                          {pos.marketValueMinor !== null
+                            ? fromMinor(pos.marketValueMinor, 'EUR')
+                            : '—'}
+                        </span>
+                      </DataRow>
+                      <DataRow label="P/L">
+                        {pl !== null ? (
+                          <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
+                            {pl >= 0 ? '+' : ''}{fromMinor(pl, 'EUR')}
+                            {pos.unrealizedPlPct && (
+                              <span className="ml-1 opacity-75">
+                                ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
+                              </span>
+                            )}
+                          </Badge>
+                        ) : (
+                          <span className="text-[--faint]">—</span>
+                        )}
+                      </DataRow>
+                      <DataRow label="Quantità">
+                        <span className="tabular-nums">
                           {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
                             maximumFractionDigits: 8,
                           })}
-                        </Td>
-                        <Td numeric>
-                          <span className="text-[--muted] text-xs">
-                            {avgCost > 0
-                              ? avgCost.toLocaleString('it-IT', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 4,
-                                })
-                              : '—'}
+                        </span>
+                      </DataRow>
+                      {pos.lastPrice && (
+                        <DataRow label="Prezzo att.">
+                          <span className="tabular-nums">
+                            {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 6,
+                            })}
+                            <span className="text-[--faint] ml-1 text-[10px]">
+                              {fmtDate(pos.lastPriceAt)}
+                            </span>
                           </span>
-                        </Td>
-                        <Td numeric>
-                          {pos.lastPrice ? (
-                            <div className="text-right">
-                              <span className="text-[--ink]">
-                                {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 6,
-                                })}
-                              </span>
-                              <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
-                            </div>
-                          ) : (
-                            <Badge variant="warning">stale</Badge>
-                          )}
-                        </Td>
-                        <Td numeric>
-                          <span className="text-[--ink]">
-                            {pos.marketValueMinor !== null
-                              ? fromMinor(pos.marketValueMinor, 'EUR')
-                              : '—'}
+                        </DataRow>
+                      )}
+                      {avgCost > 0 && (
+                        <DataRow label="P.M. carico">
+                          <span className="tabular-nums text-[--muted]">
+                            {avgCost.toLocaleString('it-IT', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 4,
+                            })}
                           </span>
-                        </Td>
-                        <Td numeric>
-                          {pl !== null ? (
-                            <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
-                              {pl >= 0 ? '+' : ''}{fromMinor(pl, 'EUR')}
-                              {pos.unrealizedPlPct && (
-                                <span className="ml-1 opacity-75">
-                                  ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
-                                </span>
-                              )}
-                            </Badge>
-                          ) : (
-                            <span className="text-[--faint] text-xs">—</span>
-                          )}
-                        </Td>
-                        <Td numeric>
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(
-                                editingId === pos.instrumentId ? null : pos.instrumentId,
-                              )}
-                              className="p-1.5 rounded-lg text-[--faint] hover:text-[--brand] hover:bg-[--brand-subtle] transition-colors"
-                              title="Modifica quantità"
-                            >
-                              <Pencil className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemove(pos.instrumentId)}
-                              disabled={removePending}
-                              className="p-1.5 rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] transition-colors disabled:opacity-40"
-                              title="Rimuovi posizione"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </div>
-                        </Td>
-                      </Tr>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableWrapper>
+                        </DataRow>
+                      )}
+                    </div>
+                  </DataCard>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

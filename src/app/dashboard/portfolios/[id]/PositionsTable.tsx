@@ -7,6 +7,7 @@ import type { Position } from '@/lib/investments/fifo'
 import {
   Button, Badge, EmptyState,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
+  DataCard, DataCardHeader, DataRow,
 } from '@/components/ui'
 
 function fmtDate(epoch: number | null): string {
@@ -67,73 +68,128 @@ export default function PositionsTable({
         </Button>
       </div>
 
-      <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
-        <Table>
-          <TableHead>
-            <Tr>
-              <Th>Strumento</Th>
-              <Th className="text-right">Qtà</Th>
-              <Th className="text-right">P.M. carico</Th>
-              <Th className="text-right">Prezzo att.</Th>
-              <Th className="text-right">Valore</Th>
-              <Th className="text-right">P/L non real.</Th>
-            </Tr>
-          </TableHead>
-          <TableBody>
-            {activePositions.map((pos) => {
-              const avgCost = pos.costBasisMinor /
-                Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
-              return (
-                <Tr key={pos.symbol}>
-                  <Td>
-                    <p className="font-medium text-[--ink]">{pos.name}</p>
-                    <p className="text-xs text-[--muted]">{pos.symbol} · {pos.currency}</p>
-                  </Td>
-                  <Td numeric>
-                    <span className="text-[--ink]">
-                      {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
-                        maximumFractionDigits: 8,
-                      })}
-                    </span>
-                  </Td>
-                  <Td numeric>
-                    <span className="text-[--muted] text-xs">
-                      {avgCost.toLocaleString('it-IT', {
+      {/* ── Desktop: tabella ─────────────────────────────────────────────── */}
+      <div className="hidden sm:block">
+        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+          <Table>
+            <TableHead>
+              <Tr>
+                <Th>Strumento</Th>
+                <Th className="text-right">Qtà</Th>
+                <Th className="text-right">P.M. carico</Th>
+                <Th className="text-right">Prezzo att.</Th>
+                <Th className="text-right">Valore</Th>
+                <Th className="text-right">P/L non real.</Th>
+              </Tr>
+            </TableHead>
+            <TableBody>
+              {activePositions.map((pos) => {
+                const avgCost = pos.costBasisMinor /
+                  Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+                return (
+                  <Tr key={pos.symbol}>
+                    <Td>
+                      <p className="font-medium text-[--ink]">{pos.name}</p>
+                      <p className="text-xs text-[--muted]">{pos.symbol} · {pos.currency}</p>
+                    </Td>
+                    <Td numeric>
+                      <span className="text-[--ink]">
+                        {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
+                          maximumFractionDigits: 8,
+                        })}
+                      </span>
+                    </Td>
+                    <Td numeric>
+                      <span className="text-[--muted] text-xs">
+                        {avgCost.toLocaleString('it-IT', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 4,
+                        })}
+                      </span>
+                    </Td>
+                    <Td numeric>
+                      {pos.lastPrice ? (
+                        <div className="text-right">
+                          <span className="text-[--ink]">
+                            {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
+                              minimumFractionDigits: 2,
+                            })}
+                          </span>
+                          <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
+                        </div>
+                      ) : (
+                        <Badge variant="warning">stale</Badge>
+                      )}
+                    </Td>
+                    <Td numeric>
+                      <span className="text-[--ink]">
+                        {pos.marketValueMinor !== null
+                          ? fromMinor(pos.marketValueMinor, pos.currency)
+                          : '—'}
+                      </span>
+                    </Td>
+                    <Td numeric>
+                      <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
+                    </Td>
+                  </Tr>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableWrapper>
+      </div>
+
+      {/* ── Mobile: card impilate ─────────────────────────────────────────── */}
+      <div className="sm:hidden space-y-2">
+        {activePositions.map((pos) => {
+          const avgCost = pos.costBasisMinor /
+            Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+          return (
+            <DataCard key={pos.symbol}>
+              <DataCardHeader
+                title={pos.name}
+                subtitle={`${pos.symbol} · ${pos.currency}`}
+                badge={!pos.lastPrice ? <Badge variant="warning">stale</Badge> : undefined}
+              />
+              <div className="divide-y divide-[--border]">
+                <DataRow label="Valore">
+                  {pos.marketValueMinor !== null
+                    ? fromMinor(pos.marketValueMinor, pos.currency)
+                    : '—'}
+                </DataRow>
+                <DataRow label="P/L non real.">
+                  <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
+                </DataRow>
+                <DataRow label="Quantità">
+                  {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
+                    maximumFractionDigits: 8,
+                  })}
+                </DataRow>
+                <DataRow label="P.M. carico">
+                  <span className="text-[--muted]">
+                    {avgCost.toLocaleString('it-IT', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 4,
+                    })}
+                  </span>
+                </DataRow>
+                {pos.lastPrice && (
+                  <DataRow label="Prezzo att.">
+                    <span>
+                      {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
                         minimumFractionDigits: 2,
-                        maximumFractionDigits: 4,
                       })}
+                      {pos.lastPriceAt && (
+                        <span className="text-[--faint] ml-1">· {fmtDate(pos.lastPriceAt)}</span>
+                      )}
                     </span>
-                  </Td>
-                  <Td numeric>
-                    {pos.lastPrice ? (
-                      <div className="text-right">
-                        <span className="text-[--ink]">
-                          {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                        <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
-                      </div>
-                    ) : (
-                      <Badge variant="warning">stale</Badge>
-                    )}
-                  </Td>
-                  <Td numeric>
-                    <span className="text-[--ink]">
-                      {pos.marketValueMinor !== null
-                        ? fromMinor(pos.marketValueMinor, pos.currency)
-                        : '—'}
-                    </span>
-                  </Td>
-                  <Td numeric>
-                    <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
-                  </Td>
-                </Tr>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </TableWrapper>
+                  </DataRow>
+                )}
+              </div>
+            </DataCard>
+          )
+        })}
+      </div>
     </div>
   )
 }

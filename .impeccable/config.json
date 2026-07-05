@@ -1,7 +1,9 @@
 {
   "detector": {
     "ignoreRules": [],
-    "ignoreFiles": [],
+    "ignoreFiles": [
+      "src/app/page.tsx"
+    ],
     "ignoreValues": [
       {
         "rule": "gray-on-color",

@@ -63,7 +63,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const importSupported = providerParser(institution?.provider) !== null
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         ...(institution ? [{ label: institution.name, href: `/dashboard/institutions/${institution.id}` }] : []),

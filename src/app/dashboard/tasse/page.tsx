@@ -13,7 +13,7 @@ import {
   Landmark, TrendingDown, Briefcase, PiggyBank,
   Receipt, Calculator, AlertTriangle, User,
 } from 'lucide-react'
-import { Breadcrumb, Card, Stat, Badge } from '@/components/ui'
+import { Breadcrumb, Card, Stat, Badge, DataCard, DataCardHeader, DataRow } from '@/components/ui'
 import YearSelector from './YearSelector'
 import SaleSimulatorSection from './SaleSimulatorSection'
 import Link from 'next/link'
@@ -107,7 +107,7 @@ export default async function TassePage({ searchParams }: Props) {
   const hasRealizedActivity = realizedTax.events.length > 0
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-12">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-12">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Tasse' },
@@ -225,49 +225,87 @@ export default async function TassePage({ searchParams }: Props) {
               </Card>
             )}
 
-            {/* Tabella eventi */}
-            <Card noPadding className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-[--border] bg-[--surface-2]">
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Data</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Strumento</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Tipo</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">P/L EUR</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Aliquota</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Imposta</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[--border]">
-                    {realizedTax.events.map((ev, i) => (
-                      <tr key={i} className="hover:bg-[--surface-2] transition-colors duration-100">
-                        <td className="px-4 py-2.5 text-xs text-[--muted] whitespace-nowrap">{ev.date}</td>
-                        <td className="px-4 py-2.5 text-xs text-[--ink] max-w-[200px] truncate">{ev.instrumentName}</td>
-                        <td className="px-4 py-2.5">
-                          <Badge variant={ev.incomeType === 'capitale' ? 'info' : 'neutral'}>
-                            {ev.cluster}
-                          </Badge>
-                        </td>
-                        <td className={`px-4 py-2.5 text-right text-xs font-mono tabular-nums font-medium ${ev.gainEurMinor >= 0 ? 'text-[--brand-text]' : 'text-[--danger]'}`}>
-                          {sign(ev.gainEurMinor)}{fmtEurDec(ev.gainEurMinor)}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs text-[--muted]">
-                          {ev.gainEurMinor > 0 ? fmtPct(ev.appliedRate) : '—'}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums">
-                          {ev.taxMinor > 0
-                            ? <span className="text-[--danger]">−{fmtEurDec(ev.taxMinor)}</span>
-                            : ev.gainEurMinor < 0
-                              ? <span className="text-[--brand-text]">credito</span>
-                              : <span className="text-[--faint]">esente</span>}
-                        </td>
+            {/* Tabella eventi — desktop */}
+            <div className="hidden sm:block">
+              <Card noPadding className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[--border] bg-[--surface-2]">
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Data</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Strumento</th>
+                        <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Tipo</th>
+                        <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">P/L EUR</th>
+                        <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Aliquota</th>
+                        <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Imposta</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                    </thead>
+                    <tbody className="divide-y divide-[--border]">
+                      {realizedTax.events.map((ev, i) => (
+                        <tr key={i} className="hover:bg-[--surface-2] transition-colors duration-100">
+                          <td className="px-4 py-2.5 text-xs text-[--muted] whitespace-nowrap">{ev.date}</td>
+                          <td className="px-4 py-2.5 text-xs text-[--ink] max-w-[200px] truncate">{ev.instrumentName}</td>
+                          <td className="px-4 py-2.5">
+                            <Badge variant={ev.incomeType === 'capitale' ? 'info' : 'neutral'}>
+                              {ev.cluster}
+                            </Badge>
+                          </td>
+                          <td className={`px-4 py-2.5 text-right text-xs font-mono tabular-nums font-medium ${ev.gainEurMinor >= 0 ? 'text-[--brand-text]' : 'text-[--danger]'}`}>
+                            {sign(ev.gainEurMinor)}{fmtEurDec(ev.gainEurMinor)}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-xs text-[--muted]">
+                            {ev.gainEurMinor > 0 ? fmtPct(ev.appliedRate) : '—'}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums">
+                            {ev.taxMinor > 0
+                              ? <span className="text-[--danger]">−{fmtEurDec(ev.taxMinor)}</span>
+                              : ev.gainEurMinor < 0
+                                ? <span className="text-[--brand-text]">credito</span>
+                                : <span className="text-[--faint]">esente</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+            {/* Tabella eventi — mobile card */}
+            <div className="sm:hidden space-y-2">
+              {realizedTax.events.map((ev, i) => (
+                <DataCard key={i}>
+                  <DataCardHeader
+                    title={ev.instrumentName}
+                    subtitle={ev.date}
+                    badge={
+                      <Badge variant={ev.incomeType === 'capitale' ? 'info' : 'neutral'}>
+                        {ev.cluster}
+                      </Badge>
+                    }
+                  />
+                  <div className="divide-y divide-[--border]">
+                    <DataRow label="P/L EUR">
+                      <span className={`font-mono tabular-nums font-medium ${ev.gainEurMinor >= 0 ? 'text-[--brand-text]' : 'text-[--danger]'}`}>
+                        {sign(ev.gainEurMinor)}{fmtEurDec(ev.gainEurMinor)}
+                      </span>
+                    </DataRow>
+                    <DataRow label="Imposta">
+                      {ev.taxMinor > 0
+                        ? <span className="text-[--danger] tabular-nums">−{fmtEurDec(ev.taxMinor)}</span>
+                        : ev.gainEurMinor < 0
+                          ? <span className="text-[--brand-text]">credito</span>
+                          : <span className="text-[--faint]">esente</span>}
+                    </DataRow>
+                    {ev.gainEurMinor > 0 && (
+                      <DataRow label="Aliquota">
+                        <span className="text-[--muted]">{fmtPct(ev.appliedRate)}</span>
+                      </DataRow>
+                    )}
+                  </div>
+                </DataCard>
+              ))}
+            </div>
 
             <p className="text-xs text-[--faint]">
               Plus/minus calcolate con metodo FIFO. La compensazione è basata sullo stato corrente dello zainetto fiscale.
@@ -336,40 +374,66 @@ export default async function TassePage({ searchParams }: Props) {
               )}
             </div>
 
-            {/* Lista crediti attivi */}
+            {/* Lista crediti attivi — desktop */}
             {fiscalWallet.credits.length > 0 && (
-              <Card noPadding className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-[--border] bg-[--surface-2]">
-                        <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Data realizzo</th>
-                        <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Scadenza</th>
-                        <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Credito residuo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[--border]">
-                      {fiscalWallet.credits.map((c, i) => {
-                        const isExpiringThisYear = c.expiryDate.startsWith(currentYear)
-                        return (
-                          <tr key={i} className={isExpiringThisYear ? 'bg-[--warning-subtle]' : ''}>
-                            <td className="px-4 py-2.5 text-xs text-[--muted]">{c.realizedDate}</td>
-                            <td className="px-4 py-2.5 text-xs">
-                              <span className={isExpiringThisYear ? 'text-[--warning] font-medium' : 'text-[--muted]'}>
-                                {c.expiryDate}
-                                {isExpiringThisYear && ' ⚠️'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums text-[--brand-text] font-medium">
-                              {fromMinor(c.amountMinor, 'EUR')}
-                            </td>
+              <>
+                <div className="hidden sm:block">
+                  <Card noPadding className="overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[--border] bg-[--surface-2]">
+                            <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Data realizzo</th>
+                            <th className="px-4 py-2.5 text-left text-xs font-medium text-[--muted]">Scadenza</th>
+                            <th className="px-4 py-2.5 text-right text-xs font-medium text-[--muted]">Credito residuo</th>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-[--border]">
+                          {fiscalWallet.credits.map((c, i) => {
+                            const isExpiringThisYear = c.expiryDate.startsWith(currentYear)
+                            return (
+                              <tr key={i} className={isExpiringThisYear ? 'bg-[--warning-subtle]' : ''}>
+                                <td className="px-4 py-2.5 text-xs text-[--muted]">{c.realizedDate}</td>
+                                <td className="px-4 py-2.5 text-xs">
+                                  <span className={isExpiringThisYear ? 'text-[--warning] font-medium' : 'text-[--muted]'}>
+                                    {c.expiryDate}
+                                    {isExpiringThisYear && ' ⚠️'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums text-[--brand-text] font-medium">
+                                  {fromMinor(c.amountMinor, 'EUR')}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
+
+                {/* Lista crediti attivi — mobile card */}
+                <div className="sm:hidden space-y-2">
+                  {fiscalWallet.credits.map((c, i) => {
+                    const isExpiringThisYear = c.expiryDate.startsWith(currentYear)
+                    return (
+                      <DataCard key={i} className={isExpiringThisYear ? 'border-[--warning]' : undefined}>
+                        <DataCardHeader
+                          title={fromMinor(c.amountMinor, 'EUR')}
+                          subtitle={`Realizzo: ${c.realizedDate}`}
+                          badge={isExpiringThisYear ? <span className="text-[--warning]">⚠️</span> : undefined}
+                        />
+                        <DataRow label="Scadenza">
+                          <span className={isExpiringThisYear ? 'text-[--warning] font-medium' : 'text-[--muted]'}>
+                            {c.expiryDate}
+                            {isExpiringThisYear && ' in scadenza'}
+                          </span>
+                        </DataRow>
+                      </DataCard>
+                    )
+                  })}
+                </div>
+              </>
             )}
 
             <p className="text-xs text-[--faint]">
@@ -468,18 +532,20 @@ export default async function TassePage({ searchParams }: Props) {
             {wealthTaxes.lines.filter(l => l.taxEurMinor > 0).length > 0 && (
               <div className="divide-y divide-[--border] rounded-xl border border-[--border] overflow-hidden">
                 {wealthTaxes.lines.filter(l => l.taxEurMinor > 0).map((line) => (
-                  <div key={`${line.kind}-${line.id}`} className="flex items-center gap-3 px-4 py-2.5 text-xs">
+                  <div key={`${line.kind}-${line.id}`} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 px-4 py-2.5 text-xs">
                     <span className="flex-1 text-[--ink] font-medium">{line.name}</span>
-                    <span className="text-[--muted]">
-                      {line.kind === 'account'
-                        ? `giacenza media ${fmtEur(line.baseEurMinor)}`
-                        : `controvalore ${fmtEur(line.baseEurMinor)}`}
-                    </span>
-                    <span className="font-mono tabular-nums text-[--ink]">{fmtEur(line.taxEurMinor)}</span>
-                    <span className={`uppercase tracking-wide font-semibold ${line.regime === 'ivafe' ? 'text-[--brand-text]' : 'text-[--muted]'}`}>
-                      {line.regime}
-                    </span>
-                    {line.stale && <span className="text-[--warning]">*</span>}
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      <span className="text-[--muted]">
+                        {line.kind === 'account'
+                          ? `giacenza media ${fmtEur(line.baseEurMinor)}`
+                          : `controvalore ${fmtEur(line.baseEurMinor)}`}
+                      </span>
+                      <span className="font-mono tabular-nums text-[--ink] font-medium">{fmtEur(line.taxEurMinor)}</span>
+                      <span className={`uppercase tracking-wide font-semibold ${line.regime === 'ivafe' ? 'text-[--brand-text]' : 'text-[--muted]'}`}>
+                        {line.regime}
+                      </span>
+                      {line.stale && <span className="text-[--warning]">*</span>}
+                    </div>
                   </div>
                 ))}
               </div>

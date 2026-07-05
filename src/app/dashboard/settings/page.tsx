@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const categories = listAllCategories()
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 space-y-8">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       <Breadcrumb items={[
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Impostazioni' },

@@ -12,7 +12,7 @@ export function Card({ className, children, noPadding, ...props }: CardProps) {
       className={cn(
         'rounded-2xl border border-[--border] bg-[--surface]',
         'shadow-[--shadow-sm]',
-        !noPadding && 'p-5',
+        !noPadding && 'p-4 sm:p-5',
         className,
       )}
       {...props}
