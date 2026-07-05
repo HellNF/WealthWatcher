@@ -137,6 +137,14 @@ export function isForeign(country: string | null | undefined): boolean {
   return country.trim().toUpperCase() !== 'IT'
 }
 
+// ── Previdenza complementare (Art. 10, c. 1, lett. e-ter TUIR) ───────────────
+
+/**
+ * Soglia massima di deducibilità IRPEF per i contributi a fondi pensione integrativi.
+ * €5.164,57 annui (invariata dal 2007).
+ */
+export const MAX_PENSION_DEDUCTION_EUR_MINOR = 516_457 // €5.164,57
+
 // ── IRPEF 2025 (riforma 3 aliquote — Legge di Bilancio 2025) ─────────────────
 
 /** Scaglioni IRPEF 2025. `upToMinor = Infinity` per l'ultimo scaglione aperto. */

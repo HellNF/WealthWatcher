@@ -4,6 +4,7 @@ import { getInstitutionValueEur } from '@/lib/institutionValuation'
 import { listAssets } from '@/lib/assets'
 import { listAccounts } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
+import { cashRunwayAlert } from '@/lib/alerts/liquidity'
 import AddInstitutionForm from './AddInstitutionForm'
 import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
@@ -15,7 +16,7 @@ import {
   Stat, Badge, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
-import { Building2, ChevronRight, Wallet } from 'lucide-react'
+import { Building2, ChevronRight, Wallet, AlertTriangle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,8 @@ export default async function DashboardPage() {
   const accounts   = listAccounts(user.id)
   const portfolios = listPortfolios(user.id)
 
+  const runway = await cashRunwayAlert(user.id).catch(() => null)
+
   // Institution names for badge display
   const institutionMap = new Map(institutions.map(i => [i.id, i.name]))
 
@@ -86,6 +89,27 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+
+      {/* ── Banner liquidità critica ──────────────────────────────────────── */}
+      {runway?.status === 'CRITICAL_SHORTAGE' && (
+        <Card className="border-[--danger] bg-[--danger]/5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="size-5 text-[--danger] shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[--danger]">
+                Rischio scoperto entro i prossimi {runway.windowDays} giorni
+              </p>
+              <p className="text-sm text-[--muted] mt-0.5">
+                Deficit stimato: <strong className="text-[--danger]">{formatEur(runway.deficitMinor)}</strong>.
+                Considera di ridurre le allocazioni agli obiettivi o di posticipare alcune uscite.
+              </p>
+              <Link href="/dashboard/scadenziario" className="text-xs text-[--brand-text] hover:underline mt-1.5 inline-block">
+                Vedi lo scadenziario →
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
       <Card noPadding className="overflow-hidden">

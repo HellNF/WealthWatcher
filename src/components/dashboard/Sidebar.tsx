@@ -14,6 +14,9 @@ import {
   Target,
   TrendingUp,
   Landmark,
+  Home,
+  PiggyBank,
+  CalendarClock,
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -32,6 +35,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Budget',       href: '/dashboard/budgets',      icon: Target },
   { label: 'Statistiche',  href: '/dashboard/statistiche',  icon: TrendingUp },
   { label: 'Tasse',        href: '/dashboard/tasse',        icon: Landmark },
+  { label: 'Mutui',        href: '/dashboard/mutui',        icon: Home },
+  { label: 'Obiettivi',    href: '/dashboard/obiettivi',    icon: PiggyBank },
+  { label: 'Scadenziario', href: '/dashboard/scadenziario', icon: CalendarClock },
   { label: 'Impostazioni', href: '/dashboard/settings',     icon: Settings },
 ]
 

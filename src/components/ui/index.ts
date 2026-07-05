@@ -39,3 +39,5 @@ export { ThemeToggle } from './ThemeToggle'
 export { ConfirmDelete } from './ConfirmDelete'
 
 export { DataCard, DataCardHeader, DataRow } from './DataCard'
+
+export { ProgressBar } from './ProgressBar'

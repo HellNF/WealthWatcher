@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
-import { setOpenAiKey, clearOpenAiKey } from '@/lib/userSettings'
+import { setOpenAiKey, clearOpenAiKey, setUserProfile } from '@/lib/userSettings'
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
 import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
 import { recategorizeAll } from '@/lib/categorization'
@@ -116,6 +116,28 @@ export async function deleteCategoryRuleAction(id: number): Promise<void> {
   const user = await requireUser()
   deleteCategoryRule(id, user.id)
   revalidatePath('/dashboard/settings', 'page')
+}
+
+// ── Profilo fiscale ───────────────────────────────────────────────────────────
+
+const VALID_RATES = ['0.23', '0.35', '0.43']
+
+export async function saveFiscalProfileAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user       = await requireUser()
+  const rateRaw    = String(formData.get('irpef_marginal_rate') ?? '').trim()
+  const marginalRate = rateRaw === '' ? null : parseFloat(rateRaw.replace(',', '.'))
+
+  if (rateRaw !== '' && (isNaN(marginalRate!) || !VALID_RATES.includes(rateRaw.replace(',', '.')))) {
+    return { error: 'Seleziona un\'aliquota valida (23%, 35% o 43%).' }
+  }
+
+  setUserProfile(user.id, { irpefMarginalRate: marginalRate })
+  revalidatePath('/dashboard/settings', 'page')
+  revalidatePath('/dashboard/tasse', 'page')
+  return { success: 'Profilo fiscale salvato.' }
 }
 
 export async function recategorizeAllAction(): Promise<ActionState> {

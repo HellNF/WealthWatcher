@@ -21,6 +21,8 @@ const CATEGORIES: CategoryRow[] = [
   { name: 'Istruzione',         kind: 'expense',  color: '#14b8a6' },
   { name: 'Carburante',         kind: 'expense',  color: '#84cc16' },
   { name: 'Tasse',              kind: 'expense',  color: '#dc2626' },
+  { name: 'Previdenza',         kind: 'expense',  color: '#7c3aed' },
+  { name: 'Mutuo',              kind: 'expense',  color: '#0ea5e9' },
   { name: 'Altro',              kind: 'expense',  color: '#6b7280' },
   // Income
   { name: 'Stipendio',          kind: 'income',   color: '#4ade80' },

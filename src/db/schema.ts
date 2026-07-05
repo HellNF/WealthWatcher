@@ -399,6 +399,8 @@ export const userSettings = sqliteTable('user_settings', {
   forfettario_coefficient:    integer('forfettario_coefficient'),
   // 1 = aliquota agevolata 5% (startup ≤5 anni), 0 = aliquota 15%
   forfettario_startup:        integer('forfettario_startup').default(0),
+  // Aliquota marginale IRPEF (es. "0.35") impostata manualmente — usata dal modulo previdenza
+  irpef_marginal_rate:        text('irpef_marginal_rate'),
 })
 
 // ── kid_documents ─────────────────────────────────────────────────────────────
@@ -444,6 +446,54 @@ export const assets = sqliteTable(
   ],
 )
 
+// ── mortgages ─────────────────────────────────────────────────────────────────
+// Piano di ammortamento mutuo (metodo francese). Vista dedicata — non incide
+// sul patrimonio netto globale (nessun collegamento a valuation_snapshots).
+export const mortgages = sqliteTable(
+  'mortgages',
+  {
+    id:                   integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:             integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    name:                 text('name').notNull(),
+    initial_capital_minor: integer('initial_capital_minor').notNull(),    // capitale erogato (minor units)
+    annual_interest_rate: text('annual_interest_rate').notNull(),          // decimal string, es. "0.035"
+    duration_months:      integer('duration_months').notNull(),
+    start_date:           text('start_date').notNull(),                    // ISO YYYY-MM-DD — data prima rata
+    // Override manuale del capitale residuo (es. dopo rimborsi parziali anticipati)
+    current_outstanding_override_minor: integer('current_outstanding_override_minor'),
+    // Conto corrente associato per la riconciliazione informativa delle rate
+    associated_account_id: integer('associated_account_id').references(
+      () => bankAccounts.id,
+      { onDelete: 'set null' },
+    ),
+    created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_mortgages_owner').on(t.owner_id),
+  ],
+)
+
+// ── financial_goals ───────────────────────────────────────────────────────────
+// Sub-accounting virtuale (metodo delle buste). La liquidità fisica rimane
+// indistinta nei conti reali; l'allocazione agli obiettivi è solo logica.
+export const financialGoals = sqliteTable(
+  'financial_goals',
+  {
+    id:                      integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:                integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    name:                    text('name').notNull(),
+    target_amount_minor:     integer('target_amount_minor').notNull(),
+    target_date:             text('target_date'),                          // ISO YYYY-MM-DD, nullable
+    current_allocated_minor: integer('current_allocated_minor').notNull().default(0),
+    color_hex:               text('color_hex').notNull().default('#3b82f6'),
+    created_at:              integer('created_at').notNull().default(sql`(unixepoch())`),
+    updated_at:              integer('updated_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_financial_goals_owner').on(t.owner_id),
+  ],
+)
+
 // ── budgets ───────────────────────────────────────────────────────────────────
 // Limiti di spesa mensili per-utente. category_id = NULL → tetto mensile totale.
 // Un solo budget per (owner, categoria); unico budget totale per owner.
@@ -486,5 +536,7 @@ export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
 export type UserSettings        = InferSelectModel<typeof userSettings>
 export type KidDocument         = InferSelectModel<typeof kidDocuments>
 export type Asset               = InferSelectModel<typeof assets>
+export type Mortgage            = InferSelectModel<typeof mortgages>
+export type FinancialGoal       = InferSelectModel<typeof financialGoals>
 export type Budget              = InferSelectModel<typeof budgets>
 export type CategoryRule        = InferSelectModel<typeof categoryRules>

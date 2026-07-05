@@ -9,12 +9,13 @@ import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
 import { getUserProfile } from '@/lib/userSettings'
 import { estimateIncomeTax } from '@/lib/tax/income'
+import { getPensionTaxStatus } from '@/lib/tax/pension'
 import { fromMinor } from '@/lib/money'
 import {
   Landmark, TrendingDown, Briefcase, PiggyBank,
-  Receipt, Calculator, AlertTriangle, User, Lightbulb,
+  Receipt, Calculator, AlertTriangle, User, Lightbulb, ShieldCheck,
 } from 'lucide-react'
-import { Breadcrumb, Card, Stat, Badge, DataCard, DataCardHeader, DataRow } from '@/components/ui'
+import { Breadcrumb, Card, Stat, Badge, DataCard, DataCardHeader, DataRow, ProgressBar } from '@/components/ui'
 import YearSelector from './YearSelector'
 import SaleSimulatorSection from './SaleSimulatorSection'
 import BolloToggle from './BolloToggle'
@@ -89,6 +90,7 @@ export default async function TassePage({ searchParams }: Props) {
   const interestTotal   = totalInterestWithholding(user.id)
   const profile         = getUserProfile(user.id)
   const incomeTax       = estimateIncomeTax(profile)
+  const pensionStatus   = getPensionTaxStatus(user.id, year)
 
   // Portafogli per simulatore vendita
   const portfolios = listPortfolios(user.id)
@@ -788,6 +790,88 @@ export default async function TassePage({ searchParams }: Props) {
               Stima indicativa distinta dal carico su investimenti. Non include contributi INPS.{' '}
               <Link href="/dashboard/profilo" className="text-[--brand-text] hover:underline">Modifica profilo →</Link>
             </p>
+          </Card>
+        )}
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* SEZIONE 7.5: Previdenza complementare — deducibilità IRPEF        */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <SectionHeader icon={ShieldCheck} title={`Previdenza complementare ${year}`} />
+          <Link href="/dashboard/settings" className="text-xs text-[--brand-text] hover:underline">
+            Imposta aliquota IRPEF →
+          </Link>
+        </div>
+
+        {pensionStatus.marginalRate === null ? (
+          <Card className="flex items-start gap-3">
+            <AlertTriangle className="size-4 text-[--warning] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm text-[--muted]">
+                Imposta la tua aliquota marginale IRPEF nelle impostazioni per vedere il risparmio fiscale stimato sui contributi ai fondi pensione.
+              </p>
+              <Link href="/dashboard/settings" className="text-xs text-[--brand-text] hover:underline">
+                Vai a Impostazioni →
+              </Link>
+            </div>
+          </Card>
+        ) : (
+          <Card className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <Stat
+                label={`Contributi versati ${year}`}
+                value={fmtEurDec(pensionStatus.contributionsCurrentYearMinor)}
+                size="sm"
+              />
+              <Stat
+                label="Spazio deducibile residuo"
+                value={fmtEurDec(pensionStatus.remainingDeductibleSpaceMinor)}
+                sub={`max €${(pensionStatus.maxDeductionLimitMinor / 100).toLocaleString('it-IT')}`}
+                size="sm"
+              />
+              <Stat
+                label="Risparmio IRPEF realizzato"
+                value={pensionStatus.currentTaxRefundRealizedMinor > 0
+                  ? fmtEurDec(pensionStatus.currentTaxRefundRealizedMinor)
+                  : '—'}
+                sub={`aliq. ${((pensionStatus.marginalRate ?? 0) * 100).toFixed(0)}%`}
+                size="sm"
+              />
+              <Stat
+                label="Risparmio potenziale rimasto"
+                value={pensionStatus.potentialTaxRefundRemainingMinor > 0
+                  ? fmtEurDec(pensionStatus.potentialTaxRefundRemainingMinor)
+                  : '—'}
+                size="sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs text-[--muted]">
+                <span>Utilizzo massimale deducibile</span>
+                <span className="tabular-nums font-medium">{pensionStatus.progressBarPercentage}%</span>
+              </div>
+              <ProgressBar
+                value={pensionStatus.contributionsCurrentYearMinor}
+                max={pensionStatus.maxDeductionLimitMinor}
+                color={pensionStatus.progressBarPercentage >= 100 ? 'var(--brand)' : 'var(--brand)'}
+              />
+              <p className="text-xs text-[--faint]">
+                Massimale: €5.164,57 (Art. 10, c. 1, lett. e-ter TUIR). Transazioni categorizzate come &quot;Previdenza&quot; nell&apos;anno {year}.
+              </p>
+            </div>
+
+            {pensionStatus.remainingDeductibleSpaceMinor > 0 && (
+              <div className="rounded-lg border border-[--brand-subtle] bg-[--brand-subtle] px-4 py-3">
+                <p className="text-sm text-[--brand-text]">
+                  Versando altri {fmtEurDec(pensionStatus.remainingDeductibleSpaceMinor)} entro il 31/12/{year}
+                  potresti ottenere un ulteriore risparmio IRPEF di{' '}
+                  <strong>{fmtEurDec(pensionStatus.potentialTaxRefundRemainingMinor)}</strong>.
+                </p>
+              </div>
+            )}
           </Card>
         )}
       </section>
