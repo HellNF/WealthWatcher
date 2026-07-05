@@ -41,18 +41,25 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
 
-  const [period, setPeriod]         = useState<string>('3m')
-  const [data, setData]             = useState<PricePoint[]>([])
+  const [period, setPeriod]          = useState<string>('3m')
+  const [data, setData]              = useState<PricePoint[]>([])
   const [isPending, startTransition] = useTransition()
-  const [hasData, setHasData]       = useState<boolean | null>(null) // null = loading mai avviato
+  const [hasData, setHasData]        = useState<boolean | null>(null) // null = mai caricato
+  const [retryKey, setRetryKey]      = useState(0)
 
   useEffect(() => {
     startTransition(async () => {
       const rows = await fetchHistoryAction(symbol, period)
-      setData(rows)
-      setHasData(rows.length > 1)
+      if (rows.length > 1) {
+        setData(rows)
+        setHasData(true)
+      } else {
+        // Non sovrascrivere dati buoni esistenti: se avevamo già dati, teniamoli.
+        // Segna errore solo se non abbiamo mai caricato con successo.
+        setHasData(prev => prev === true ? true : false)
+      }
     })
-  }, [symbol, period])
+  }, [symbol, period, retryKey])
 
   // Calcola delta % dal primo all'ultimo punto
   const first = data[0]?.close
@@ -134,8 +141,14 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
           </div>
         )}
         {hasData === false && !isPending ? (
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full flex flex-col items-center justify-center gap-2">
             <span className="text-xs text-[--faint]">Dati non disponibili per questo strumento</span>
+            <button
+              onClick={() => { setHasData(null); setRetryKey(k => k + 1) }}
+              className="text-xs text-[--brand-text] hover:underline"
+            >
+              Riprova
+            </button>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={140}>

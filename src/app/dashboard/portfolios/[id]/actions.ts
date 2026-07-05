@@ -342,6 +342,9 @@ export async function upsertCryptoHoldingAction(
     return { error: err instanceof Error ? err.message : 'Errore durante il salvataggio' }
   }
 
+  // Aggiorna il prezzo dei crypto prima di scattare lo snapshot,
+  // altrimenti instrument.last_price è null e il portafoglio viene escluso dal patrimonio.
+  await refreshPortfolioPrices(user.id, portfolioId).catch(() => {})
   await takeSnapshot(user.id).catch(() => {})
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)

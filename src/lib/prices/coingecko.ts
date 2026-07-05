@@ -95,7 +95,7 @@ export async function getCoinHistory(
   const days = PERIOD_DAYS[period] ?? 90
   try {
     const url = `${BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=eur&days=${days}`
-    const res = await fetch(url, { next: { revalidate: 0 } })
+    const res = await fetch(url, { next: { revalidate: 1800 } })
     if (!res.ok) {
       console.warn(`[coingecko] getCoinHistory HTTP ${res.status} per coin id "${coinId}"`)
       return []
