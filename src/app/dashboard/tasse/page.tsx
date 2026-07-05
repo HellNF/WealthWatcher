@@ -3,6 +3,7 @@ import { realizedTaxForYear, taxYears } from '@/lib/tax/annual'
 import { computeFiscalWallet } from '@/lib/tax/wallet'
 import { latentTaxStats } from '@/lib/tax/latent'
 import { estimatedWealthTaxes } from '@/lib/tax/wealth'
+import { generateHarvestingRecommendations } from '@/lib/tax/harvesting'
 import { totalInterestWithholding } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
@@ -11,7 +12,7 @@ import { estimateIncomeTax } from '@/lib/tax/income'
 import { fromMinor } from '@/lib/money'
 import {
   Landmark, TrendingDown, Briefcase, PiggyBank,
-  Receipt, Calculator, AlertTriangle, User,
+  Receipt, Calculator, AlertTriangle, User, Lightbulb,
 } from 'lucide-react'
 import { Breadcrumb, Card, Stat, Badge, DataCard, DataCardHeader, DataRow } from '@/components/ui'
 import YearSelector from './YearSelector'
@@ -76,10 +77,11 @@ export default async function TassePage({ searchParams }: Props) {
   const years        = taxYears(user.id)
 
   // Dati fiscali in parallelo (le funzioni async usano Promise.all dove possibile)
-  const [realizedTax, latentTax, wealthTaxes] = await Promise.all([
+  const [realizedTax, latentTax, wealthTaxes, harvestingRecs] = await Promise.all([
     realizedTaxForYear(user.id, year),
     latentTaxStats(user.id).catch(() => null),
     estimatedWealthTaxes(user.id, year).catch(() => null),
+    generateHarvestingRecommendations(user.id).catch(() => []),
   ])
 
   // Funzioni sincrone
@@ -457,6 +459,82 @@ export default async function TassePage({ searchParams }: Props) {
           </>
         )}
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* SEZIONE 3.5: Tax-Loss Harvesting — suggerimenti proattivi         */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {harvestingRecs.length > 0 && (
+        <section className="space-y-6">
+          <SectionHeader icon={Lightbulb} title="Ottimizzazione fiscale — Tax-Loss Harvesting" />
+
+          <div className="space-y-3">
+            {harvestingRecs.map((rec, i) => {
+              const isExpiry   = rec.type === 'EXTEND_EXPIRY'
+              const borderCls  = isExpiry
+                ? 'border-[--warning] bg-[--surface-2]'
+                : 'border-[--border] bg-[--surface-2]'
+
+              return (
+                <Card key={i} className={`space-y-3 ${borderCls}`}>
+                  {/* Header badge + asset */}
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={isExpiry ? 'warning' : 'info'}>
+                        {isExpiry ? '⚠️ Credito in scadenza' : '💡 Genera credito'}
+                      </Badge>
+                      <span className="text-sm font-semibold text-[--ink]">
+                        {rec.assetName}
+                      </span>
+                      <span className="text-xs font-mono text-[--muted]">{rec.ticker}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-[--muted]">
+                        {isExpiry ? 'Risparmio immediato' : 'Credito futuro'}
+                      </p>
+                      <p className={`text-base font-bold font-mono tabular-nums ${isExpiry ? 'text-[--warning]' : 'text-[--brand-text]'}`}>
+                        {fmtEur(rec.taxImpactMinor)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Testo esplicativo */}
+                  <p className="text-xs text-[--muted] leading-relaxed">{rec.actionText}</p>
+
+                  {/* KPI row */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-[--faint]">Portafoglio</p>
+                      <p className="text-xs font-medium text-[--ink] mt-0.5">{rec.portfolioName}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-[--faint]">Qt. suggerita</p>
+                      <p className="text-xs font-mono font-medium text-[--ink] mt-0.5">{rec.suggestedQty} / {rec.remainingQty}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-[--faint]">
+                        {rec.latentPlEurMinor >= 0 ? 'Plusvalenza latente' : 'Minusvalenza latente'}
+                      </p>
+                      <p className={`text-xs font-mono font-medium mt-0.5 ${rec.latentPlEurMinor >= 0 ? 'text-[--brand-text]' : 'text-[--danger]'}`}>
+                        {rec.latentPlEurMinor >= 0 ? '+' : '−'}{fmtEur(rec.latentPlEurMinor)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-[--faint]">Aliquota</p>
+                      <p className="text-xs font-mono font-medium text-[--ink] mt-0.5">{fmtPct(rec.appliedRate)}</p>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          <p className="text-xs text-[--faint]">
+            Suggerimenti automatici basati sul tuo zainetto fiscale e le posizioni aperte.
+            La vendita e il riacquisto immediato sono legali in Italia (non esiste una wash-sale rule).
+            Verifica le commissioni del tuo broker prima di procedere. Non costituisce consulenza fiscale.
+          </p>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* SEZIONE 4: Tasse latenti                                          */}
