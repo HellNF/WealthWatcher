@@ -75,16 +75,13 @@ function ProgressBar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
-function ClusterHeader({ icon: Icon, label, title }: { icon: React.ElementType; label: string; title: string }) {
+function ClusterHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-[--brand-subtle]">
+    <div className="flex items-center gap-2.5">
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[--brand-subtle]">
         <Icon className="size-4 text-[--brand-text]" strokeWidth={1.75} />
       </div>
-      <div>
-        <p className="text-xs font-semibold text-[--brand-text] uppercase tracking-widest leading-none mb-0.5">{label}</p>
-        <h2 className="text-base font-semibold text-[--ink] leading-tight">{title}</h2>
-      </div>
+      <h2 className="text-base font-semibold text-[--ink]">{title}</h2>
     </div>
   )
 }
@@ -162,7 +159,7 @@ export default async function StatistichePage() {
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
         <div className="flex items-center gap-2">
-          <ClusterHeader icon={TrendingUp} label="Cluster A" title="Performance & Volatilità" />
+          <ClusterHeader icon={TrendingUp} title="Performance & Volatilità" />
           {nwStats.hasStaleSnapshots && (
             <Badge variant="warning" className="ml-2">valori parziali</Badge>
           )}
@@ -239,7 +236,7 @@ export default async function StatistichePage() {
           CLUSTER B — PROIEZIONI FI/RE
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <ClusterHeader icon={Rocket} label="Cluster B" title="Proiezioni di Indipendenza (FI/RE)" />
+        <ClusterHeader icon={Rocket} title="Proiezioni di Indipendenza (FI/RE)" />
 
         {/* FI/RE Tracker */}
         <Card className="space-y-5">
@@ -464,7 +461,7 @@ export default async function StatistichePage() {
           CLUSTER C — RUNWAY INDEX & FONDO EMERGENZA
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <ClusterHeader icon={ShieldCheck} label="Cluster C" title="Runway Index & Fondo Emergenza" />
+        <ClusterHeader icon={ShieldCheck} title="Runway Index & Fondo Emergenza" />
 
         {/* Runway — 3 scenari */}
         <Card className="space-y-5">
@@ -533,7 +530,7 @@ export default async function StatistichePage() {
           CLUSTER D — PATTERN COMPORTAMENTALI
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <ClusterHeader icon={Activity} label="Cluster D" title="Pattern Comportamentali" />
+        <ClusterHeader icon={Activity} title="Pattern Comportamentali" />
 
         {!hasCashflow && !hasRecurring && !hasOutliers ? (
           <Card>
