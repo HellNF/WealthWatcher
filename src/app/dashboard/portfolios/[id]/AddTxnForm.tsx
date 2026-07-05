@@ -18,6 +18,19 @@ const SOURCE_LABELS: Record<string, string> = {
   yahoo: 'Yahoo Finance', coingecko: 'CoinGecko', alphavantage: 'Alpha Vantage', manual: 'Manuale',
 }
 
+function knownToResult(k: KnownInstrument): IsinResult {
+  return {
+    figi:        `portfolio:${k.instrumentId}`,
+    name:        k.name,
+    ticker:      k.symbol,
+    exchCode:    'PORTFOLIO',
+    exchLabel:   'Già nel portafoglio',
+    yahooSymbol: k.symbol,
+    cluster:     k.cluster as IsinResult['cluster'],
+    priceSource: k.priceSource as IsinResult['priceSource'],
+  }
+}
+
 interface InstrFields {
   isin:                 string
   symbol:               string
@@ -58,7 +71,22 @@ function ConfidenceBadge({ c }: { c: 'low' | 'medium' | 'high' }) {
 // Classe comune per sezioni disclosure
 const sectionCls = 'rounded-xl border border-[--border] bg-[--surface-2] p-4 space-y-3'
 
-export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
+export interface KnownInstrument {
+  instrumentId: number
+  symbol:       string
+  name:         string
+  isin:         string | null
+  cluster:      string
+  priceSource:  string
+}
+
+export default function AddTxnForm({
+  portfolioId,
+  knownInstruments = [],
+}: {
+  portfolioId:      number
+  knownInstruments?: KnownInstrument[]
+}) {
   const [open, setOpen]               = useState(false)
   const [type, setType]               = useState<'buy' | 'sell' | 'dividend' | 'fee'>('buy')
   const [instr, setInstr]             = useState<InstrFields>(EMPTY)
@@ -121,10 +149,14 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
     setLookupErr(null)
     setHits([])
     startLookup(async () => {
-      const results = await lookupIsinAction(isin)
-      if (results.length === 0) setLookupErr('Nessuno strumento trovato per questo ISIN.')
-      else if (results.length === 1) applyResult(results[0])
-      else setHits(results)
+      const portfolioMatches = knownInstruments
+        .filter(k => k.isin && k.isin.toUpperCase() === isin.toUpperCase())
+        .map(knownToResult)
+      const external = await lookupIsinAction(isin)
+      const combined = [...portfolioMatches, ...external]
+      if (combined.length === 0) setLookupErr('Nessuno strumento trovato per questo ISIN.')
+      else if (combined.length === 1) applyResult(combined[0])
+      else setHits(combined)
     })
   }
 
@@ -208,13 +240,33 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
             </Button>
           </div>
 
+          {isBuySell && knownInstruments.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-[--faint]">Nel portafoglio:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {knownInstruments.map((k) => (
+                  <button
+                    key={k.instrumentId}
+                    type="button"
+                    onClick={() => applyResult(knownToResult(k))}
+                    className="inline-flex items-center gap-1 rounded-md border border-[--border] bg-[--surface] px-2 py-1 text-xs font-mono text-[--ink] hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors duration-100"
+                  >
+                    {k.symbol}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {lookupErr && <p className="text-xs text-[--warning]">{lookupErr}</p>}
 
           {hits.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs text-[--muted]">
-                Lo stesso strumento è quotato su {hits.length} borse — scegli quella su cui hai comprato:
-              </p>
+              {hits.some(r => r.exchCode !== 'PORTFOLIO') && (
+                <p className="text-xs text-[--muted]">
+                  Lo stesso strumento è quotato su più borse — scegli quella su cui hai comprato:
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {hits.map((r) => (
                   <button
@@ -230,9 +282,11 @@ export default function AddTxnForm({ portfolioId }: { portfolioId: number }) {
                       <p className="text-sm font-mono font-semibold text-[--ink] group-hover:text-[--brand] transition-colors">
                         {r.yahooSymbol}
                       </p>
-                      {(r.exchCode === 'IM' || r.exchCode === 'GY') && (
+                      {r.exchCode === 'PORTFOLIO' ? (
+                        <Badge variant="success">nel portafoglio</Badge>
+                      ) : (r.exchCode === 'IM' || r.exchCode === 'GY') ? (
                         <Badge variant="success">consigliato</Badge>
-                      )}
+                      ) : null}
                     </div>
                     <p className="text-xs text-[--muted] mt-0.5">{r.exchLabel}</p>
                   </button>

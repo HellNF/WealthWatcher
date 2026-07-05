@@ -10,7 +10,7 @@ import { fromMinor } from '@/lib/money'
 import { convertToEur } from '@/lib/fx/convert'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
-import AddTxnForm from './AddTxnForm'
+import AddTxnForm, { type KnownInstrument } from './AddTxnForm'
 import HoldingsManager from './HoldingsManager'
 import AllocationChart from './AllocationChart'
 import InstrumentPriceChart from './InstrumentPriceChart'
@@ -61,6 +61,23 @@ export default async function PortfolioPage({ params }: Props) {
         const instr = getInstrument(t.instrument_id)
         return { ...t, symbol: instr?.symbol ?? '?', instrument_name: instr?.name ?? '' }
       })
+    : []
+
+  // Strumenti attivi nel portafoglio — usati come suggerimento veloce in AddTxnForm.
+  const knownInstruments: KnownInstrument[] = !isHoldings
+    ? positions
+        .filter(p => parseFloat(p.remainingQty) > 0)
+        .map(p => {
+          const instr = getInstrument(p.instrumentId)
+          return {
+            instrumentId: p.instrumentId,
+            symbol:       p.symbol,
+            name:         p.name,
+            isin:         instr?.isin ?? null,
+            cluster:      instr?.cluster ?? 'other',
+            priceSource:  instr?.price_source ?? 'yahoo',
+          }
+        })
     : []
 
   return (
@@ -164,7 +181,7 @@ export default async function PortfolioPage({ params }: Props) {
           <AddSection
             title="Operazioni"
             addLabel="Aggiungi"
-            form={<AddTxnForm portfolioId={id} />}
+            form={<AddTxnForm portfolioId={id} knownInstruments={knownInstruments} />}
           >
             <TxnList txns={txnsWithSymbol} portfolioId={id} />
           </AddSection>

@@ -35,6 +35,13 @@ interface InstrumentRow {
   currency:             string
 }
 
+interface DividendRow {
+  trade_date:           string
+  amount_minor:         number
+  currency:             string
+  whitelist_percentage: string
+}
+
 // ── Tipi pubblici ─────────────────────────────────────────────────────────────
 
 /**
@@ -67,7 +74,9 @@ export interface RealizedYearTax {
   cryptoGainMinor:    number
   /** true se plusvalenze crypto ≤ €2.000 (franchigia, nessuna imposta) */
   cryptoExempt:       boolean
-  /** Imposta effettiva stimata dopo compensazione e franchigia */
+  /** Ritenuta sui dividendi (26% standard, 12,5% white-list) */
+  dividendTaxMinor:   number
+  /** Imposta effettiva stimata dopo compensazione e franchigia (inclusa ritenuta dividendi) */
   totalTaxDueMinor:   number
   /** true se conversione FX mancante per almeno un evento */
   stale:              boolean
@@ -90,6 +99,40 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
   const today = new Date().toISOString().slice(0, 10)
   const yearEnd = `${year}-12-31`
 
+  // ── Ritenuta dividendi (indipendente dal FIFO) ─────────────────────────────
+  const dividendRows = sqlite.prepare(`
+    SELECT t.trade_date, t.amount_minor, t.currency, i.whitelist_percentage
+    FROM investment_txns t
+    JOIN instruments i ON i.id = t.instrument_id
+    WHERE t.owner_id = ?
+      AND t.type = 'dividend'
+      AND t.amount_minor IS NOT NULL
+      AND t.amount_minor > 0
+      AND t.trade_date >= ?
+      AND t.trade_date <= ?
+  `).all(userId, `${year}-01-01`, yearEnd) as DividendRow[]
+
+  let anyStale = false
+  let dividendTaxMinor = 0
+
+  for (const div of dividendRows) {
+    let amountEurMinor: number
+    if (div.currency === 'EUR') {
+      amountEurMinor = div.amount_minor
+    } else {
+      const fxDate = div.trade_date <= today ? div.trade_date : today
+      const converted = await convertToEur(div.amount_minor, div.currency, fxDate)
+      if (converted !== null) {
+        amountEurMinor = converted
+      } else {
+        const fallback = await convertToEur(div.amount_minor, div.currency, today)
+        amountEurMinor = fallback ?? div.amount_minor
+        anyStale = true
+      }
+    }
+    dividendTaxMinor += Math.round(amountEurMinor * syntheticRate(div.whitelist_percentage))
+  }
+
   // 1. Carica txns buy/sell fino alla fine dell'anno (FIFO richiede l'intera storia)
   const txnRows = sqlite.prepare(`
     SELECT t.type, t.trade_date, t.quantity, t.unit_price, t.fee_minor,
@@ -107,7 +150,9 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
     return {
       year, events: [], grossGainMinor: 0, lossMinor: 0,
       compensatedMinor: 0, cryptoGainMinor: 0, cryptoExempt: false,
-      totalTaxDueMinor: 0, stale: false,
+      dividendTaxMinor,
+      totalTaxDueMinor: dividendTaxMinor,
+      stale: anyStale,
     }
   }
 
@@ -128,7 +173,6 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
   }
 
   const rawEvents: (RealizedTaxEvent & { _instrCurrency: string })[] = []
-  let anyStale = false
 
   for (const [instrId, rows] of byInstrument) {
     const instr = instrMap.get(instrId)
@@ -243,6 +287,8 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
     return { ...rest, taxMinor }
   })
 
+  totalTaxDueMinor += dividendTaxMinor
+
   return {
     year,
     events,
@@ -251,6 +297,7 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
     compensatedMinor,
     cryptoGainMinor,
     cryptoExempt,
+    dividendTaxMinor,
     totalTaxDueMinor,
     stale: anyStale,
   }

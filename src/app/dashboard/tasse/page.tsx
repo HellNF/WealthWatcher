@@ -16,6 +16,7 @@ import {
 import { Breadcrumb, Card, Stat, Badge, DataCard, DataCardHeader, DataRow } from '@/components/ui'
 import YearSelector from './YearSelector'
 import SaleSimulatorSection from './SaleSimulatorSection'
+import BolloToggle from './BolloToggle'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +32,12 @@ function fmtEur(minor: number): string {
 function fmtEurDec(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
     style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
+  })
+}
+
+function fmtBollo(minor: number): string {
+  return (minor / 100).toLocaleString('it-IT', {
+    style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
   })
 }
 
@@ -54,7 +61,7 @@ function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
 // ── Tipi Props ────────────────────────────────────────────────────────────────
 
 interface Props {
-  searchParams: Promise<{ year?: string }>
+  searchParams: Promise<{ year?: string; quarterly?: string }>
 }
 
 // ── Pagina ────────────────────────────────────────────────────────────────────
@@ -64,8 +71,9 @@ export default async function TassePage({ searchParams }: Props) {
   const params    = await searchParams
   const today     = new Date()
   const currentYear = today.getFullYear().toString()
-  const year      = params.year ?? currentYear
-  const years     = taxYears(user.id)
+  const year         = params.year ?? currentYear
+  const isQuarterly  = params.quarterly === '1'
+  const years        = taxYears(user.id)
 
   // Dati fiscali in parallelo (le funzioni async usano Promise.all dove possibile)
   const [realizedTax, latentTax, wealthTaxes] = await Promise.all([
@@ -139,18 +147,23 @@ export default async function TassePage({ searchParams }: Props) {
             <Badge variant="warning">stima</Badge>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             <Stat
               label="Imposta su plus realizzate"
-              value={fmtEur(realizedTax.totalTaxDueMinor)}
+              value={fmtEur(realizedTax.totalTaxDueMinor - realizedTax.dividendTaxMinor)}
               size="sm"
               sub={realizedTax.compensatedMinor > 0
                 ? `dopo ${fmtEur(realizedTax.compensatedMinor)} compensazione`
                 : undefined}
             />
             <Stat
-              label={`Imposte patrimoniali (bollo/IVAFE)`}
-              value={wealthTaxes ? fmtEur(wealthTaxes.totalMinor) : '—'}
+              label="Ritenuta dividendi (26%)"
+              value={realizedTax.dividendTaxMinor > 0 ? fmtEur(realizedTax.dividendTaxMinor) : '—'}
+              size="sm"
+            />
+            <Stat
+              label="Imposte patrimoniali (bollo/IVAFE)"
+              value={wealthTaxes ? fmtBollo(wealthTaxes.totalMinor) : '—'}
               size="sm"
               sub={wealthTaxes?.stale ? 'cambio BCE parziale' : undefined}
             />
@@ -488,7 +501,10 @@ export default async function TassePage({ searchParams }: Props) {
       {/* SEZIONE 5: Imposte patrimoniali (bollo/IVAFE)                     */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-6">
-        <SectionHeader icon={Landmark} title={`Imposte patrimoniali ${year}`} />
+        <div className="flex items-center justify-between gap-4">
+          <SectionHeader icon={Landmark} title={`Imposte patrimoniali ${year}`} />
+          <BolloToggle />
+        </div>
 
         {/* Avviso residenza fiscale estera */}
         {profile.taxResidency && profile.taxResidency.toUpperCase() !== 'IT' && (
@@ -520,12 +536,27 @@ export default async function TassePage({ searchParams }: Props) {
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-              <Stat label="Totale stimato" value={fmtEur(wealthTaxes.totalMinor)} sub="bollo + IVAFE" size="sm" />
+              <Stat
+                label={isQuarterly ? 'Per trimestre (×4/anno)' : 'Totale stimato annuo'}
+                value={fmtBollo(isQuarterly ? wealthTaxes.totalMinor / 4 : wealthTaxes.totalMinor)}
+                sub="bollo + IVAFE"
+                size="sm"
+              />
               {wealthTaxes.totalBolloMinor > 0 && (
-                <Stat label="Imposta di bollo (IT)" value={fmtEur(wealthTaxes.totalBolloMinor)} sub="conti e titoli italiani" size="sm" />
+                <Stat
+                  label="Imposta di bollo (IT)"
+                  value={fmtBollo(isQuarterly ? wealthTaxes.totalBolloMinor / 4 : wealthTaxes.totalBolloMinor)}
+                  sub={isQuarterly ? 'per trimestre' : 'conti e titoli italiani'}
+                  size="sm"
+                />
               )}
               {wealthTaxes.totalIvafeMinor > 0 && (
-                <Stat label="IVAFE (estero)" value={fmtEur(wealthTaxes.totalIvafeMinor)} sub="conti e titoli esteri" size="sm" />
+                <Stat
+                  label="IVAFE (estero)"
+                  value={fmtBollo(isQuarterly ? wealthTaxes.totalIvafeMinor / 4 : wealthTaxes.totalIvafeMinor)}
+                  sub={isQuarterly ? 'per trimestre' : 'conti e titoli esteri'}
+                  size="sm"
+                />
               )}
             </div>
 
@@ -540,7 +571,10 @@ export default async function TassePage({ searchParams }: Props) {
                           ? `giacenza media ${fmtEur(line.baseEurMinor)}`
                           : `controvalore ${fmtEur(line.baseEurMinor)}`}
                       </span>
-                      <span className="font-mono tabular-nums text-[--ink] font-medium">{fmtEur(line.taxEurMinor)}</span>
+                      <span className="font-mono tabular-nums text-[--ink] font-medium">
+                        {fmtBollo(isQuarterly ? line.taxEurMinor / 4 : line.taxEurMinor)}
+                        {isQuarterly && <span className="text-[--muted] font-normal">/trim.</span>}
+                      </span>
                       <span className={`uppercase tracking-wide font-semibold ${line.regime === 'ivafe' ? 'text-[--brand-text]' : 'text-[--muted]'}`}>
                         {line.regime}
                       </span>
@@ -554,6 +588,7 @@ export default async function TassePage({ searchParams }: Props) {
             <p className="text-xs text-[--faint]">
               Bollo conti: €34,20/anno fissi se giacenza media &gt; €5.000 (Art. 13 c. 2-bis DPR 642/1972).
               Bollo/IVAFE titoli: 0,2% del controvalore al 31/12. IVAFE per intermediari esteri (Art. 19 c. 18 DL 201/2011).
+              {isQuarterly && ' La vista trimestrale divide il totale annuo per 4 — la frequenza reale dipende dall\'intermediario.'}
             </p>
           </Card>
         )}

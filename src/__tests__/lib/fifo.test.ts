@@ -28,11 +28,12 @@ const EUR = 'EUR'
 // ── Buy only ──────────────────────────────────────────────────────────────────
 
 describe('runFifo — buy only', () => {
-  test('single buy: correct qty, costBasis = qty×price + fee', () => {
+  test('single buy: costBasis = qty×price only, fee tracked separately', () => {
     const txns = [makeTxn({ type: 'buy', trade_date: '2026-01-10', quantity: '10', unit_price: '100.00', fee_minor: 500 })]
     const state = runFifo(txns, EUR)
     expect(state.remainingQty).toBe('10')
-    expect(state.costBasisMinor).toBe(100_000 + 500) // 10×€100 = €1000 = 100000 minor + €5 fee
+    expect(state.costBasisMinor).toBe(100_000) // 10×€100 = €1000 = 100000 minor, fee excluded
+    expect(state.feesMinor).toBe(500)           // fee tracked separately
     expect(state.realizedPlMinor).toBe(0)
   })
 

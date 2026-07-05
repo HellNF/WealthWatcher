@@ -59,10 +59,9 @@ export function runFifo(txns: InvestmentTxn[], currency: string): FifoState {
         if (!txn.quantity || !txn.unit_price) break
         const qty       = dec(txn.quantity)
         const unitPrice = dec(txn.unit_price)
-        // cost = qty × unit_price (rounded half-even) + fee
         const grossCost = toMinor(qty.mul(unitPrice).toFixed(2), currency)
-        const costBasis = grossCost + txn.fee_minor
-        lots.push({ remainingQty: qty, costBasisMinor: costBasis })
+        lots.push({ remainingQty: qty, costBasisMinor: grossCost })
+        feesMinor += txn.fee_minor   // commissioni tracciate a parte, non nel prezzo di carico
         break
       }
 

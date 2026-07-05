@@ -114,7 +114,7 @@ export function stampDutyAccountMinor(
   fractionOfYear: number,
 ): number {
   if (giacenzaMediaEurMinor <= BOLLO_SOGLIA_EUR_MINOR) return 0
-  return Math.round(BOLLO_CONTI_EUR_MINOR * Math.min(1, Math.max(0, fractionOfYear)))
+  return BOLLO_CONTI_EUR_MINOR * Math.min(1, Math.max(0, fractionOfYear))
 }
 
 /**
@@ -125,7 +125,7 @@ export function stampDutyAccountMinor(
  * @returns importo imposta in EUR minor units
  */
 export function wealthDutySecuritiesMinor(valueEurMinor: number): number {
-  return Math.round(valueEurMinor * BOLLO_TITOLI_RATE)
+  return valueEurMinor * BOLLO_TITOLI_RATE
 }
 
 /**
