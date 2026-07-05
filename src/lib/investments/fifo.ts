@@ -32,6 +32,7 @@ export interface Position extends FifoState {
   currency:          string
   symbol:            string
   name:              string
+  providerSymbol:    string | null   // CoinGecko coin id (o altro override), null per Yahoo
   lastPrice:         string | null   // decimal string or null if no price cached
   lastPriceAt:       number | null   // epoch seconds or null
   marketValueMinor:  number | null   // null if no price
@@ -124,7 +125,7 @@ export function runFifo(txns: InvestmentTxn[], currency: string): FifoState {
  * Enrich a FifoState with market-value and unrealised P/L given the current price.
  */
 export function computePosition(
-  instrument: { id: number; symbol: string; name: string; currency: string; last_price: string | null; last_price_at: number | null },
+  instrument: { id: number; symbol: string; name: string; currency: string; provider_symbol: string | null; last_price: string | null; last_price_at: number | null },
   state: FifoState,
 ): Position {
   let marketValueMinor: number | null  = null
@@ -153,6 +154,7 @@ export function computePosition(
     currency:          instrument.currency,
     symbol:            instrument.symbol,
     name:              instrument.name,
+    providerSymbol:    instrument.provider_symbol,
     lastPrice:         instrument.last_price,
     lastPriceAt:       instrument.last_price_at,
     marketValueMinor,

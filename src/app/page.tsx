@@ -126,12 +126,16 @@ export default async function Home() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <Link
+            href={session?.uid ? '/dashboard' : '/'}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            aria-label={session?.uid ? 'Vai alla dashboard' : 'Torna alla home'}
+          >
             <div className="w-7 h-7 rounded-md bg-emerald-500 flex items-center justify-center text-sm font-bold text-zinc-950">
               W
             </div>
             <span className="font-semibold text-zinc-100">WealthWatcher</span>
-          </div>
+          </Link>
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-emerald-500 text-zinc-950 text-sm font-semibold hover:bg-emerald-400 transition-colors"

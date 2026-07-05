@@ -153,7 +153,7 @@ describe('runFifo — no floating point drift', () => {
 describe('computePosition', () => {
   const instrument = {
     id: 0, symbol: 'VWCE.DE', name: 'Vanguard FTSE All-World',
-    currency: 'EUR', last_price: null, last_price_at: null,
+    currency: 'EUR', provider_symbol: null, last_price: null, last_price_at: null,
   }
 
   test('no price → marketValue and unrealizedPl are null (stale)', () => {

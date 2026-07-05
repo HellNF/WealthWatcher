@@ -115,6 +115,7 @@ function HoldingForm({
 }) {
   const [error, setError]      = useState<string | null>(null)
   const [isPending, start]     = useTransition()
+  const [avgCostVal, setAvgCostVal] = useState(initialAvgCost ?? '')
 
   function handleSubmit(fd: FormData) {
     setError(null)
@@ -155,16 +156,24 @@ function HoldingForm({
           <Input
             id="hf-avg"
             name="avg_cost"
-            defaultValue={initialAvgCost ?? ''}
+            value={avgCostVal}
+            onChange={(e) => setAvgCostVal(e.target.value)}
             placeholder="es. 42000"
             className="font-mono"
           />
         </Field>
       </div>
 
-      <p className="text-xs text-[--faint]">
-        Il prezzo medio è opzionale. Se non indicato il P/L parte da oggi.
-      </p>
+      {avgCostVal.trim() === '' ? (
+        <p className="text-xs text-[--warning]">
+          Senza prezzo medio il P/L e la <strong>tassa latente</strong> vengono calcolati
+          sull&rsquo;intero valore attuale della posizione (26% sul valore di mercato).
+        </p>
+      ) : (
+        <p className="text-xs text-[--faint]">
+          Il prezzo medio è opzionale. Se non indicato il P/L parte da oggi.
+        </p>
+      )}
 
       <div className="flex items-center gap-2">
         <Button type="submit" loading={isPending}>
@@ -257,7 +266,7 @@ export default function HoldingsManager({
               return (
                 <HoldingForm
                   portfolioId={portfolioId}
-                  coin={{ id: pos.symbol.toLowerCase(), symbol: pos.symbol, name: pos.name }}
+                  coin={{ id: pos.providerSymbol ?? pos.symbol.toLowerCase(), symbol: pos.symbol, name: pos.name }}
                   initialQty={pos.remainingQty}
                   initialAvgCost={posAvgCost(pos)}
                   onDone={() => setEditingId(null)}
