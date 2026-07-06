@@ -34,6 +34,8 @@ export type { BreadcrumbItem } from './Breadcrumb'
 
 export { BrandMark } from './BrandMark'
 
+export { WatcherMark } from './WatcherMark'
+
 export { ThemeToggle } from './ThemeToggle'
 
 export { ConfirmDelete } from './ConfirmDelete'

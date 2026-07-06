@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Anello esterno -->
+  <circle cx="12" cy="12" r="8.5"/>
+  <!-- Trend in salita -->
+  <polyline points="7.5,14.5 10.5,11 13,13.5 16.5,8.5"/>
+  <!-- Tick finale -->
+  <polyline points="14.5,8.5 16.5,8.5 16.5,10.5"/>
+  <!-- Punto focale -->
+  <circle cx="10.5" cy="11" r="1" fill="#10b981" stroke="none"/>
+</svg>
