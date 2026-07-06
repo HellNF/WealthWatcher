@@ -8,9 +8,10 @@ import { computeFiscalWallet } from '@/lib/tax/wallet'
 import { listMortgages, amortizationSchedule } from '@/lib/mortgages'
 import { sqlite } from '@/db'
 
-export type DeadlineSource = 'bollo' | 'ivafe' | 'credito_fiscale' | 'rata_mutuo' | 'ricorrente'
+export type DeadlineSource = 'bollo' | 'ivafe' | 'credito_fiscale' | 'rata_mutuo' | 'ricorrente' | 'custom'
 
 export interface DeadlineEvent {
+  id?:         number           // presente solo per eventi custom (deletable)
   date:        string           // ISO YYYY-MM-DD
   source:      DeadlineSource
   label:       string
@@ -151,6 +152,51 @@ function recurringDeadlines(userId: number, from: string, to: string): DeadlineE
   return events
 }
 
+// ── Eventi personalizzati ─────────────────────────────────────────────────────
+
+interface CustomEventRow {
+  id:           number
+  date:         string
+  label:        string
+  amount_minor: number
+}
+
+function customEventDeadlines(userId: number, from: string, to: string): DeadlineEvent[] {
+  const rows = sqlite.prepare(`
+    SELECT id, date, label, amount_minor
+    FROM calendar_events
+    WHERE owner_id = ? AND date >= ? AND date <= ?
+    ORDER BY date
+  `).all(userId, from, to) as CustomEventRow[]
+
+  return rows.map(r => ({
+    id:          r.id,
+    date:        r.date,
+    source:      'custom' as DeadlineSource,
+    label:       r.label,
+    amountMinor: r.amount_minor,
+  }))
+}
+
+export function createCustomEvent(
+  userId:      number,
+  date:        string,
+  label:       string,
+  amountMinor: number,
+  note?:       string,
+): void {
+  sqlite.prepare(`
+    INSERT INTO calendar_events (owner_id, date, label, amount_minor, note)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(userId, date, label, amountMinor, note ?? null)
+}
+
+export function deleteCustomEvent(userId: number, eventId: number): void {
+  sqlite.prepare(`
+    DELETE FROM calendar_events WHERE id = ? AND owner_id = ?
+  `).run(eventId, userId)
+}
+
 // ── Funzione principale ───────────────────────────────────────────────────────
 
 /**
@@ -169,6 +215,7 @@ export async function getFiscalCalendar(
     ...creditDeadlines(userId, from, to),
     ...mortgageDeadlines(userId, from, to),
     ...recurringDeadlines(userId, from, to),
+    ...customEventDeadlines(userId, from, to),
   ]
 
   events.sort((a, b) => a.date.localeCompare(b.date))

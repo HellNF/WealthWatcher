@@ -48,15 +48,17 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
   const [retryKey, setRetryKey]      = useState(0)
 
   useEffect(() => {
+    // Svuota subito i dati precedenti: il periodo è cambiato, non vogliamo
+    // mostrare dati di un periodo diverso mentre il nuovo carica.
+    setData([])
+    setHasData(null)
     startTransition(async () => {
       const rows = await fetchHistoryAction(symbol, period)
       if (rows.length > 1) {
         setData(rows)
         setHasData(true)
       } else {
-        // Non sovrascrivere dati buoni esistenti: se avevamo già dati, teniamoli.
-        // Segna errore solo se non abbiamo mai caricato con successo.
-        setHasData(prev => prev === true ? true : false)
+        setHasData(false)
       }
     })
   }, [symbol, period, retryKey])

@@ -516,6 +516,25 @@ export const budgets = sqliteTable(
   ],
 )
 
+// ── calendar_events ───────────────────────────────────────────────────────────
+// Eventi personalizzati aggiunti manualmente dall'utente nello scadenziario
+// (es. pagamento tasse, scadenze personali). Integrati con gli eventi automatici.
+export const calendarEvents = sqliteTable(
+  'calendar_events',
+  {
+    id:           integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:     integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    date:         text('date').notNull(),                              // ISO YYYY-MM-DD
+    label:        text('label').notNull(),
+    amount_minor: integer('amount_minor').notNull().default(0),       // importo facoltativo, minor units EUR
+    note:         text('note'),
+    created_at:   integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_calendar_events_owner_date').on(t.owner_id, t.date),
+  ],
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -540,3 +559,4 @@ export type Mortgage            = InferSelectModel<typeof mortgages>
 export type FinancialGoal       = InferSelectModel<typeof financialGoals>
 export type Budget              = InferSelectModel<typeof budgets>
 export type CategoryRule        = InferSelectModel<typeof categoryRules>
+export type CalendarEvent       = InferSelectModel<typeof calendarEvents>

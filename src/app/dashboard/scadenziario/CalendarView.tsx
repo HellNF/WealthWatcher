@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useActionState } from 'react'
 import type { DeadlineEvent } from '@/lib/calendar'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui'
 import { fromMinor } from '@/lib/money'
+import { addCalendarEventAction, deleteCalendarEventAction, type EventActionState } from './actions'
 
 // ── Design tokens per tipo di evento ──────────────────────────────────────
 
@@ -14,6 +16,7 @@ const SOURCE_DOT: Record<string, string> = {
   credito_fiscale: 'var(--warning)',
   rata_mutuo:      'var(--info)',
   ricorrente:      'var(--brand)',
+  custom:          'var(--brand)',
 }
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -22,14 +25,16 @@ const SOURCE_LABELS: Record<string, string> = {
   credito_fiscale: 'Credito fiscale',
   rata_mutuo:      'Mutuo',
   ricorrente:      'Ricorrente',
+  custom:          'Personale',
 }
 
-const SOURCE_BADGE: Record<string, 'warning' | 'info' | 'neutral'> = {
+const SOURCE_BADGE: Record<string, 'warning' | 'info' | 'neutral' | 'success'> = {
   bollo:           'neutral',
   ivafe:           'neutral',
   credito_fiscale: 'warning',
   rata_mutuo:      'info',
   ricorrente:      'neutral',
+  custom:          'success',
 }
 
 const LEGEND: { source: string; label: string }[] = [
@@ -37,6 +42,15 @@ const LEGEND: { source: string; label: string }[] = [
   { source: 'rata_mutuo',      label: 'Mutuo' },
   { source: 'credito_fiscale', label: 'Credito fiscale' },
   { source: 'bollo',           label: 'Bollo / IVAFE' },
+  { source: 'custom',          label: 'Personale' },
+]
+
+// Suggerimenti per eventi personalizzati
+const LABEL_SUGGESTIONS = [
+  'Saldo IRPEF', 'I Acconto IRPEF', 'II Acconto IRPEF',
+  'Saldo IVA', 'Acconto IVA', 'IMU', 'TARI',
+  'F24', 'Bollo auto', 'Assicurazione auto',
+  'Canone affitto', 'Abbonamento annuale', 'Scadenza mutuo',
 ]
 
 // ── Localizzazione ─────────────────────────────────────────────────────────
@@ -111,6 +125,22 @@ interface Props {
 export default function CalendarView({ events, today, initialMonth }: Props) {
   const [currentMonth, setCurrentMonth] = useState(initialMonth)
   const [selectedDate, setSelectedDate] = useState<string | null>(today)
+  const [showAddForm, setShowAddForm]   = useState(false)
+
+  const [addState, addAction, isAdding] = useActionState<EventActionState, FormData>(
+    addCalendarEventAction, undefined,
+  )
+  const didSubmitRef = useRef(false)
+
+  // Chiude il form dopo un'aggiunta andata a buon fine
+  useEffect(() => {
+    if (isAdding) {
+      didSubmitRef.current = true
+    } else if (didSubmitRef.current && addState === undefined) {
+      setShowAddForm(false)
+      didSubmitRef.current = false
+    }
+  }, [isAdding, addState])
 
   const [cy, cm] = currentMonth.split('-').map(Number)
 
@@ -147,6 +177,11 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
   const showDayPanel = selectedDate !== null && selEvents.length > 0
   const isCurrentMonth = currentMonth === today.slice(0, 7)
 
+  // Data da pre-compilare nel form: giorno selezionato (se nel mese corrente) o primo del mese
+  const formDate = selectedDate?.startsWith(currentMonth)
+    ? selectedDate
+    : `${currentMonth}-01`
+
   function goMonth(delta: number) {
     setCurrentMonth(stepMonth(cy, cm, delta))
   }
@@ -155,6 +190,7 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
     const m = date.slice(0, 7)
     if (m !== currentMonth) setCurrentMonth(m)
     setSelectedDate(prev => prev === date ? null : date)
+    setShowAddForm(false)
   }
 
   return (
@@ -245,7 +281,7 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
                       'focus-visible:outline-none focus-visible:z-10 focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[--ring]',
                       di > 0 ? 'border-l border-[--border]' : '',
                       isSel && !isToday ? 'bg-[--brand-subtle]' : '',
-                      hasEvts && !isSel ? 'hover:bg-[--surface-2] cursor-pointer' : 'cursor-default',
+                      inMonth ? 'hover:bg-[--surface-2] cursor-pointer' : 'cursor-default',
                     ].filter(Boolean).join(' ')}
                   >
                     <span
@@ -300,46 +336,162 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
         className="hidden sm:flex flex-col w-64 shrink-0 border-l border-[--border]"
         aria-label="Dettaglio scadenze"
       >
-        {showDayPanel && selectedDate ? (
+        {showAddForm ? (
+          /* ── Form aggiunta evento ──────────────────────────────────── */
           <>
-            <div className="px-4 py-3.5 border-b border-[--border] bg-[--surface-2]">
-              <p className="text-xs font-semibold text-[--ink]">{fmtFull(selectedDate)}</p>
-              <p className="text-[10px] text-[--muted] mt-0.5">
-                {selEvents.length} {selEvents.length === 1 ? 'scadenza' : 'scadenze'}
-                {' · '}
-                {fmtEur(selEvents.reduce((s, e) => s + e.amountMinor, 0))}
-              </p>
+            <div className="px-4 py-3.5 border-b border-[--border] bg-[--surface-2] flex items-center justify-between">
+              <p className="text-xs font-semibold text-[--ink]">Nuovo evento</p>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="size-5 flex items-center justify-center rounded text-[--muted] hover:text-[--ink] hover:bg-[--surface-3] transition-colors"
+                aria-label="Annulla"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+            <form action={addAction} className="flex-1 flex flex-col gap-0 overflow-y-auto">
+              <input type="hidden" name="date" value={formDate} />
+              <div className="px-4 pt-4 pb-3 space-y-3">
+                <div>
+                  <label className="block text-[10px] font-medium text-[--muted] mb-1">Data</label>
+                  <p className="text-xs text-[--ink] font-medium">{fmtFull(formDate)}</p>
+                </div>
+                <div>
+                  <label htmlFor="ev-label" className="block text-[10px] font-medium text-[--muted] mb-1">
+                    Descrizione <span className="text-[--danger]">*</span>
+                  </label>
+                  <input
+                    id="ev-label"
+                    name="label"
+                    list="ev-label-suggestions"
+                    required
+                    autoComplete="off"
+                    placeholder="es. Saldo IRPEF"
+                    className="w-full text-xs rounded-lg border border-[--border] bg-[--surface] px-2.5 py-1.5 text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring]"
+                  />
+                  <datalist id="ev-label-suggestions">
+                    {LABEL_SUGGESTIONS.map(s => <option key={s} value={s} />)}
+                  </datalist>
+                </div>
+                <div>
+                  <label htmlFor="ev-amount" className="block text-[10px] font-medium text-[--muted] mb-1">
+                    Importo € <span className="text-[--faint]">(facoltativo)</span>
+                  </label>
+                  <input
+                    id="ev-amount"
+                    name="amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0,00"
+                    className="w-full text-xs rounded-lg border border-[--border] bg-[--surface] px-2.5 py-1.5 text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring]"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ev-note" className="block text-[10px] font-medium text-[--muted] mb-1">
+                    Note <span className="text-[--faint]">(facoltativo)</span>
+                  </label>
+                  <textarea
+                    id="ev-note"
+                    name="note"
+                    rows={2}
+                    placeholder="Informazioni aggiuntive…"
+                    className="w-full text-xs rounded-lg border border-[--border] bg-[--surface] px-2.5 py-1.5 text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] resize-none"
+                  />
+                </div>
+                {addState?.error && (
+                  <p className="text-xs text-[--danger]">{addState.error}</p>
+                )}
+              </div>
+              <div className="px-4 pb-4 mt-auto">
+                <button
+                  type="submit"
+                  disabled={isAdding}
+                  className="w-full py-1.5 text-xs font-semibold rounded-lg bg-[--brand] text-white hover:opacity-90 disabled:opacity-50 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+                >
+                  {isAdding ? 'Salvataggio…' : 'Aggiungi evento'}
+                </button>
+              </div>
+            </form>
+          </>
+        ) : showDayPanel && selectedDate ? (
+          /* ── Dettaglio giorno ──────────────────────────────────────── */
+          <>
+            <div className="px-4 py-3.5 border-b border-[--border] bg-[--surface-2] flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-[--ink]">{fmtFull(selectedDate)}</p>
+                <p className="text-[10px] text-[--muted] mt-0.5">
+                  {selEvents.length} {selEvents.length === 1 ? 'scadenza' : 'scadenze'}
+                  {' · '}
+                  {fmtEur(selEvents.reduce((s, e) => s + e.amountMinor, 0))}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="size-6 shrink-0 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-3] transition-colors"
+                aria-label="Aggiungi evento"
+                title="Aggiungi evento"
+              >
+                <Plus className="size-3.5" />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-[--border]">
               {selEvents.map((e, i) => (
                 <div key={i} className="px-4 py-3 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="size-2 rounded-full shrink-0"
-                      style={{ background: SOURCE_DOT[e.source] ?? 'var(--muted)' }}
-                    />
-                    <Badge variant={SOURCE_BADGE[e.source] ?? 'neutral'}>
-                      {SOURCE_LABELS[e.source] ?? e.source}
-                    </Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="size-2 rounded-full shrink-0"
+                        style={{ background: SOURCE_DOT[e.source] ?? 'var(--muted)' }}
+                      />
+                      <Badge variant={SOURCE_BADGE[e.source] ?? 'neutral'}>
+                        {SOURCE_LABELS[e.source] ?? e.source}
+                      </Badge>
+                    </div>
+                    {e.source === 'custom' && e.id !== undefined && (
+                      <form action={deleteCalendarEventAction.bind(null, e.id)}>
+                        <button
+                          type="submit"
+                          className="size-5 flex items-center justify-center rounded text-[--faint] hover:text-[--danger] hover:bg-[--danger]/10 transition-colors shrink-0"
+                          aria-label="Elimina evento"
+                          title="Elimina"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </form>
+                    )}
                   </div>
                   <p className="text-xs text-[--ink] leading-snug">{e.label}</p>
-                  <p className="text-xs font-mono tabular-nums text-[--muted]">
-                    {fmtEur(e.amountMinor)}
-                  </p>
+                  {e.amountMinor > 0 && (
+                    <p className="text-xs font-mono tabular-nums text-[--muted]">
+                      {fmtEur(e.amountMinor)}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </>
         ) : (
+          /* ── Riepilogo mese ────────────────────────────────────────── */
           <>
-            <div className="px-4 py-3.5 border-b border-[--border] bg-[--surface-2]">
-              <p className="text-xs font-semibold text-[--ink]">{MONTHS_IT[cm - 1]} {cy}</p>
-              <p className="text-[10px] text-[--muted] mt-0.5">
-                {monthEvents.length === 0
-                  ? 'Nessuna scadenza'
-                  : `${monthEvents.length} ${monthEvents.length === 1 ? 'scadenza' : 'scadenze'} · ${fmtEur(monthTotal)}`
-                }
-              </p>
+            <div className="px-4 py-3.5 border-b border-[--border] bg-[--surface-2] flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-[--ink]">{MONTHS_IT[cm - 1]} {cy}</p>
+                <p className="text-[10px] text-[--muted] mt-0.5">
+                  {monthEvents.length === 0
+                    ? 'Nessuna scadenza'
+                    : `${monthEvents.length} ${monthEvents.length === 1 ? 'scadenza' : 'scadenze'} · ${fmtEur(monthTotal)}`
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="size-6 shrink-0 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-3] transition-colors"
+                aria-label="Aggiungi evento"
+                title="Aggiungi evento"
+              >
+                <Plus className="size-3.5" />
+              </button>
             </div>
 
             {monthByDate.size > 0 ? (
@@ -361,10 +513,17 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
                 ))}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center px-5">
+              <div className="flex-1 flex flex-col items-center justify-center px-5 gap-3">
                 <p className="text-xs text-[--faint] text-center leading-relaxed">
-                  Seleziona un giorno per vedere le scadenze
+                  Seleziona un giorno o aggiungi un evento manuale
                 </p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-[--border] text-[--muted] hover:text-[--ink] hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors"
+                >
+                  <Plus className="size-3" />
+                  Aggiungi evento
+                </button>
               </div>
             )}
           </>
@@ -372,15 +531,24 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
       </aside>
 
       {/* ── Dettaglio giorno — mobile (sotto il calendario) ─────────────── */}
-      {showDayPanel && selectedDate && (
+      {showDayPanel && selectedDate && !showAddForm && (
         <div className="sm:hidden border-t border-[--border]">
-          <div className="px-4 py-3 bg-[--surface-2] border-b border-[--border]">
-            <p className="text-xs font-semibold text-[--ink]">{fmtFull(selectedDate)}</p>
-            <p className="text-[10px] text-[--muted] mt-0.5">
-              {selEvents.length} {selEvents.length === 1 ? 'scadenza' : 'scadenze'}
-              {' · '}
-              {fmtEur(selEvents.reduce((s, e) => s + e.amountMinor, 0))}
-            </p>
+          <div className="px-4 py-3 bg-[--surface-2] border-b border-[--border] flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold text-[--ink]">{fmtFull(selectedDate)}</p>
+              <p className="text-[10px] text-[--muted] mt-0.5">
+                {selEvents.length} {selEvents.length === 1 ? 'scadenza' : 'scadenze'}
+                {' · '}
+                {fmtEur(selEvents.reduce((s, e) => s + e.amountMinor, 0))}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="size-6 shrink-0 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-3] transition-colors"
+              aria-label="Aggiungi evento"
+            >
+              <Plus className="size-3.5" />
+            </button>
           </div>
           <div className="divide-y divide-[--border]">
             {selEvents.map((e, i) => (
@@ -390,17 +558,88 @@ export default function CalendarView({ events, today, initialMonth }: Props) {
                   style={{ background: SOURCE_DOT[e.source] ?? 'var(--muted)' }}
                 />
                 <div className="flex-1 min-w-0 space-y-1">
-                  <Badge variant={SOURCE_BADGE[e.source] ?? 'neutral'}>
-                    {SOURCE_LABELS[e.source] ?? e.source}
-                  </Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant={SOURCE_BADGE[e.source] ?? 'neutral'}>
+                      {SOURCE_LABELS[e.source] ?? e.source}
+                    </Badge>
+                    {e.source === 'custom' && e.id !== undefined && (
+                      <form action={deleteCalendarEventAction.bind(null, e.id)}>
+                        <button
+                          type="submit"
+                          className="size-5 flex items-center justify-center rounded text-[--faint] hover:text-[--danger] transition-colors"
+                          aria-label="Elimina evento"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </form>
+                    )}
+                  </div>
                   <p className="text-xs text-[--ink]">{e.label}</p>
-                  <p className="text-xs font-mono tabular-nums text-[--muted]">
-                    {fmtEur(e.amountMinor)}
-                  </p>
+                  {e.amountMinor > 0 && (
+                    <p className="text-xs font-mono tabular-nums text-[--muted]">
+                      {fmtEur(e.amountMinor)}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Form aggiunta — mobile */}
+      {showAddForm && (
+        <div className="sm:hidden border-t border-[--border]">
+          <div className="px-4 py-3 bg-[--surface-2] border-b border-[--border] flex items-center justify-between">
+            <p className="text-xs font-semibold text-[--ink]">Nuovo evento — {fmtFull(formDate)}</p>
+            <button onClick={() => setShowAddForm(false)} aria-label="Annulla">
+              <X className="size-4 text-[--muted]" />
+            </button>
+          </div>
+          <form action={addAction} className="px-4 py-4 space-y-3">
+            <input type="hidden" name="date" value={formDate} />
+            <div>
+              <label htmlFor="ev-label-m" className="block text-[10px] font-medium text-[--muted] mb-1">
+                Descrizione <span className="text-[--danger]">*</span>
+              </label>
+              <input
+                id="ev-label-m"
+                name="label"
+                list="ev-label-suggestions-m"
+                required
+                autoComplete="off"
+                placeholder="es. Saldo IRPEF"
+                className="w-full text-xs rounded-lg border border-[--border] bg-[--surface] px-2.5 py-1.5 text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring]"
+              />
+              <datalist id="ev-label-suggestions-m">
+                {LABEL_SUGGESTIONS.map(s => <option key={s} value={s} />)}
+              </datalist>
+            </div>
+            <div>
+              <label htmlFor="ev-amount-m" className="block text-[10px] font-medium text-[--muted] mb-1">
+                Importo € <span className="text-[--faint]">(facoltativo)</span>
+              </label>
+              <input
+                id="ev-amount-m"
+                name="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                className="w-full text-xs rounded-lg border border-[--border] bg-[--surface] px-2.5 py-1.5 text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring]"
+              />
+            </div>
+            {addState?.error && (
+              <p className="text-xs text-[--danger]">{addState.error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={isAdding}
+              className="w-full py-1.5 text-xs font-semibold rounded-lg bg-[--brand] text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {isAdding ? 'Salvataggio…' : 'Aggiungi evento'}
+            </button>
+          </form>
         </div>
       )}
     </div>
