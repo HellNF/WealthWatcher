@@ -6,10 +6,11 @@ import { getPortfolioForUser } from '@/lib/portfolios'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { getInstrument } from '@/lib/instruments'
 import { appendPriceHistory } from '@/lib/priceHistory'
-import { yahooProvider }            from './yahoo'
-import { coingeckoProvider }        from './coingecko'
-import { alphaVantageProvider }     from './alphavantage'
-import { coinMarketCapProvider }    from './coinmarketcap'
+import { yahooProvider }                     from './yahoo'
+import { coingeckoProvider, getCoinHistory } from './coingecko'
+import { alphaVantageProvider }              from './alphavantage'
+import { coinMarketCapProvider, getCoinHistoryCMC } from './coinmarketcap'
+import type { PricePoint } from './yahoo'
 import type { Instrument } from '@/db/schema'
 import type { Quote } from './provider'
 
@@ -19,6 +20,21 @@ export interface RefreshResult {
   quote:  Quote | null
   stale:  boolean
   source: Instrument['price_source']
+}
+
+/**
+ * Storico prezzi per crypto con fallback CoinGecko → CoinMarketCap.
+ * Se CoinGecko va in rate-limit (risposta vuota), tenta CMC prima di rinunciare.
+ */
+export async function getCryptoHistory(
+  coinId: string,
+  symbol: string,
+  period: string,
+): Promise<PricePoint[]> {
+  const points = await getCoinHistory(coinId, period)
+  if (points.length > 0) return points
+  console.info(`[crypto] CoinGecko vuoto per "${coinId}" — fallback CMC`)
+  return getCoinHistoryCMC(symbol, period)
 }
 
 /**

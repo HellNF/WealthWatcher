@@ -384,6 +384,8 @@ export const userSettings = sqliteTable('user_settings', {
   openai_api_key_enc:   text('openai_api_key_enc'),    // AES-256-GCM encrypted, null if not set
   openai_key_set_at:    integer('openai_key_set_at'),  // unix epoch when key was last saved
   created_at:           integer('created_at').notNull().default(sql`(unixepoch())`),
+  // Layout widget dashboard: JSON string (WidgetConfig[]) — ordine e visibilità per-utente
+  dashboard_layout:     text('dashboard_layout'),
   // ── Profilo personale e fiscale ───────────────────────────────────────────
   // ISO alpha-2 residenza fiscale; default 'IT'. Determina regime applicabile.
   tax_residency:              text('tax_residency').default('IT'),

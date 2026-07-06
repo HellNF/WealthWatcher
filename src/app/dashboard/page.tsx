@@ -19,6 +19,14 @@ import {
 } from '@/components/ui'
 import Link from 'next/link'
 import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
+import { computeGoalsSummary, listGoals, isGoalCompleted } from '@/lib/goals'
+import { budgetStatus } from '@/lib/budgets'
+import { getFiscalCalendar } from '@/lib/calendar'
+import { getMarketNews } from '@/lib/prices/yahoo'
+import { getDashboardLayout } from '@/lib/userSettings'
+import { getOwnerInstrumentSymbols } from '@/lib/instruments'
+import DashboardGrid from '@/components/dashboard/widgets/DashboardGrid'
+import type { DashboardWidgetsData } from '@/components/dashboard/widgets/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,34 +70,112 @@ export default async function DashboardPage() {
     ? latest.net_worth_eur_minor - prev.net_worth_eur_minor
     : null
 
-  const today = new Date().toISOString().slice(0, 10)
-  const currentYear = new Date().getFullYear().toString()
-  const [instValues, latentTax, wealthTaxes] = await Promise.all([
+  const now = new Date()
+  const today = now.toISOString().slice(0, 10)
+  const currentYear = now.getFullYear().toString()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const deadlineTo = new Date(now)
+  deadlineTo.setDate(deadlineTo.getDate() + 30)
+  const deadlineToDate = deadlineTo.toISOString().slice(0, 10)
+
+  const newsSymbols = getOwnerInstrumentSymbols(user.id)
+
+  const [instValues, latentTax, wealthTaxes, goalsSummary, deadlineEvents, newsArticles] = await Promise.all([
     Promise.all(institutions.map((inst) => getInstitutionValueEur(user.id, inst.id, today))),
     latentTaxStats(user.id).catch(() => null),
     estimatedWealthTaxes(user.id, currentYear).catch(() => null),
+    computeGoalsSummary(user.id).catch(() => ({ totalCashMinor: 0, totalAllocatedMinor: 0, freeOperatingCashMinor: 0 })),
+    getFiscalCalendar(user.id, today, deadlineToDate).catch((): never[] => []),
+    getMarketNews(newsSymbols, 6).catch((): never[] => []),
   ])
 
   const assets     = listAssets(user.id)
   const accounts   = listAccounts(user.id)
   const portfolios = listPortfolios(user.id)
+  const goals      = listGoals(user.id)
+  const budgetStat = budgetStatus(user.id, currentMonth)
+  const savedLayout = getDashboardLayout(user.id)
 
   const runway = await cashRunwayAlert(user.id).catch(() => null)
 
   // Institution names for badge display
   const institutionMap = new Map(institutions.map(i => [i.id, i.name]))
 
-  // Per-account and per-portfolio EUR values from the latest snapshot breakdown
+  // Per-account e per-portfolio EUR value dall'ultimo snapshot
   const accountValueMap   = new Map<number, number>()
   const portfolioValueMap = new Map<number, number>()
-  if (latest?.breakdown) {
+
+  // Sparkline per singolo portafoglio (ultimi 60 snapshot)
+  const portfolioSparklines = new Map<number, { date: string; value: number }[]>()
+  for (const snap of snapshots.slice(-60)) {
+    if (!snap.breakdown) continue
     try {
-      const bd = JSON.parse(latest.breakdown) as BreakdownEntry
-      for (const a of bd.accounts ?? [])   accountValueMap.set(a.accountId, a.eurMinor)
-      for (const p of bd.portfolios ?? []) if (p.eurMinor !== null) portfolioValueMap.set(p.portfolioId, p.eurMinor)
+      const bd = JSON.parse(snap.breakdown) as BreakdownEntry
+      if (snap === latest) {
+        for (const a of bd.accounts ?? [])   accountValueMap.set(a.accountId, a.eurMinor)
+        for (const p of bd.portfolios ?? []) if (p.eurMinor !== null) portfolioValueMap.set(p.portfolioId, p.eurMinor)
+      }
+      for (const p of bd.portfolios ?? []) {
+        if (p.eurMinor === null) continue
+        if (!portfolioSparklines.has(p.portfolioId)) portfolioSparklines.set(p.portfolioId, [])
+        portfolioSparklines.get(p.portfolioId)!.push({ date: snap.date, value: p.eurMinor })
+      }
     } catch {
       // ignore malformed breakdown
     }
+  }
+  // ── Dati widget panoramica ─────────────────────────────────────────────────
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysRemainingInMonth = Math.max(1, lastDayOfMonth - now.getDate() + 1)
+
+  const widgetsData: DashboardWidgetsData = {
+    goals: {
+      goals: goals.map((g) => ({
+        id:        g.id,
+        name:      g.name,
+        color:     g.color_hex,
+        current:   g.current_allocated_minor,
+        target:    g.target_amount_minor,
+        completed: isGoalCompleted(g),
+      })),
+      summary: goalsSummary,
+    },
+    budget: {
+      month:    currentMonth,
+      total: {
+        spentMinor: budgetStat.total.spent_minor,
+        limitMinor: budgetStat.total.limit_minor,
+        pct:        budgetStat.total.pct,
+      },
+      topCategories: budgetStat.perCategory.slice(0, 4).map((c) => ({
+        name:       c.category_name ?? 'Altro',
+        color:      c.color ?? null,
+        spentMinor: c.spent_minor,
+        limitMinor: c.limit_minor,
+        pct:        c.pct,
+      })),
+      daysRemainingInMonth,
+    },
+    investments: {
+      portfolios: portfolios.map((pf) => ({
+        id:       pf.id,
+        name:     pf.name,
+        eurMinor: portfolioValueMap.get(pf.id) ?? null,
+        sparkline: portfolioSparklines.get(pf.id) ?? [],
+      })),
+      totalInvestmentsMinor: latest?.investments_eur_minor ?? 0,
+    },
+    deadlines: {
+      upcoming: deadlineEvents.slice(0, 6).map((e) => ({
+        date:        e.date,
+        label:       e.label,
+        source:      e.source,
+        amountMinor: e.amountMinor,
+      })),
+    },
+    news: {
+      articles: newsArticles,
+    },
   }
 
   return (
@@ -236,6 +322,9 @@ export default async function DashboardPage() {
           <NetWorthChart snapshots={snapshots} />
         </div>
       </Card>
+
+      {/* ── Widget panoramica ─────────────────────────────────────────────── */}
+      <DashboardGrid data={widgetsData} initialLayout={savedLayout} />
 
       {/* ── Conti correnti (accesso rapido) ──────────────────────────────── */}
       {accounts.length > 0 && (

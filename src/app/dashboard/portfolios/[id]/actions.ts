@@ -11,7 +11,8 @@ import { insertTxn, deleteTxn, updateTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { getInstrumentDetails, getHistoricalPrices, type InstrumentDetails, type PricePoint } from '@/lib/prices/yahoo'
-import { searchCoins, getCoinHistory, type CoinSearchResult } from '@/lib/prices/coingecko'
+import { searchCoins, type CoinSearchResult } from '@/lib/prices/coingecko'
+import { getCryptoHistory } from '@/lib/prices'
 import { getInstrumentBySymbol } from '@/lib/instruments'
 import { setCryptoHolding, removeCryptoHolding } from '@/lib/investmentTxns'
 import { toMinor, dec } from '@/lib/money'
@@ -253,7 +254,7 @@ export async function fetchHistoryAction(symbol: string, period: string): Promis
   const instr = getInstrumentBySymbol(symbol)
   if (instr?.price_source === 'coingecko') {
     const coinId = (instr.provider_symbol ?? symbol).toLowerCase()
-    return getCoinHistory(coinId, period as Period)
+    return getCryptoHistory(coinId, symbol, period as Period)
   }
 
   return getHistoricalPrices(symbol, period as Period)

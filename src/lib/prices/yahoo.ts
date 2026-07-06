@@ -243,3 +243,62 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
 
   return { price, currency, ter }
 }
+
+// ── Notizie di mercato ────────────────────────────────────────────────────────
+
+export interface NewsItem {
+  uuid:         string
+  title:        string
+  publisher:    string
+  link:         string
+  publishedAt:  number          // unix timestamp (secondi)
+  thumbnailUrl?: string
+}
+
+// Indici fallback se l'utente non ha strumenti in portafoglio
+const FALLBACK_NEWS_SYMBOLS = ['^GSPC', '^STOXX50E', 'BTC-EUR']
+
+/**
+ * Recupera le ultime notizie finanziarie tramite yahoo-finance2 `.search()`.
+ * Aggrega notizie dai simboli forniti (max 5 per performance), deduplica per uuid
+ * e restituisce i `limit` articoli più recenti. Non lancia mai eccezioni.
+ *
+ * @param symbols  — Simboli dei propri strumenti. Se vuoto, usa indici di mercato.
+ * @param limit    — Numero massimo di articoli da restituire (default 6).
+ */
+export async function getMarketNews(symbols: string[], limit = 6): Promise<NewsItem[]> {
+  const targets = symbols.length > 0 ? symbols.slice(0, 5) : FALLBACK_NEWS_SYMBOLS
+  try {
+    const yf = await getYf()
+    const perSymbol = Math.max(2, Math.ceil((limit * 2) / targets.length))
+    const results = await Promise.allSettled(
+      targets.map((s) => yf.search(s, { quotesCount: 0, newsCount: perSymbol })),
+    )
+
+    const seen     = new Set<string>()
+    const articles: NewsItem[] = []
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const n of ((r.value as any)?.news ?? [])) {
+        if (!n?.uuid || seen.has(n.uuid)) continue
+        seen.add(n.uuid)
+        articles.push({
+          uuid:         n.uuid,
+          title:        n.title  ?? '',
+          publisher:    n.publisher ?? '',
+          link:         n.link ?? '#',
+          publishedAt:  n.providerPublishTime ?? 0,
+          thumbnailUrl: n.thumbnail?.resolutions?.[0]?.url ?? undefined,
+        })
+      }
+    }
+
+    return articles
+      .sort((a, b) => b.publishedAt - a.publishedAt)
+      .slice(0, limit)
+  } catch (e) {
+    console.warn('[yahoo] getMarketNews:', e)
+    return []
+  }
+}

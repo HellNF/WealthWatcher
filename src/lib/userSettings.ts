@@ -102,6 +102,65 @@ export function getUserProfile(userId: number): UserProfile {
   }
 }
 
+// ── Layout widget dashboard ───────────────────────────────────────────────────
+
+export type WidgetId   = 'goals' | 'budget' | 'investments' | 'deadlines' | 'news'
+export type WidgetSize = 'sm' | 'md' | 'lg'
+
+export interface WidgetConfig {
+  id:      WidgetId
+  visible: boolean
+  size:    WidgetSize
+}
+
+const ALL_WIDGET_IDS:  WidgetId[]   = ['investments', 'goals', 'budget', 'deadlines', 'news']
+const VALID_SIZES:     WidgetSize[] = ['sm', 'md', 'lg']
+
+export const DEFAULT_LAYOUT: WidgetConfig[] = ALL_WIDGET_IDS.map(id => ({
+  id, visible: true, size: 'md' as const,
+}))
+
+/** Restituisce il layout widget salvato, o il default se non configurato / non valido. */
+export function getDashboardLayout(userId: number): WidgetConfig[] {
+  const r = row(userId)
+  const raw = (r as Record<string, unknown>)?.dashboard_layout as string | null ?? null
+  if (!raw) return DEFAULT_LAYOUT
+  try {
+    const parsed = JSON.parse(raw) as unknown[]
+    if (!Array.isArray(parsed)) return DEFAULT_LAYOUT
+    const valid = parsed
+      .filter((x): x is WidgetConfig =>
+        typeof x === 'object' && x !== null &&
+        typeof (x as WidgetConfig).id === 'string' &&
+        ALL_WIDGET_IDS.includes((x as WidgetConfig).id) &&
+        typeof (x as WidgetConfig).visible === 'boolean',
+      )
+      .map(x => ({
+        ...x,
+        // retrocompatibilità: se size manca o non valido, usa 'md'
+        size: VALID_SIZES.includes((x as WidgetConfig).size) ? (x as WidgetConfig).size : ('md' as const),
+      }))
+    // Aggiunge widget nuovi (aggiunti dopo che l'utente ha salvato il layout)
+    const existingIds = new Set(valid.map(w => w.id))
+    const missing = ALL_WIDGET_IDS
+      .filter(id => !existingIds.has(id))
+      .map(id => ({ id, visible: true, size: 'md' as const }))
+    return [...valid, ...missing]
+  } catch {
+    return DEFAULT_LAYOUT
+  }
+}
+
+/** Persiste il layout widget (UPSERT). */
+export function setDashboardLayout(userId: number, layout: WidgetConfig[]): void {
+  sqlite.prepare(`
+    INSERT INTO user_settings (user_id, dashboard_layout)
+    VALUES (?, ?)
+    ON CONFLICT (user_id) DO UPDATE SET
+      dashboard_layout = excluded.dashboard_layout
+  `).run(userId, JSON.stringify(layout))
+}
+
 /** Aggiorna i campi del profilo (UPSERT). Solo i campi forniti vengono scritti. */
 export function setUserProfile(userId: number, p: Partial<UserProfile>): void {
   sqlite.prepare(`

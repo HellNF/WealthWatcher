@@ -69,6 +69,20 @@ export function listInstruments(): Instrument[] {
   return db.select().from(instruments).all() as Instrument[]
 }
 
+/** Simboli distinti degli strumenti in cui l'utente ha transazioni. */
+export function getOwnerInstrumentSymbols(userId: number): string[] {
+  const rows = sqlite
+    .prepare(
+      `SELECT DISTINCT i.symbol
+       FROM investment_txns it
+       JOIN instruments i ON i.id = it.instrument_id
+       WHERE it.owner_id = ?
+       LIMIT 8`,
+    )
+    .all(userId) as { symbol: string }[]
+  return rows.map((r) => r.symbol)
+}
+
 export function updateInstrumentPrice(
   id: number,
   price: string,

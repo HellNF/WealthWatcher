@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/dal'
 import { signOut } from '@/auth'
 import { createInstitution } from '@/lib/institutions'
 import { getProvider } from '@/lib/providers'
+import { setDashboardLayout, type WidgetConfig } from '@/lib/userSettings'
 
 const customSchema = z.object({
   name:    z.string().trim().min(1, 'Nome obbligatorio').max(100),
@@ -53,4 +54,11 @@ export async function addInstitution(
 
 export async function signOutAction(): Promise<void> {
   await signOut({ redirectTo: '/login' })
+}
+
+/** Persiste l'ordine e la visibilità dei widget dashboard per l'utente corrente. */
+export async function saveDashboardLayoutAction(layout: WidgetConfig[]): Promise<void> {
+  const user = await requireUser()
+  setDashboardLayout(user.id, layout)
+  revalidatePath('/dashboard')
 }
