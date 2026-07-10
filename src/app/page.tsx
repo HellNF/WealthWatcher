@@ -392,6 +392,8 @@ export default async function Home() {
             <Link href="/dashboard/tasse"    className="hover:text-zinc-300 transition-colors">Gestione tasse</Link>
             <Link href="/dashboard/profilo"  className="hover:text-zinc-300 transition-colors">Profilo fiscale</Link>
             <Link href="/dashboard/settings" className="hover:text-zinc-300 transition-colors">Impostazioni</Link>
+            <Link href="/privacy"            className="hover:text-zinc-300 transition-colors">Privacy</Link>
+            <Link href="/terms"              className="hover:text-zinc-300 transition-colors">Termini</Link>
           </div>
         </div>
       </footer>

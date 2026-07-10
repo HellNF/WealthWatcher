@@ -3,7 +3,10 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
-import { setOpenAiKey, clearOpenAiKey, setUserProfile } from '@/lib/userSettings'
+import {
+  setOpenAiKey, clearOpenAiKey, setUserProfile,
+  setEnableBankingKey, clearEnableBankingKey,
+} from '@/lib/userSettings'
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
 import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
 import { recategorizeAll } from '@/lib/categorization'
@@ -30,6 +33,42 @@ export async function saveOpenAiKeyAction(
 export async function removeOpenAiKeyAction(): Promise<ActionState> {
   const user = await requireUser()
   clearOpenAiKey(user.id)
+  revalidatePath('/dashboard/settings', 'page')
+  return { success: 'Chiave rimossa' }
+}
+
+// ── Enable Banking (Open Banking) — chiave app per-utente ─────────────────────
+// Piano gratuito Enable Banking: un'app per account → ogni utente registra la
+// propria su https://enablebanking.com e la incolla qui (mai condivisa).
+
+const ebAppIdSchema = z.string().trim().min(1, 'App ID obbligatorio').max(200)
+
+const ebPrivateKeySchema = z.string()
+  .trim()
+  .min(1, 'Chiave privata obbligatoria')
+  .transform((v) => v.replace(/\\n/g, '\n')) // paste su una riga con "\n" letterali
+  .refine((v) => v.includes('BEGIN') && v.includes('PRIVATE KEY'), {
+    message: 'La chiave deve essere in formato PEM (-----BEGIN ... PRIVATE KEY-----)',
+  })
+
+export async function saveEnableBankingKeyAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser()
+  const appIdParse = ebAppIdSchema.safeParse(formData.get('eb_app_id'))
+  if (!appIdParse.success) return { error: appIdParse.error.issues[0].message }
+  const keyParse = ebPrivateKeySchema.safeParse(formData.get('eb_private_key'))
+  if (!keyParse.success) return { error: keyParse.error.issues[0].message }
+
+  setEnableBankingKey(user.id, appIdParse.data, keyParse.data)
+  revalidatePath('/dashboard/settings', 'page')
+  return { success: 'Chiave Enable Banking salvata' }
+}
+
+export async function removeEnableBankingKeyAction(): Promise<ActionState> {
+  const user = await requireUser()
+  clearEnableBankingKey(user.id)
   revalidatePath('/dashboard/settings', 'page')
   return { success: 'Chiave rimossa' }
 }

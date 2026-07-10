@@ -2,6 +2,7 @@
 import { sqlite } from '@/db'
 import { encryptSecret, decryptSecret } from '@/lib/crypto'
 import type { UserSettings } from '@/db/schema'
+import type { EnableBankingCredentials } from '@/lib/banking/types'
 
 export type EmploymentType =
   | 'employee'
@@ -68,6 +69,57 @@ export function clearOpenAiKey(userId: number): void {
   sqlite.prepare(`
     UPDATE user_settings
     SET openai_api_key_enc = NULL, openai_key_set_at = NULL
+    WHERE user_id = ?
+  `).run(userId)
+}
+
+// ── Enable Banking (Open Banking) — credenziali app per-utente ───────────────
+// Piano gratuito Enable Banking: un'app per account registrato → ogni utente
+// registra la propria app nel Control Panel e la usa solo per collegare le
+// proprie banche. app_id non è segreto (identifica l'app, non autentica da
+// solo); la private key sì, ed è cifrata come la chiave OpenAI.
+
+export function hasEnableBankingKey(userId: number): boolean {
+  const r = sqlite
+    .prepare(`SELECT eb_app_id, eb_private_key_enc FROM user_settings WHERE user_id = ?`)
+    .get(userId) as { eb_app_id: string | null; eb_private_key_enc: string | null } | undefined
+  return !!r?.eb_app_id && !!r?.eb_private_key_enc
+}
+
+export function getEnableBankingKeySetAt(userId: number): number | null {
+  const r = row(userId)
+  return (r as Record<string, unknown>)?.eb_key_set_at as number | null ?? null
+}
+
+export function setEnableBankingKey(userId: number, appId: string, privateKeyPem: string): void {
+  const enc = encryptSecret(privateKeyPem)
+  const now = Math.floor(Date.now() / 1000)
+  sqlite.prepare(`
+    INSERT INTO user_settings (user_id, eb_app_id, eb_private_key_enc, eb_key_set_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT (user_id) DO UPDATE SET
+      eb_app_id           = excluded.eb_app_id,
+      eb_private_key_enc  = excluded.eb_private_key_enc,
+      eb_key_set_at       = excluded.eb_key_set_at
+  `).run(userId, appId, enc, now)
+}
+
+export function getEnableBankingKey(userId: number): EnableBankingCredentials | null {
+  const r = row(userId) as Record<string, unknown> | undefined
+  const appId = r?.eb_app_id as string | null
+  const enc   = r?.eb_private_key_enc as string | null
+  if (!appId || !enc) return null
+  try {
+    return { appId, privateKey: decryptSecret(enc) }
+  } catch {
+    return null
+  }
+}
+
+export function clearEnableBankingKey(userId: number): void {
+  sqlite.prepare(`
+    UPDATE user_settings
+    SET eb_app_id = NULL, eb_private_key_enc = NULL, eb_key_set_at = NULL
     WHERE user_id = ?
   `).run(userId)
 }

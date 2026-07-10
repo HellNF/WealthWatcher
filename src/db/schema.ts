@@ -77,11 +77,48 @@ export const bankAccounts = sqliteTable(
     // Tasso di interesse annuo lordo sulla giacenza, in percentuale (es. "2.5").
     // Null = conto non remunerato. Usato per stimare l'interesse maturato.
     interest_rate:        text('interest_rate'),           // decimal string %/anno, nullable
+    // Open Banking (Enable Banking): uid del conto lato ASPSP e connessione che lo
+    // ha creato. Entrambi null per i conti inseriti manualmente (retro-compatibile).
+    eb_account_uid:    text('eb_account_uid'),
+    eb_connection_id:  integer('eb_connection_id').references(
+                         () => ebConnections.id,
+                         { onDelete: 'set null' },
+                       ),
     created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
     index('idx_bank_accounts_owner').on(t.owner_id),
     index('idx_bank_accounts_institution').on(t.institution_id),
+  ],
+)
+
+// ── eb_connections ────────────────────────────────────────────────────────────
+// Open Banking (Enable Banking / PSD2 AIS): una riga per consenso utente↔banca.
+// Nome tabella prefissato 'eb_' (non 'bank_connections') per restare inequivocabile
+// e non collidere con eventuali altri aggregatori Open Banking in futuro.
+// session_id_enc è cifrato con src/lib/crypto.ts (AES-256-GCM); null finché lo
+// stato è 'pending' (auth avviata, callback non ancora ricevuto). `state` è il
+// nonce anti-CSRF verificato nel callback.
+export const ebConnections = sqliteTable(
+  'eb_connections',
+  {
+    id:             integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:       integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    institution_id: integer('institution_id').notNull().references(() => institutions.id, { onDelete: 'cascade' }),
+    aspsp_name:     text('aspsp_name').notNull(),
+    aspsp_country:  text('aspsp_country').notNull(),   // ISO alpha-2
+    session_id_enc: text('session_id_enc'),            // encryptSecret(session_id); null finché pending
+    status:         text('status', { enum: ['pending', 'active', 'expired', 'revoked'] as const })
+                       .notNull()
+                       .default('pending'),
+    valid_until:    integer('valid_until'),            // epoch — scadenza sessione EB
+    state:          text('state').notNull(),           // nonce CSRF (randomBytes hex)
+    last_synced_at: integer('last_synced_at'),
+    created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('idx_eb_connections_owner').on(t.owner_id),
+    uniqueIndex('eb_connections_state_uniq').on(t.state),
   ],
 )
 
@@ -403,6 +440,12 @@ export const userSettings = sqliteTable('user_settings', {
   forfettario_startup:        integer('forfettario_startup').default(0),
   // Aliquota marginale IRPEF (es. "0.35") impostata manualmente — usata dal modulo previdenza
   irpef_marginal_rate:        text('irpef_marginal_rate'),
+  // ── Open Banking (Enable Banking) — credenziali applicative per-utente ────
+  // Ogni utente registra la propria app nel Control Panel Enable Banking (piano
+  // gratuito = un'app per account) e la usa solo per collegare le proprie banche.
+  eb_app_id:            text('eb_app_id'),             // app_id / kid, non segreto
+  eb_private_key_enc:   text('eb_private_key_enc'),    // chiave privata PEM, AES-256-GCM encrypted
+  eb_key_set_at:        integer('eb_key_set_at'),       // unix epoch quando salvata
 })
 
 // ── kid_documents ─────────────────────────────────────────────────────────────
@@ -601,6 +644,7 @@ export type User                = InferSelectModel<typeof users>
 export type Share               = InferSelectModel<typeof shares>
 export type Institution         = InferSelectModel<typeof institutions>
 export type BankAccount         = InferSelectModel<typeof bankAccounts>
+export type EbConnection        = InferSelectModel<typeof ebConnections>
 export type Category            = InferSelectModel<typeof categories>
 export type Merchant            = InferSelectModel<typeof merchants>
 export type MerchantAlias       = InferSelectModel<typeof merchantAliases>

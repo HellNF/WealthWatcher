@@ -2,6 +2,8 @@
 import { sqlite } from '@/db'
 import {
   setOpenAiKey, getOpenAiKey, clearOpenAiKey, hasOpenAiKey, getOpenAiKeySetAt,
+  setEnableBankingKey, getEnableBankingKey, clearEnableBankingKey,
+  hasEnableBankingKey, getEnableBankingKeySetAt,
 } from '@/lib/userSettings'
 
 let userId: number
@@ -72,5 +74,68 @@ describe('clearOpenAiKey', () => {
 describe('getOpenAiKey — missing user', () => {
   test('returns null when user has no settings row', () => {
     expect(getOpenAiKey(99999)).toBeNull()
+  })
+})
+
+describe('setEnableBankingKey / getEnableBankingKey', () => {
+  test('set then get returns app_id in chiaro e private_key decifrata', () => {
+    setEnableBankingKey(userId, 'app-123', '-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----')
+    expect(getEnableBankingKey(userId)).toEqual({
+      appId:      'app-123',
+      privateKey: '-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----',
+    })
+  })
+
+  test('la private key è cifrata nel DB (non il valore in chiaro)', () => {
+    setEnableBankingKey(userId, 'app-123', '-----BEGIN PRIVATE KEY-----\nsecret-material\n-----END PRIVATE KEY-----')
+    const row = sqlite.prepare(`SELECT eb_private_key_enc FROM user_settings WHERE user_id = ?`).get(userId) as { eb_private_key_enc: string }
+    expect(row.eb_private_key_enc).not.toContain('secret-material')
+  })
+
+  test('chiamare set due volte aggiorna la riga esistente (upsert idempotente)', () => {
+    setEnableBankingKey(userId, 'app-first', 'key-first')
+    setEnableBankingKey(userId, 'app-second', 'key-second')
+    expect(getEnableBankingKey(userId)).toEqual({ appId: 'app-second', privateKey: 'key-second' })
+    const count = sqlite.prepare(`SELECT COUNT(*) as n FROM user_settings WHERE user_id = ?`).get(userId) as { n: number }
+    expect(count.n).toBe(1)
+  })
+
+  test('non interferisce con la chiave OpenAI dello stesso utente', () => {
+    setOpenAiKey(userId, 'sk-openai')
+    setEnableBankingKey(userId, 'app-eb', 'key-eb')
+    expect(getOpenAiKey(userId)).toBe('sk-openai')
+    expect(getEnableBankingKey(userId)).toEqual({ appId: 'app-eb', privateKey: 'key-eb' })
+  })
+})
+
+describe('hasEnableBankingKey', () => {
+  test('false quando nessuna chiave è impostata', () => {
+    expect(hasEnableBankingKey(userId)).toBe(false)
+  })
+
+  test('true dopo aver impostato la chiave', () => {
+    setEnableBankingKey(userId, 'app-123', 'key-material')
+    expect(hasEnableBankingKey(userId)).toBe(true)
+  })
+})
+
+describe('clearEnableBankingKey', () => {
+  test('la chiave è null dopo clear', () => {
+    setEnableBankingKey(userId, 'app-123', 'key-material')
+    clearEnableBankingKey(userId)
+    expect(getEnableBankingKey(userId)).toBeNull()
+    expect(hasEnableBankingKey(userId)).toBe(false)
+  })
+
+  test('anche set_at viene azzerato', () => {
+    setEnableBankingKey(userId, 'app-123', 'key-material')
+    clearEnableBankingKey(userId)
+    expect(getEnableBankingKeySetAt(userId)).toBeNull()
+  })
+})
+
+describe('getEnableBankingKey — utente senza riga settings', () => {
+  test('ritorna null se l\'utente non ha una riga user_settings', () => {
+    expect(getEnableBankingKey(99999)).toBeNull()
   })
 })

@@ -5,15 +5,20 @@ import { listAccounts, getAccountPreview, estimateInterest } from '@/lib/account
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioValuationEur } from '@/lib/portfolioValuation'
 import { fromMinor } from '@/lib/money'
+import { getEnableBankingKey } from '@/lib/userSettings'
+import { getAspsps } from '@/lib/banking/client'
+import { listConnectionsForInstitution } from '@/lib/banking/connections'
 import AddAccountForm from './AddAccountForm'
 import AddPortfolioForm from './AddPortfolioForm'
 import EditInstitutionForm from './EditInstitutionForm'
 import { deleteInstitutionAction } from './actions'
+import ConnectBankButton from '@/app/dashboard/banking/ConnectBankButton'
+import SyncButton from '@/app/dashboard/banking/SyncButton'
 import {
   Breadcrumb, Card, EmptyState, Badge, ConfirmDelete,
 } from '@/components/ui'
 import Link from 'next/link'
-import { ChevronRight, CreditCard, TrendingUp } from 'lucide-react'
+import { ChevronRight, CreditCard, TrendingUp, AlertCircle, Settings } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,12 +36,14 @@ function fmtShort(iso: string | null): string | null {
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ bankingError?: string }>
 }
 
-export default async function InstitutionPage({ params }: Props) {
+export default async function InstitutionPage({ params, searchParams }: Props) {
   const { id: idStr } = await params
   const id = parseInt(idStr, 10)
   if (isNaN(id)) notFound()
+  const sp = await searchParams
 
   const user = await requireUser()
   const institution = getInstitutionForUser(user.id, id)
@@ -44,6 +51,16 @@ export default async function InstitutionPage({ params }: Props) {
 
   const accounts   = listAccounts(user.id, id)
   const portfolios = listPortfolios(user.id, id)
+
+  // ── Open Banking (Enable Banking) ────────────────────────────────────────
+  // Ogni utente usa la propria app Enable Banking (piano gratuito = un'app
+  // per account): se non l'ha ancora configurata nelle impostazioni, la
+  // sezione mostra un invito a farlo invece di sparire silenziosamente —
+  // qui è un'azione che l'utente stesso può completare, non uno switch admin.
+  const ebCreds = getEnableBankingKey(user.id)
+  const aspsps = ebCreds ? await getAspsps(ebCreds, institution.country ?? undefined) : null
+  const connections = ebCreds ? listConnectionsForInstitution(user.id, id) : []
+  const visibleConnections = connections.filter((c) => c.status !== 'revoked')
 
   // Preview conti: saldo + statistiche movimenti + stima interesse.
   const accountPreviews = accounts.map((acc) => {
@@ -140,6 +157,57 @@ export default async function InstitutionPage({ params }: Props) {
                 </Link>
               )
             })}
+          </Card>
+        )}
+      </section>
+
+      {/* ── Open Banking (Enable Banking) ──────────────────────────────────── */}
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold text-[--ink]">Open Banking</h2>
+
+        {sp.bankingError && (
+          <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
+            Collegamento con la banca non riuscito o annullato. Riprova.
+          </div>
+        )}
+
+        {!ebCreds ? (
+          <Card>
+            <div className="flex items-start gap-3">
+              <Settings className="size-4 shrink-0 mt-0.5 text-[--muted]" />
+              <p className="text-sm text-[--muted]">
+                Configura la tua chiave Enable Banking nelle{' '}
+                <Link href="/dashboard/settings" className="text-[--brand-text] hover:underline">
+                  impostazioni
+                </Link>{' '}
+                per collegare questa banca e importare saldi e movimenti automaticamente.
+              </p>
+            </div>
+          </Card>
+        ) : aspsps === null ? (
+          <div className="flex items-start gap-3 rounded-xl border border-[--warning]/30 bg-[--warning-subtle] px-4 py-3 text-sm text-[--warning-text]">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
+            Impossibile recuperare l&apos;elenco delle banche disponibili da Enable Banking al momento.
+          </div>
+        ) : (
+          <Card>
+            <ConnectBankButton institutionId={id} aspsps={aspsps} />
+          </Card>
+        )}
+
+        {visibleConnections.length > 0 && (
+          <Card noPadding className="overflow-hidden">
+            {visibleConnections.map((c) => (
+              <SyncButton
+                key={c.id}
+                institutionId={id}
+                connectionId={c.id}
+                status={c.status}
+                aspsp={{ name: c.aspsp_name, country: c.aspsp_country }}
+                lastSyncedAt={c.last_synced_at ? new Date(c.last_synced_at * 1000).toLocaleDateString('it-IT') : null}
+              />
+            ))}
           </Card>
         )}
       </section>

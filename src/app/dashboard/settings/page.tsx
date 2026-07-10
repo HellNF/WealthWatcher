@@ -1,9 +1,14 @@
+import { headers } from 'next/headers'
 import { requireUser } from '@/lib/dal'
-import { hasOpenAiKey, getOpenAiKeySetAt, getUserProfile } from '@/lib/userSettings'
+import {
+  hasOpenAiKey, getOpenAiKeySetAt, getUserProfile,
+  hasEnableBankingKey, getEnableBankingKeySetAt,
+} from '@/lib/userSettings'
 import { listAllowedEmails } from '@/lib/users'
 import { listCategoryRules } from '@/lib/merchants'
 import { listAllCategories } from '@/lib/transactions'
 import OpenAiKeyForm from './OpenAiKeyForm'
+import EnableBankingKeyForm from './EnableBankingKeyForm'
 import AllowlistManager from './AllowlistManager'
 import CategoryRulesManager from './CategoryRulesManager'
 import FiscalProfileForm from './FiscalProfileForm'
@@ -15,6 +20,17 @@ export default async function SettingsPage() {
   const user       = await requireUser()
   const hasKey     = hasOpenAiKey(user.id)
   const setAt      = getOpenAiKeySetAt(user.id)
+  const hasEbKey   = hasEnableBankingKey(user.id)
+  const ebSetAt    = getEnableBankingKeySetAt(user.id)
+
+  // URL di redirect da whitelistare nel Control Panel Enable Banking — dedotto
+  // dall'host della richiesta corrente così l'utente lo copia senza indovinare
+  // dominio/protocollo (dietro proxy usiamo l'header x-forwarded-*, come fa auth.ts).
+  const hdrs  = await headers()
+  const host  = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
+  const proto = hdrs.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
+  const ebRedirectUrl = `${proto}://${host}/api/banking/callback`
+
   const isAdmin    = user.role === 'admin'
   const allowlist  = isAdmin ? listAllowedEmails() : []
   const rules      = listCategoryRules(user.id)
@@ -68,6 +84,19 @@ export default async function SettingsPage() {
           </div>
         </CardHeader>
         <OpenAiKeyForm hasKey={hasKey} setAt={setAt} />
+      </Card>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <div>
+            <CardTitle>Open Banking (Enable Banking)</CardTitle>
+            <CardDescription>
+              Necessaria per collegare le tue banche e importare saldi e movimenti
+              automaticamente. Il piano gratuito richiede un&apos;app registrata a testa.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <EnableBankingKeyForm hasKey={hasEbKey} setAt={ebSetAt} redirectUrl={ebRedirectUrl} />
       </Card>
 
       {isAdmin && (
