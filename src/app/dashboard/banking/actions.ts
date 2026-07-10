@@ -22,17 +22,15 @@ export type ActionState = { error?: string } | undefined
 // giorni è un compromesso comune fra sicurezza e frequenza di riautorizzazione.
 const CONSENT_DAYS = 90
 
-function redirectUrl(): string {
-  const url = process.env.ENABLE_BANKING_REDIRECT_URL
-  if (!url) throw new Error('ENABLE_BANKING_REDIRECT_URL non impostata')
-  return url
-}
-
 /**
  * Avvia il consenso: crea la connessione 'pending', chiede a Enable Banking
  * l'URL della banca e vi reindirizza il browser. `redirect()` lancia
  * internamente — è la modalità corretta per una server action invocata da
  * un componente client (naviga anche verso URL esterni).
+ *
+ * La configurazione server (ENABLE_BANKING_REDIRECT_URL) va verificata PRIMA
+ * di creare la riga 'pending': un errore qui non deve mai lasciare una
+ * connessione orfana che l'utente vede bloccata su "in attesa" senza spiegazione.
  */
 export async function startConnectAction(
   institutionId: number,
@@ -48,19 +46,32 @@ export async function startConnectAction(
     return { error: 'Configura prima la tua chiave Enable Banking nelle impostazioni.' }
   }
 
+  const redirectUrl = process.env.ENABLE_BANKING_REDIRECT_URL
+  if (!redirectUrl) {
+    return { error: 'Configurazione server incompleta: ENABLE_BANKING_REDIRECT_URL non impostata.' }
+  }
+
   const validUntil = new Date(Date.now() + CONSENT_DAYS * 86_400_000)
   const connection = createPendingConnection(user.id, institutionId, aspspName, aspspCountry, validUntil)
 
-  const auth = await startAuth(creds, {
-    aspspName,
-    aspspCountry,
-    state:       connection.state,
-    redirectUrl: redirectUrl(),
-    validUntil:  validUntil.toISOString(),
-  })
+  // Difesa in profondità: qualunque errore imprevisto (non solo un null di
+  // ritorno) deve comunque marcare la connessione come fallita, mai lasciarla
+  // 'pending' senza che l'utente possa capire cosa è successo o ritentare.
+  let auth: Awaited<ReturnType<typeof startAuth>>
+  try {
+    auth = await startAuth(creds, {
+      aspspName,
+      aspspCountry,
+      state: connection.state,
+      redirectUrl,
+      validUntil: validUntil.toISOString(),
+    })
+  } catch (err) {
+    console.warn('[enablebanking] startAuth ha lanciato un errore inatteso:', err)
+    auth = null
+  }
 
   if (!auth) {
-    // Avvio fallito lato Enable Banking: non lasciare una riga 'pending' orfana.
     setConnectionStatus(connection.id, 'revoked')
     return { error: 'Impossibile avviare il collegamento con la banca. Riprova più tardi.' }
   }
