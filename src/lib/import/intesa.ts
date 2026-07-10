@@ -61,9 +61,14 @@ export function parseIntesaXlsx(buffer: Buffer): ParsedRow[] {
 
   const { rowIdx: headerIdx, colOffset: C } = found
 
-  // Data rows: must have a numeric date serial (> 40000 = past 2009) nella colonna "Data"
+  // Data rows: must have a numeric date serial (> 40000 = past 2009) nella colonna "Data".
+  // Skip rows with Contabilizzazione="NO": sono transazioni in sospeso che Intesa riesporta
+  // con Operazione/Dettagli diversi una volta contabilizzate → causerebbero duplicati nel DB.
   const dataRows = (all.slice(headerIdx + 1) as unknown[][]).filter(
-    (r) => typeof r[C] === 'number' && (r[C] as number) > 40_000,
+    (r) =>
+      typeof r[C] === 'number' &&
+      (r[C] as number) > 40_000 &&
+      String(r[C + 4] ?? '').trim().toUpperCase() !== 'NO',
   )
 
   // Track hash occurrences within this file to handle legitimate duplicates
