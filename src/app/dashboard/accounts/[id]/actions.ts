@@ -1,7 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
-import { updateTransactionCategory } from '@/lib/transactions'
+import { updateTransactionCategory, updateTransactionDescription, deleteTransaction } from '@/lib/transactions'
 import { createCategoryRule } from '@/lib/merchants'
 
 export async function updateCategoryAction(
@@ -22,4 +22,19 @@ export async function createRuleFromCorrectionAction(
   if (!result.ok) return { ok: false, error: result.error }
   revalidatePath('/dashboard/settings')
   return { ok: true }
+}
+
+export async function updateDescriptionAction(
+  txnId:       number,
+  description: string,
+): Promise<void> {
+  const user = await requireUser()
+  updateTransactionDescription(user.id, txnId, description)
+  revalidatePath('/dashboard/accounts/[id]', 'page')
+}
+
+export async function deleteTransactionAction(txnId: number): Promise<void> {
+  const user = await requireUser()
+  deleteTransaction(user.id, txnId)
+  revalidatePath('/dashboard/accounts/[id]', 'page')
 }

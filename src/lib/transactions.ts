@@ -238,6 +238,22 @@ export function updateTransactionCategory(
     .run(categoryId, txnId, userId)
 }
 
+export function updateTransactionDescription(
+  userId: number,
+  txnId: number,
+  description: string,
+): void {
+  sqlite
+    .prepare('UPDATE transactions SET description_raw = ? WHERE id = ? AND owner_id = ?')
+    .run(description.trim(), txnId, userId)
+}
+
+export function deleteTransaction(userId: number, txnId: number): void {
+  sqlite
+    .prepare('DELETE FROM transactions WHERE id = ? AND owner_id = ?')
+    .run(txnId, userId)
+}
+
 export function listAllCategories(): { id: number; name: string; kind: string }[] {
   return sqlite
     .prepare('SELECT id, name, kind FROM categories ORDER BY kind, name')

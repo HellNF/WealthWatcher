@@ -1,6 +1,11 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { updateCategoryAction, createRuleFromCorrectionAction } from './actions'
+import {
+  updateCategoryAction,
+  createRuleFromCorrectionAction,
+  updateDescriptionAction,
+  deleteTransactionAction,
+} from './actions'
 import { fromMinor } from '@/lib/money'
 import type { TransactionRow } from '@/lib/transactions'
 import {
@@ -9,7 +14,7 @@ import {
   DataCard, DataCardHeader, DataRow,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import { ReceiptText, Wand2, X, Check } from 'lucide-react'
+import { ReceiptText, Wand2, X, Check, Pencil, Trash2 } from 'lucide-react'
 
 interface Category { id: number; name: string; kind: string }
 
@@ -126,6 +131,124 @@ function CategorySelect({
   )
 }
 
+function DescriptionCell({
+  txnId,
+  merchantName,
+  descriptionRaw,
+}: {
+  txnId:          number
+  merchantName:   string | null
+  descriptionRaw: string
+}) {
+  const [editing,  setEditing]  = useState(false)
+  const [value,    setValue]    = useState(descriptionRaw)
+  const [isPending, startTransition] = useTransition()
+
+  function handleSave() {
+    if (!value.trim() || value.trim() === descriptionRaw) { setEditing(false); return }
+    startTransition(async () => {
+      await updateDescriptionAction(txnId, value.trim())
+      setEditing(false)
+    })
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 w-full">
+        <input
+          autoFocus
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave()
+            if (e.key === 'Escape') { setValue(descriptionRaw); setEditing(false) }
+          }}
+          className={cn(
+            'flex-1 min-w-0 text-xs bg-[--surface] border border-[--brand]/60 rounded-md px-2 py-1',
+            'text-[--ink] focus:outline-none focus:border-[--brand] focus:ring-1 focus:ring-[--ring]',
+          )}
+        />
+        <button
+          onClick={handleSave}
+          disabled={isPending || !value.trim()}
+          title="Salva"
+          className="size-6 flex items-center justify-center rounded text-[--brand-text] hover:bg-[--brand-subtle] disabled:opacity-40 transition-colors"
+        >
+          <Check className="size-3.5" />
+        </button>
+        <button
+          onClick={() => { setValue(descriptionRaw); setEditing(false) }}
+          title="Annulla"
+          className="size-6 flex items-center justify-center rounded text-[--muted] hover:bg-[--surface-2] transition-colors"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 group/desc min-w-0">
+      <div className="truncate min-w-0">
+        {merchantName ? (
+          <>
+            <span className="font-medium text-[--ink]">{merchantName}</span>
+            <span className="text-[--faint] ml-2 text-xs">{value}</span>
+          </>
+        ) : (
+          <span className="text-[--ink]">{value}</span>
+        )}
+      </div>
+      <button
+        onClick={() => setEditing(true)}
+        title="Modifica descrizione"
+        className="shrink-0 size-5 flex items-center justify-center rounded text-[--faint] opacity-0 group-hover/desc:opacity-100 hover:text-[--ink] hover:bg-[--surface-2] transition-all"
+      >
+        <Pencil className="size-3" />
+      </button>
+    </div>
+  )
+}
+
+function DeleteButton({ txnId }: { txnId: number }) {
+  const [confirm,    setConfirm]    = useState(false)
+  const [isPending,  startTransition] = useTransition()
+
+  if (confirm) {
+    return (
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-[--danger-text]">Eliminare?</span>
+        <button
+          onClick={() => startTransition(() => deleteTransactionAction(txnId))}
+          disabled={isPending}
+          title="Conferma"
+          className="size-6 flex items-center justify-center rounded text-[--danger-text] hover:bg-[--danger-subtle] disabled:opacity-40 transition-colors"
+        >
+          <Check className="size-3.5" />
+        </button>
+        <button
+          onClick={() => setConfirm(false)}
+          title="Annulla"
+          className="size-6 flex items-center justify-center rounded text-[--muted] hover:bg-[--surface-2] transition-colors"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => setConfirm(true)}
+      title="Elimina transazione"
+      className="size-7 flex items-center justify-center rounded text-[--faint] hover:text-[--danger-text] hover:bg-[--danger-subtle] opacity-0 group-hover/row:opacity-100 transition-all"
+    >
+      <Trash2 className="size-3.5" />
+    </button>
+  )
+}
+
 export default function TransactionTable({
   transactions,
   categories,
@@ -155,25 +278,21 @@ export default function TransactionTable({
                 <Th>Descrizione</Th>
                 <Th>Categoria</Th>
                 <Th className="text-right">Importo</Th>
+                <Th className="w-8" />
               </Tr>
             </TableHead>
             <TableBody>
               {transactions.map((txn) => (
-                <Tr key={txn.id}>
+                <Tr key={txn.id} className="group/row">
                   <Td className="text-[--muted] text-xs whitespace-nowrap">
                     {formatDate(txn.booked_date)}
                   </Td>
                   <Td className="max-w-xs">
-                    <div className="truncate">
-                      {txn.merchant_name ? (
-                        <>
-                          <span className="font-medium text-[--ink]">{txn.merchant_name}</span>
-                          <span className="text-[--faint] ml-2 text-xs">{txn.description_raw}</span>
-                        </>
-                      ) : (
-                        <span className="text-[--ink]">{txn.description_raw}</span>
-                      )}
-                    </div>
+                    <DescriptionCell
+                      txnId={txn.id}
+                      merchantName={txn.merchant_name}
+                      descriptionRaw={txn.description_raw}
+                    />
                   </Td>
                   <Td>
                     <CategorySelect
@@ -188,6 +307,9 @@ export default function TransactionTable({
                       {txn.amount_minor >= 0 ? '+' : ''}
                       {fromMinor(txn.amount_minor, txn.currency)}
                     </Badge>
+                  </Td>
+                  <Td>
+                    <DeleteButton txnId={txn.id} />
                   </Td>
                 </Tr>
               ))}
@@ -223,6 +345,9 @@ export default function TransactionTable({
                   categories={categories}
                 />
               </div>
+              <DataRow label="">
+                <DeleteButton txnId={txn.id} />
+              </DataRow>
             </div>
           </DataCard>
         ))}
