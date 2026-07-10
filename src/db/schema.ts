@@ -448,6 +448,64 @@ export const assets = sqliteTable(
   ],
 )
 
+// ── vehicle_details ───────────────────────────────────────────────────────────
+// Dati identificativi 1:1 con un asset di kind 'vehicle', usati per costruire la
+// query di ricerca comparabili e per il refresh periodico della stima di valore.
+export const vehicleDetails = sqliteTable('vehicle_details', {
+  asset_id:             integer('asset_id').primaryKey()
+                          .references(() => assets.id, { onDelete: 'cascade' }),
+  make:                 text('make').notNull(),
+  model:                text('model').notNull(),
+  year:                 integer('year').notNull(),               // anno immatricolazione
+  fuel:                 text('fuel'),                            // 'petrol'|'diesel'|'electric'|'hybrid'|'lpg', nullable
+  gearbox:              text('gearbox'),                         // 'manual'|'automatic', nullable
+  power_hp:             integer('power_hp'),                      // potenza in CV, opzionale — restringe i comparabili alla stessa fascia
+  displacement_cc:      integer('displacement_cc'),                // cilindrata in cc (es. 1968), opzionale — restringe i comparabili
+  country:              text('country').notNull().default('IT'), // ISO alpha-2 del mercato di ricerca: AT|BE|DE|ES|FR|IT|LU|NL
+  // 'fwd'|'rwd'|'awd', opzionale — SOLO informativo: AutoScout24 non espone un
+  // parametro di ricerca funzionante per la trazione (verificato: nessuno dei
+  // filtri tentati incide sul conteggio risultati), quindi NON viene usato per
+  // restringere la query dei comparabili.
+  drivetrain:           text('drivetrain'),
+  mileage_km:           integer('mileage_km').notNull(),          // km alla data di inserimento/ultimo aggiornamento manuale
+  annual_km:            integer('annual_km'),                     // km/anno stimati, opzionale — estrapola il mileage nel tempo
+  // Prezzo pagato dall'utente, in minor units nella valuta di `assets.currency`
+  // (nessuna colonna valuta propria — si assume la stessa dell'asset). Opzionale:
+  // usato solo per il confronto percentuale in UI, MAI per il patrimonio netto
+  // (quello usa sempre assets.value_minor, cioè il valore attuale stimato).
+  purchase_price_minor: integer('purchase_price_minor'),
+  auto_estimate:        integer('auto_estimate').notNull().default(1), // 1 = stima automatica attiva
+  last_estimate_at:     integer('last_estimate_at'),               // unix epoch ultimo fetch riuscito (TTL)
+  last_estimate_source: text('last_estimate_source'),              // 'autoscout24', nullable
+  last_estimate_confidence: text('last_estimate_confidence'),      // 'high'|'medium'|'low' dell'ultima stima riuscita, nullable
+  created_at:           integer('created_at').notNull().default(sql`(unixepoch())`),
+  updated_at:           integer('updated_at').notNull().default(sql`(unixepoch())`),
+})
+
+// ── asset_valuations ──────────────────────────────────────────────────────────
+// Storico append-only del valore stimato di un asset generico (oggi solo veicoli).
+// One row per (asset, date). Modellata su price_history — history is immutable.
+export const assetValuations = sqliteTable(
+  'asset_valuations',
+  {
+    id:          integer('id').primaryKey({ autoIncrement: true }),
+    asset_id:    integer('asset_id')
+                   .notNull()
+                   .references(() => assets.id),   // no cascade — storico immutabile
+    date:        text('date').notNull(),           // ISO YYYY-MM-DD
+    value_minor: integer('value_minor').notNull(), // valore stimato, in `currency`
+    currency:    text('currency').notNull(),
+    source:      text('source'),                   // 'autoscout24' | 'manual'
+    sample_size: integer('sample_size'),            // n. annunci comparabili usati per la mediana
+    confidence:  text('confidence'),                // 'high'|'medium'|'low', solo per source='autoscout24'
+    created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex('asset_valuations_asset_date_uniq').on(t.asset_id, t.date),
+    index('idx_asset_valuations_asset').on(t.asset_id),
+  ],
+)
+
 // ── mortgages ─────────────────────────────────────────────────────────────────
 // Piano di ammortamento mutuo (metodo francese). Vista dedicata — non incide
 // sul patrimonio netto globale (nessun collegamento a valuation_snapshots).
@@ -557,6 +615,8 @@ export type ValuationSnapshot   = InferSelectModel<typeof valuationSnapshots>
 export type UserSettings        = InferSelectModel<typeof userSettings>
 export type KidDocument         = InferSelectModel<typeof kidDocuments>
 export type Asset               = InferSelectModel<typeof assets>
+export type VehicleDetails      = InferSelectModel<typeof vehicleDetails>
+export type AssetValuation      = InferSelectModel<typeof assetValuations>
 export type Mortgage            = InferSelectModel<typeof mortgages>
 export type FinancialGoal       = InferSelectModel<typeof financialGoals>
 export type Budget              = InferSelectModel<typeof budgets>

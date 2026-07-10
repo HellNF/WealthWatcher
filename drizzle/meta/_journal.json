@@ -134,6 +134,41 @@
       "when": 1783349684278,
       "tag": "0018_nostalgic_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1783687070062,
+      "tag": "0019_sparkling_thaddeus_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1783688287647,
+      "tag": "0020_tense_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1783689544645,
+      "tag": "0021_slim_exodus",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1783714335451,
+      "tag": "0022_wise_rattler",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1783714688637,
+      "tag": "0023_thick_darkhawk",
+      "breakpoints": true
     }
   ]
 }

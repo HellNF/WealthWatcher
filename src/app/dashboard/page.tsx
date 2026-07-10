@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/dal'
 import { listInstitutions } from '@/lib/institutions'
 import { getInstitutionValueEur } from '@/lib/institutionValuation'
-import { listAssets } from '@/lib/assets'
+import { listAssets, getVehicleDetails } from '@/lib/assets'
 import { listAccounts } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import { cashRunwayAlert } from '@/lib/alerts/liquidity'
@@ -90,6 +90,9 @@ export default async function DashboardPage() {
   ])
 
   const assets     = listAssets(user.id)
+  const vehicleDetailsByAsset = new Map(
+    assets.filter((a) => a.kind === 'vehicle').map((a) => [a.id, getVehicleDetails(a.id)]),
+  )
   const accounts   = listAccounts(user.id)
   const portfolios = listPortfolios(user.id)
   const goals      = listGoals(user.id)
@@ -469,7 +472,7 @@ export default async function DashboardPage() {
         ) : (
           <Card noPadding className="overflow-hidden divide-y divide-[--border]">
             {assets.map((asset) => (
-              <AssetRow key={asset.id} asset={asset} />
+              <AssetRow key={asset.id} asset={asset} vehicleDetails={vehicleDetailsByAsset.get(asset.id)} />
             ))}
           </Card>
         )}

@@ -14,7 +14,9 @@ import '@/db'
 import { sqlite } from '@/db'
 import { takeSnapshot } from '@/lib/valuation'
 import { refreshPortfolioPrices } from '@/lib/prices/index'
+import { refreshVehicleEstimate } from '@/lib/prices/vehicleEstimate'
 import { listPortfolios } from '@/lib/portfolios'
+import { listAssets, getVehicleDetails } from '@/lib/assets'
 
 async function main() {
   const users = sqlite.prepare('SELECT id FROM users').all() as { id: number }[]
@@ -32,6 +34,15 @@ async function main() {
       for (const portfolio of portfolios) {
         console.log(`  Aggiornamento prezzi portafoglio #${portfolio.id} "${portfolio.name}"...`)
         await refreshPortfolioPrices(userId, portfolio.id)
+      }
+
+      const vehicles = listAssets(userId).filter((a) => a.kind === 'vehicle')
+      for (const asset of vehicles) {
+        const details = getVehicleDetails(asset.id)
+        if (!details) continue // asset 'vehicle' senza dati identificativi — nulla da stimare
+        console.log(`  Stima valore veicolo "${asset.name}" (${details.make} ${details.model})...`)
+        const result = await refreshVehicleEstimate(asset, details)
+        if (result.stale) console.log('    ⚠ stima non aggiornata (fetch fallito) — valore precedente mantenuto')
       }
     }
 

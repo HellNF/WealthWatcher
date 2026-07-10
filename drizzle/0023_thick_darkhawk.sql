@@ -1,0 +1,1 @@
+ALTER TABLE `vehicle_details` ADD `purchase_price_minor` integer;
