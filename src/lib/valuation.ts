@@ -189,6 +189,21 @@ export async function takeSnapshot(userId: number, date?: string): Promise<Valua
     .get() as ValuationSnapshot
 }
 
+/**
+ * Ricalcola e persiste lo snapshot di oggi in modo non bloccante: da chiamare
+ * dopo ogni mutazione che cambia saldi/valore (conti, transazioni, asset,
+ * investimenti) così il patrimonio netto in dashboard non resta disallineato
+ * fino al giorno successivo. A differenza di ensureTodaySnapshot — che calcola
+ * solo se manca lo snapshot odierno — questa lo ricalcola sempre.
+ */
+export async function refreshNetWorth(userId: number): Promise<void> {
+  try {
+    await takeSnapshot(userId)
+  } catch (e) {
+    console.error('[valuation] refreshNetWorth fallito:', e)
+  }
+}
+
 export function hasSnapshot(userId: number, date: string): boolean {
   const row = sqlite
     .prepare(`SELECT id FROM valuation_snapshots WHERE owner_id = ? AND date = ?`)

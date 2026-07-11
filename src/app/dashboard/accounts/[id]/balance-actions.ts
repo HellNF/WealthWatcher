@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser, setAccountBalanceAnchor, clearAccountBalanceAnchor } from '@/lib/accounts'
 import { toMinor } from '@/lib/money'
+import { refreshNetWorth } from '@/lib/valuation'
 
 type State = { error?: string; success?: string } | undefined
 
@@ -35,6 +36,7 @@ export async function setBalanceAction(
   }
 
   setAccountBalanceAnchor(user.id, accountId, balanceMinor, date)
+  await refreshNetWorth(user.id)
   revalidatePath(`/dashboard/accounts/${accountId}`)
   return { success: 'Saldo di riferimento impostato' }
 }
@@ -45,5 +47,6 @@ export async function clearBalanceAction(accountId: number): Promise<void> {
   const account = getAccountForUser(user.id, accountId)
   if (!account) return
   clearAccountBalanceAnchor(user.id, accountId)
+  await refreshNetWorth(user.id)
   revalidatePath(`/dashboard/accounts/${accountId}`)
 }

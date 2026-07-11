@@ -11,6 +11,7 @@
 import '@/db'
 import { listActiveConnections } from '@/lib/banking/connections'
 import { syncConnection } from '@/lib/banking/sync'
+import { refreshNetWorth } from '@/lib/valuation'
 
 async function main() {
   const connections = listActiveConnections()
@@ -18,6 +19,10 @@ async function main() {
     console.log('Nessuna connessione Open Banking attiva.')
     return
   }
+
+  // Un utente può avere più connessioni: ricalcola il patrimonio una sola
+  // volta a fine giro, non per ogni connessione sincronizzata.
+  const usersToRefresh = new Set<number>()
 
   for (const connection of connections) {
     console.log(`\nConnessione #${connection.id} (${connection.aspsp_name}, utente ${connection.owner_id})...`)
@@ -31,6 +36,7 @@ async function main() {
         console.log('  ⚠ chiave Enable Banking non configurata dall\'utente — sync saltata')
         continue
       }
+      usersToRefresh.add(connection.owner_id)
       for (const acc of result.accounts) {
         if (acc.error) {
           console.log(`  Conto #${acc.accountId}: ⚠ ${acc.error}`)
@@ -41,6 +47,10 @@ async function main() {
     } catch (err) {
       console.error(`  Sync fallita:`, err)
     }
+  }
+
+  for (const userId of usersToRefresh) {
+    await refreshNetWorth(userId)
   }
 }
 

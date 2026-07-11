@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/dal'
 import { getInstitutionForUser, updateInstitution, deleteInstitution } from '@/lib/institutions'
 import { createAccount } from '@/lib/accounts'
 import { createPortfolio } from '@/lib/portfolios'
+import { refreshNetWorth } from '@/lib/valuation'
 
 const accountSchema = z.object({
   name:     z.string().trim().min(1, 'Nome obbligatorio').max(100),
@@ -102,6 +103,7 @@ export async function updateInstitutionAction(
 export async function deleteInstitutionAction(institutionId: number): Promise<void> {
   const user = await requireUser()
   deleteInstitution(user.id, institutionId)
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   redirect('/dashboard')
 }

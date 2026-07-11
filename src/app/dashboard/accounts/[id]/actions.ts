@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
 import { updateTransactionCategory, updateTransactionDescription, deleteTransaction } from '@/lib/transactions'
 import { createCategoryRule } from '@/lib/merchants'
+import { refreshNetWorth } from '@/lib/valuation'
 
 export async function updateCategoryAction(
   txnId: number,
@@ -36,5 +37,6 @@ export async function updateDescriptionAction(
 export async function deleteTransactionAction(txnId: number): Promise<void> {
   const user = await requireUser()
   deleteTransaction(user.id, txnId)
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard/accounts/[id]', 'page')
 }

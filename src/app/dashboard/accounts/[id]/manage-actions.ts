@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getAccountForUser, updateAccount, deleteAccount, setAccountInterestRate } from '@/lib/accounts'
+import { refreshNetWorth } from '@/lib/valuation'
 
 type State = { error?: string; success?: string } | undefined
 
@@ -53,6 +54,7 @@ export async function deleteAccountAction(accountId: number): Promise<void> {
   const institutionId = account?.institution_id
 
   deleteAccount(user.id, accountId)
+  await refreshNetWorth(user.id)
 
   if (institutionId) {
     revalidatePath(`/dashboard/institutions/${institutionId}`)

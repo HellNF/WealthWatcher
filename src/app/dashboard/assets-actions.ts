@@ -6,7 +6,7 @@ import {
   getVehicleDetails, upsertVehicleDetails, deleteVehicleDetails,
   type AssetKind, type VehicleDetailsInput, type Drivetrain,
 } from '@/lib/assets'
-import { takeSnapshot } from '@/lib/valuation'
+import { refreshNetWorth } from '@/lib/valuation'
 import { refreshVehicleEstimate } from '@/lib/prices/vehicleEstimate'
 import { toMinor } from '@/lib/money'
 import type { FuelType, GearboxType, Country } from '@/lib/prices/autoscout24'
@@ -19,17 +19,6 @@ const GEARBOX_TYPES: GearboxType[] = ['manual', 'automatic']
 const COUNTRIES: Country[] = ['AT', 'BE', 'DE', 'ES', 'FR', 'IT', 'LU', 'NL']
 const DRIVETRAIN_TYPES: Drivetrain[] = ['fwd', 'rwd', 'awd']
 const CURRENT_YEAR = new Date().getFullYear()
-
-// Aggiorna lo snapshot di oggi così il patrimonio netto riflette subito la
-// modifica (il grafico storico usa lo stesso snapshot). Non blocca la mutazione;
-// un fallimento (es. FX) viene loggato, non silenziato.
-async function refreshNetWorth(userId: number) {
-  try {
-    await takeSnapshot(userId)
-  } catch (e) {
-    console.error('[assets] refreshNetWorth', e)
-  }
-}
 
 interface ParsedFields {
   name: string

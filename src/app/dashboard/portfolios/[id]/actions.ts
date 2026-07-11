@@ -18,7 +18,7 @@ import { setCryptoHolding, removeCryptoHolding } from '@/lib/investmentTxns'
 import { toMinor, dec } from '@/lib/money'
 import { getOpenAiKey } from '@/lib/userSettings'
 import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
-import { takeSnapshot } from '@/lib/valuation'
+import { refreshNetWorth } from '@/lib/valuation'
 import { sqlite } from '@/db'
 
 export type ActionState = { error?: string } | undefined
@@ -120,7 +120,7 @@ export async function addTxnAction(
   }
 
   // Ricalcola snapshot così la dashboard riflette subito il nuovo patrimonio.
-  await takeSnapshot(user.id).catch(() => {})
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
   return undefined
@@ -132,7 +132,7 @@ export async function deleteTxnAction(
 ): Promise<void> {
   const user = await requireUser()
   deleteTxn(user.id, txnId)
-  await takeSnapshot(user.id).catch(() => {})
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
 }
@@ -185,7 +185,7 @@ export async function updateTxnAction(
     return { error: err instanceof Error ? err.message : 'Errore durante il salvataggio' }
   }
 
-  await takeSnapshot(user.id).catch(() => {})
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
   return undefined
@@ -346,7 +346,7 @@ export async function upsertCryptoHoldingAction(
   // Aggiorna il prezzo dei crypto prima di scattare lo snapshot,
   // altrimenti instrument.last_price è null e il portafoglio viene escluso dal patrimonio.
   await refreshPortfolioPrices(user.id, portfolioId).catch(() => {})
-  await takeSnapshot(user.id).catch(() => {})
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
   return undefined
@@ -358,7 +358,7 @@ export async function removeCryptoHoldingAction(
 ): Promise<void> {
   const user = await requireUser()
   removeCryptoHolding(user.id, portfolioId, instrumentId)
-  await takeSnapshot(user.id).catch(() => {})
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
   revalidatePath(`/dashboard/portfolios/${portfolioId}`)
 }

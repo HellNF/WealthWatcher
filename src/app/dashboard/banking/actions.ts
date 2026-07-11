@@ -8,6 +8,7 @@ import { requireUser } from '@/lib/dal'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { startAuth, deleteSession } from '@/lib/banking/client'
 import { getEnableBankingKey } from '@/lib/userSettings'
+import { refreshNetWorth } from '@/lib/valuation'
 import {
   createPendingConnection,
   getConnectionForUser,
@@ -100,6 +101,7 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
   }
 
   const result = await syncConnection(connection)
+  if (result.status === 'synced') await refreshNetWorth(user.id)
   revalidatePath(`/dashboard/institutions/${connection.institution_id}`)
 
   if (result.status === 'expired') {

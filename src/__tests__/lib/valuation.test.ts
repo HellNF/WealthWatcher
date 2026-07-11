@@ -145,6 +145,46 @@ describe('takeSnapshot', () => {
   })
 })
 
+// ── refreshNetWorth ────────────────────────────────────────────────────────────
+// Riproduce il bug segnalato: eliminare un conto corrente non ricalcolava il
+// patrimonio finché non cambiava il giorno (ensureTodaySnapshot calcola solo
+// se manca lo snapshot odierno). Usa un'istituzione/conto usa-e-getta,
+// indipendenti dalla fixture condivisa del file, per non alterarne l'ordine.
+
+describe('refreshNetWorth', () => {
+  test('ricalcola lo snapshot di oggi dopo l\'eliminazione di un conto', async () => {
+    const { refreshNetWorth } = await import('@/lib/valuation')
+    const { deleteAccount } = await import('@/lib/accounts')
+    const today = new Date().toISOString().slice(0, 10)
+
+    sqlite.prepare(`INSERT INTO institutions (owner_id, name, kind) VALUES (?, 'RefreshTestBank', 'bank')`).run(userId)
+    const inst = sqlite.prepare(`SELECT id FROM institutions WHERE owner_id = ? AND name = 'RefreshTestBank'`).get(userId) as { id: number }
+    sqlite.prepare(`INSERT INTO bank_accounts (owner_id, institution_id, name, currency) VALUES (?, ?, 'Refresh Acc', 'EUR')`).run(userId, inst.id)
+    const acc = sqlite.prepare(`SELECT id FROM bank_accounts WHERE owner_id = ? AND name = 'Refresh Acc'`).get(userId) as { id: number }
+    sqlite.prepare(`INSERT INTO transactions (owner_id, bank_account_id, booked_date, description_raw, dedup_hash, amount_minor, currency) VALUES (?, ?, '2024-01-01', 'Deposit', 'refresh-test-hash', 50000, 'EUR')`).run(userId, acc.id)
+
+    try {
+      await refreshNetWorth(userId)
+      const before = sqlite
+        .prepare(`SELECT accounts_eur_minor FROM valuation_snapshots WHERE owner_id = ? AND date = ?`)
+        .get(userId, today) as { accounts_eur_minor: number }
+      expect(before.accounts_eur_minor).toBeGreaterThanOrEqual(50000)
+
+      // Stessa sequenza di deleteAccountAction: elimina il conto, poi ricalcola.
+      deleteAccount(userId, acc.id)
+      await refreshNetWorth(userId)
+
+      const after = sqlite
+        .prepare(`SELECT accounts_eur_minor FROM valuation_snapshots WHERE owner_id = ? AND date = ?`)
+        .get(userId, today) as { accounts_eur_minor: number }
+      expect(after.accounts_eur_minor).toBe(before.accounts_eur_minor - 50000)
+    } finally {
+      sqlite.prepare(`DELETE FROM bank_accounts WHERE institution_id = ?`).run(inst.id)
+      sqlite.prepare(`DELETE FROM institutions WHERE id = ?`).run(inst.id)
+    }
+  })
+})
+
 // ── listSnapshots ─────────────────────────────────────────────────────────────
 
 describe('listSnapshots', () => {

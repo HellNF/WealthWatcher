@@ -6,6 +6,7 @@ import { providerParser } from '@/lib/providers'
 import { PARSERS } from '@/lib/import/registry'
 import { normalizeDescription, resolveMerchant, resolveCategoryRule, resolveIntesaCategory } from '@/lib/merchants'
 import { previewRows, insertBatch, type InsertableTransaction, type PreviewRow } from '@/lib/transactions'
+import { refreshNetWorth } from '@/lib/valuation'
 
 // ── Shared: parse XLSX + resolve merchants ────────────────────────────────────
 // Il parser è scelto dal provider dell'istituzione del conto. Se il provider non
@@ -125,6 +126,7 @@ export async function commitImportAction(formData: FormData): Promise<CommitResu
       filename:      file.name,
       rows,
     })
+    await refreshNetWorth(user.id)
 
     return {
       insertedCount:  result.insertedCount,
