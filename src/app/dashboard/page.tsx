@@ -19,7 +19,7 @@ import {
   Stat, Badge, EmptyState,
 } from '@/components/ui'
 import Link from 'next/link'
-import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2 } from 'lucide-react'
+import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2, TrendingUp } from 'lucide-react'
 import { computeGoalsSummary, listGoals, isGoalCompleted } from '@/lib/goals'
 import { budgetStatus } from '@/lib/budgets'
 import { getFiscalCalendar } from '@/lib/calendar'
@@ -188,8 +188,10 @@ export default async function DashboardPage() {
       {/* ── Banner liquidità critica ──────────────────────────────────────── */}
       {runway?.status === 'CRITICAL_SHORTAGE' && (
         <Card className="border-[--danger] bg-[--danger]/5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="size-5 text-[--danger] shrink-0 mt-0.5" strokeWidth={1.75} />
+          <div className="flex items-start gap-3.5">
+            <div className="size-9 rounded-xl bg-[--danger-subtle] flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-4 text-[--danger]" strokeWidth={1.75} />
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[--danger]">
                 Rischio scoperto entro i prossimi {runway.windowDays} giorni
@@ -207,16 +209,22 @@ export default async function DashboardPage() {
       )}
 
       {/* ── Net worth hero ────────────────────────────────────────────────── */}
-      <Card noPadding className="overflow-hidden">
-        <div className="p-6 pb-4">
+      <Card noPadding className="relative overflow-hidden">
+        {/* glow ambientale, fisso e non interattivo — mai su elementi scrollabili */}
+        <div
+          className="pointer-events-none absolute -top-28 -right-20 w-80 h-80 rounded-full bg-[--brand]/[0.08] blur-[90px]"
+          aria-hidden
+        />
+        <div className="relative p-6 pb-4">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-[--muted] uppercase tracking-wide">
+                <span className="size-1.5 rounded-full bg-[--brand] animate-pulse" />
                 Patrimonio netto
               </p>
               {latest ? (
                 <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-4xl font-bold font-mono tabular-nums text-[--ink] leading-none">
+                  <span className="text-4xl sm:text-5xl font-bold font-mono tabular-nums text-[--ink] leading-none tracking-tight">
                     {formatEur(latest.net_worth_eur_minor)}
                   </span>
                   {delta !== null && (
@@ -304,10 +312,10 @@ export default async function DashboardPage() {
             <div className="border-t border-[--border] px-4 py-2 flex justify-center">
               <Link
                 href="/dashboard/tasse"
-                className="inline-flex items-center gap-1 text-xs text-[--brand-text] hover:underline"
+                className="group inline-flex items-center gap-1 text-xs text-[--brand-text] hover:underline"
               >
-                <ChevronRight className="size-3" />
                 Dettaglio fiscale completo
+                <ChevronRight className="size-3 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>
@@ -315,10 +323,10 @@ export default async function DashboardPage() {
           <div className="mx-6 mb-4">
             <Link
               href="/dashboard/tasse"
-              className="inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
+              className="group inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
             >
-              <ChevronRight className="size-3.5" />
               Dettaglio fiscale — tasse latenti, plus/minus realizzate, bollo/IVAFE
+              <ChevronRight className="size-3.5 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5" />
             </Link>
           </div>
         )}
@@ -334,7 +342,10 @@ export default async function DashboardPage() {
       {/* ── Conti correnti (accesso rapido) ──────────────────────────────── */}
       {accounts.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-[--ink]">Conti correnti</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-[--ink]">
+            <Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />
+            Conti correnti
+          </h2>
           <Card noPadding className="overflow-hidden divide-y divide-[--border]">
             {accounts.map((acc) => {
               const instName = institutionMap.get(acc.institution_id)
@@ -343,9 +354,9 @@ export default async function DashboardPage() {
                 <Link
                   key={acc.id}
                   href={`/dashboard/accounts/${acc.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
                 >
-                  <div className="size-9 rounded-xl bg-[--surface-2] ring-1 ring-[--border] flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-xl bg-[--surface-2] ring-1 ring-[--border] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
                     <span className="text-sm font-semibold text-[--muted]">
                       {acc.name[0].toUpperCase()}
                     </span>
@@ -359,7 +370,7 @@ export default async function DashboardPage() {
                   <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
                     {eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
                   </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
                 </Link>
               )
             })}
@@ -370,7 +381,10 @@ export default async function DashboardPage() {
       {/* ── Portafogli d'investimento (accesso rapido) ───────────────────── */}
       {portfolios.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-base font-semibold text-[--ink]">Portafogli d&apos;investimento</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-[--ink]">
+            <TrendingUp className="size-4 text-[--muted]" strokeWidth={1.75} />
+            Portafogli d&apos;investimento
+          </h2>
           <Card noPadding className="overflow-hidden divide-y divide-[--border]">
             {portfolios.map((pf) => {
               const instName = institutionMap.get(pf.institution_id)
@@ -379,9 +393,9 @@ export default async function DashboardPage() {
                 <Link
                   key={pf.id}
                   href={`/dashboard/portfolios/${pf.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
                 >
-                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
                     <span className="text-sm font-semibold text-[--brand-text]">
                       {pf.name[0].toUpperCase()}
                     </span>
@@ -395,7 +409,7 @@ export default async function DashboardPage() {
                   <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
                     {eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
                   </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
                 </Link>
               )
             })}
@@ -406,6 +420,7 @@ export default async function DashboardPage() {
       {/* ── Istituzioni ───────────────────────────────────────────────────── */}
       <AddSection
         title="Istituzioni"
+        icon={<Building2 className="size-4 text-[--muted]" strokeWidth={1.75} />}
         addLabel="Aggiungi"
         form={
           <Card>
@@ -429,9 +444,9 @@ export default async function DashboardPage() {
                 <Link
                   key={inst.id}
                   href={`/dashboard/institutions/${inst.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
                 >
-                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
                     <span className="text-sm font-semibold text-[--brand-text]">
                       {inst.name[0].toUpperCase()}
                     </span>
@@ -444,7 +459,7 @@ export default async function DashboardPage() {
                     {formatEur(val.valueEurMinor)}
                     {val.stale && <span className="text-[--warning] ml-1" title="Valore parziale">*</span>}
                   </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
+                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
                 </Link>
               )
             })}
@@ -455,6 +470,7 @@ export default async function DashboardPage() {
       {/* ── Altri beni ────────────────────────────────────────────────────── */}
       <AddSection
         title="Altri beni"
+        icon={<Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />}
         subtitle="Liquidità, immobili, veicoli e altro — concorrono al patrimonio netto."
         addLabel="Aggiungi"
         form={

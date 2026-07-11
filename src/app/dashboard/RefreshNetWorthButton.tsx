@@ -18,7 +18,7 @@ export default function RefreshNetWorthButton() {
       disabled={isPending}
       title="Ricalcola il patrimonio netto"
       aria-label="Ricalcola il patrimonio netto"
-      className="inline-flex items-center justify-center size-4 rounded text-[--faint] hover:text-[--ink] disabled:opacity-50 transition-colors shrink-0"
+      className="inline-flex items-center justify-center size-4 rounded text-[--faint] hover:text-[--ink] active:scale-90 disabled:opacity-50 disabled:active:scale-100 transition-all duration-150 shrink-0"
     >
       <RefreshCw className={`size-3 ${isPending ? 'animate-spin' : ''}`} strokeWidth={1.75} />
     </button>

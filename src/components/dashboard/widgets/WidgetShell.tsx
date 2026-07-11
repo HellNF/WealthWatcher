@@ -48,16 +48,16 @@ export function WidgetShell({
           {isEditing ? (
             <>
               {/* S / M / L size picker */}
-              <div className="flex items-center rounded-md overflow-hidden border border-[--border]">
+              <div className="flex items-center gap-0.5 rounded-md border border-[--border] p-0.5">
                 {(['sm', 'md', 'lg'] as const).map((s) => (
                   <button
                     key={s}
                     onClick={() => onResize(s)}
                     className={cn(
-                      'px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none transition-colors focus-visible:outline-none',
+                      'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase leading-none transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-none',
                       size === s
                         ? 'bg-[--brand] text-white'
-                        : 'text-[--muted] bg-[--surface] hover:text-[--ink] hover:bg-[--surface-2]',
+                        : 'text-[--muted] hover:text-[--ink] hover:bg-[--surface-2]',
                     )}
                   >
                     {s.toUpperCase()}
@@ -69,7 +69,7 @@ export function WidgetShell({
               <button
                 onClick={onHide}
                 aria-label="Nascondi widget"
-                className="size-6 flex items-center justify-center rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger]/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+                className="size-6 flex items-center justify-center rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger]/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
               >
                 <EyeOff className="size-3.5" strokeWidth={1.75} />
               </button>

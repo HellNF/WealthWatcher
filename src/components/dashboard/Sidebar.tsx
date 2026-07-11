@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion, LayoutGroup } from 'motion/react'
 import {
   LayoutDashboard,
   BarChart3,
   Settings,
   LogOut,
-  Menu,
   X,
   ChevronRight,
   Target,
@@ -104,17 +104,24 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100',
+                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
                     active
-                      ? 'bg-[--brand-subtle] text-[--brand-text] font-medium'
+                      ? 'text-[--brand-text] font-medium'
                       : 'text-[--muted] hover:bg-[--surface-2] hover:text-[--ink]',
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
-                  <span>{item.label}</span>
                   {active && (
-                    <ChevronRight className="size-3.5 ml-auto text-[--brand]" />
+                    <motion.span
+                      layoutId="sidebar-active-pill"
+                      className="absolute inset-0 rounded-lg bg-[--brand-subtle]"
+                      transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                    />
+                  )}
+                  <item.icon className="relative z-10 size-[18px] shrink-0" strokeWidth={1.75} />
+                  <span className="relative z-10">{item.label}</span>
+                  {active && (
+                    <ChevronRight className="relative z-10 size-3.5 ml-auto text-[--brand]" />
                   )}
                 </Link>
               )
@@ -151,7 +158,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
         <form action={signOutAction} className="shrink-0">
           <button
             type="submit"
-            className="p-1 text-[--faint] hover:text-[--danger] transition-colors duration-100"
+            className="p-1 rounded-md text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] active:scale-90 transition-all duration-150"
             title="Esci"
             aria-label="Esci dall'account"
           >
@@ -171,26 +178,50 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       >
         {/* Brand */}
         <div className="px-4 py-4 border-b border-[--border]">
-          <Link href="/dashboard" aria-label="Torna alla dashboard">
+          <Link
+            href="/dashboard"
+            aria-label="Torna alla dashboard"
+            className="inline-flex transition-transform duration-200 [transition-timing-function:var(--ease-spring)] hover:scale-[1.03] active:scale-[0.97]"
+          >
             <BrandMark size="md" showName />
           </Link>
         </div>
 
-        {navContent}
+        <LayoutGroup id="sidebar-desktop">{navContent}</LayoutGroup>
         {userFooter}
       </aside>
 
       {/* ── Mobile top bar ──────────────────────────────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-sm">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md shadow-[--shadow-sm]">
         <button
-          onClick={() => setMobileOpen(true)}
-          className="text-[--muted] hover:text-[--ink] transition-colors"
-          aria-label="Apri menu"
+          onClick={() => setMobileOpen((o) => !o)}
+          className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+          aria-label={mobileOpen ? 'Chiudi menu' : 'Apri menu'}
           aria-expanded={mobileOpen}
         >
-          <Menu className="size-5" />
+          {/* Hamburger che si trasforma in X — 2 barre, nessuno swap di icone */}
+          <span className="relative w-4 h-4" aria-hidden>
+            <span
+              className={cn(
+                'absolute left-0 top-0 h-[1.5px] w-4 bg-current rounded-full',
+                'transition-transform duration-300 [transition-timing-function:var(--ease-spring)]',
+                mobileOpen && 'translate-y-[7px] rotate-45',
+              )}
+            />
+            <span
+              className={cn(
+                'absolute left-0 bottom-0 h-[1.5px] w-4 bg-current rounded-full',
+                'transition-transform duration-300 [transition-timing-function:var(--ease-spring)]',
+                mobileOpen && '-translate-y-[7px] -rotate-45',
+              )}
+            />
+          </span>
         </button>
-        <Link href="/dashboard" aria-label="Torna alla dashboard">
+        <Link
+          href="/dashboard"
+          aria-label="Torna alla dashboard"
+          className="inline-flex transition-transform duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.97]"
+        >
           <BrandMark size="sm" showName />
         </Link>
         <div className="ml-auto">
@@ -199,39 +230,51 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       </header>
 
       {/* ── Mobile drawer ───────────────────────────────────────────────────── */}
-      {mobileOpen && (
-        <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 z-[30] bg-black/40 backdrop-blur-sm lg:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden
-          />
-          {/* Drawer */}
-          <aside
-            className={cn(
-              'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col',
-              'bg-[--surface] border-r border-[--border] lg:hidden',
-              'transition-transform duration-200 ease-out',
-              mobileOpen ? 'translate-x-0' : '-translate-x-full',
-            )}
-            aria-label="Menu mobile"
+      {/* Sempre montati (non condizionati a mobileOpen): solo così le transizioni
+          di ingresso/uscita hanno il tempo di essere eseguite invece di scattare
+          istantaneamente al mount/unmount. */}
+
+      {/* Overlay */}
+      <div
+        className={cn(
+          'fixed inset-0 z-[30] bg-black/40 backdrop-blur-sm lg:hidden',
+          'transition-opacity duration-300 [transition-timing-function:var(--ease-spring)]',
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden
+      />
+      {/* Drawer */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col',
+          'bg-[--surface] border-r border-[--border] lg:hidden',
+          'transition-transform duration-300 [transition-timing-function:var(--ease-spring)]',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+        aria-label="Menu mobile"
+        aria-hidden={!mobileOpen}
+        inert={!mobileOpen ? true : undefined}
+      >
+        <div className="px-4 py-4 border-b border-[--border] flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            aria-label="Torna alla dashboard"
+            className="inline-flex transition-transform duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.97]"
           >
-            <div className="px-4 py-4 border-b border-[--border] flex items-center justify-between">
-              <BrandMark size="md" showName />
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="text-[--faint] hover:text-[--ink] transition-colors"
-                aria-label="Chiudi menu"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            {navContent}
-            {userFooter}
-          </aside>
-        </>
-      )}
+            <BrandMark size="md" showName />
+          </Link>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1 rounded-md text-[--faint] hover:text-[--ink] hover:bg-[--surface-2] active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+            aria-label="Chiudi menu"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+        <LayoutGroup id="sidebar-mobile">{navContent}</LayoutGroup>
+        {userFooter}
+      </aside>
     </>
   )
 }

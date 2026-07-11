@@ -20,6 +20,7 @@ import { Breadcrumb, Card, Stat, Badge, ConfirmDelete } from '@/components/ui'
 import { AddSection } from '@/components/dashboard/AddSection'
 import PriceHistoryBackfillButton from './PriceHistoryBackfillButton'
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -189,20 +190,17 @@ export default async function PortfolioPage({ params }: Props) {
       )}
 
       {/* ── Link gestione fiscale ───────────────────────────────────────── */}
-      <Card className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <p className="text-sm font-medium text-[--ink]">Analisi fiscale</p>
-          <p className="text-xs text-[--muted] mt-0.5">
-            Zainetto fiscale, tax-loss harvesting, simulatore vendita, plus/minus realizzate.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/tasse"
-          className="shrink-0 inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
-        >
-          Vai a Tasse →
-        </Link>
-      </Card>
+      <Link href="/dashboard/tasse" className="group block">
+        <Card hoverable className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-sm font-medium text-[--ink]">Analisi fiscale</p>
+            <p className="text-xs text-[--muted] mt-0.5">
+              Zainetto fiscale, tax-loss harvesting, simulatore vendita, plus/minus realizzate.
+            </p>
+          </div>
+          <ChevronRight className="size-4 text-[--faint] shrink-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] group-hover:text-[--brand-text] group-hover:translate-x-0.5" />
+        </Card>
+      </Link>
 
       {/* ── Gestione portafoglio ────────────────────────────────────────── */}
       <section className="space-y-3">

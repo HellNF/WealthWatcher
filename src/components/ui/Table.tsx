@@ -90,7 +90,7 @@ export function Tr({ className, children, clickable, ...props }: TrProps) {
   return (
     <tr
       className={cn(
-        'transition-colors duration-100',
+        'transition-colors duration-150 hover:bg-[--surface-2]/60',
         clickable && 'cursor-pointer hover:bg-[--surface-2]',
         className,
       )}

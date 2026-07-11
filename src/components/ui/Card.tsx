@@ -4,14 +4,18 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
   /** Rimuove padding interno */
   noPadding?: boolean
+  /** Solleva leggermente la card al passaggio del mouse (per tile cliccabili) */
+  hoverable?: boolean
 }
 
-export function Card({ className, children, noPadding, ...props }: CardProps) {
+export function Card({ className, children, noPadding, hoverable, ...props }: CardProps) {
   return (
     <div
       className={cn(
         'rounded-2xl border border-[--border] bg-[--surface]',
-        'shadow-[--shadow-sm]',
+        'shadow-[var(--shadow-sm),var(--highlight)]',
+        'transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:var(--ease-spring)]',
+        hoverable && 'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md),var(--highlight)] hover:border-[--border]',
         !noPadding && 'p-4 sm:p-5',
         className,
       )}

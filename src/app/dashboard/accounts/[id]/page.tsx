@@ -114,7 +114,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         {importSupported ? (
           <Link
             href={`/dashboard/accounts/${id}/import`}
-            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-[--brand] text-[--brand-fg] hover:bg-[--brand-hover] transition-all duration-150"
+            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-[--brand] text-[--brand-fg] shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-[--brand-hover] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
           >
             <Upload className="size-4" />
             Importa movimenti
@@ -127,7 +127,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         )}
         <Link
           href={`/dashboard/reports?account=${id}`}
-          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-all duration-150"
+          className="inline-flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
         >
           <BarChart3 className="size-4" />
           Report mensile

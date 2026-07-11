@@ -82,6 +82,7 @@ const iconStyles: Record<ToastVariant, string> = {
 }
 
 const AUTO_DISMISS_MS = 4000
+const EXIT_MS = 180
 
 function ToastItem({
   toast,
@@ -91,6 +92,7 @@ function ToastItem({
   onDismiss: (id: string) => void
 }) {
   const [visible, setVisible] = useState(false)
+  const [leaving, setLeaving] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const Icon = icons[toast.variant]
 
@@ -100,24 +102,33 @@ function ToastItem({
     return () => cancelAnimationFrame(raf)
   }, [])
 
+  // Uscita: prima il fade-out (asincrono, più rapido dell'entrata), poi la rimozione
+  // dallo stack — mai smontare di scatto, altrimenti l'animazione non fa in tempo a girare.
+  const dismiss = useCallback(() => {
+    setLeaving(true)
+    setTimeout(() => onDismiss(toast.id), EXIT_MS)
+  }, [toast.id, onDismiss])
+
   // Auto-dismiss
   useEffect(() => {
-    timerRef.current = setTimeout(() => onDismiss(toast.id), AUTO_DISMISS_MS)
+    timerRef.current = setTimeout(dismiss, AUTO_DISMISS_MS)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [toast.id, onDismiss])
+  }, [dismiss])
 
   return (
     <div
       className={cn(
         'pointer-events-auto flex items-start gap-3 rounded-xl px-4 py-3',
         'bg-[--surface] border border-[--border] shadow-[--shadow-md]',
-        'transition-all duration-150',
+        leaving
+          ? 'transition-all duration-[180ms] [transition-timing-function:var(--ease-spring)] opacity-0 translate-x-2 scale-[0.98]'
+          : 'transition-all duration-300 [transition-timing-function:var(--ease-spring)]',
         // Slide-up: start at translate-y-2 opacity-0, end at translate-y-0 opacity-100
-        visible
+        !leaving && (visible
           ? 'opacity-100 translate-y-0'
-          : 'opacity-0 translate-y-2',
+          : 'opacity-0 translate-y-2'),
         // Reduced motion: skip transform
-        'motion-reduce:translate-y-0',
+        'motion-reduce:translate-y-0 motion-reduce:translate-x-0',
         itemStyles[toast.variant],
       )}
       role="alert"
@@ -125,8 +136,8 @@ function ToastItem({
       <Icon className={cn('size-4 shrink-0 mt-0.5', iconStyles[toast.variant])} />
       <p className="text-sm text-[--ink] flex-1 leading-snug">{toast.message}</p>
       <button
-        onClick={() => onDismiss(toast.id)}
-        className="text-[--faint] hover:text-[--muted] transition-colors shrink-0 -mr-1"
+        onClick={dismiss}
+        className="text-[--faint] hover:text-[--muted] active:scale-90 transition-all duration-150 shrink-0 -mr-1"
         aria-label="Chiudi notifica"
       >
         <X className="size-3.5" />

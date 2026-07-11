@@ -132,9 +132,12 @@ export default async function Home() {
             </Link>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md bg-white text-zinc-950 text-sm font-semibold hover:bg-zinc-100 transition-colors"
+              className="group inline-flex items-center gap-2 h-8 pl-4 pr-1.5 rounded-full bg-white text-zinc-950 text-sm font-semibold hover:bg-zinc-100 transition-all duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.97]"
             >
-              Dashboard <ArrowRight className="size-3" />
+              Dashboard
+              <span className="flex items-center justify-center size-5 rounded-full bg-zinc-950/10 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5">
+                <ArrowRight className="size-3" strokeWidth={2} />
+              </span>
             </Link>
           </div>
         </div>
@@ -143,7 +146,14 @@ export default async function Home() {
       <main className="flex-1">
 
         {/* ── HERO ───────────────────────────────────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-6 pt-20 pb-28">
+        <section className="relative overflow-hidden">
+          {/* glow ambientali — fixed, non interattivi, nessun repaint su scroll */}
+          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+            <div className="absolute -top-32 left-1/4 w-[32rem] h-[32rem] rounded-full bg-emerald-500/10 blur-[120px]" />
+            <div className="absolute top-10 right-0 w-[24rem] h-[24rem] rounded-full bg-emerald-400/[0.07] blur-[100px]" />
+          </div>
+
+          <div className="max-w-6xl mx-auto px-6 pt-20 pb-28">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
 
             {/* left: copy */}
@@ -167,15 +177,18 @@ export default async function Home() {
               <div className="flex items-center gap-3 flex-wrap">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors text-sm"
+                  className="group inline-flex items-center gap-2.5 h-11 pl-6 pr-2 rounded-full bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-all duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.98] text-sm"
                 >
-                  Vai alla dashboard <ArrowRight className="size-3.5" />
+                  Vai alla dashboard
+                  <span className="flex items-center justify-center size-7 rounded-full bg-zinc-950/10 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5">
+                    <ArrowRight className="size-3.5" strokeWidth={2} />
+                  </span>
                 </Link>
                 <Link
                   href="/dashboard/tasse"
-                  className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-zinc-800 text-zinc-300 font-semibold hover:border-zinc-600 hover:text-white transition-colors text-sm"
+                  className="inline-flex items-center gap-2 h-11 px-6 rounded-full border border-zinc-800 text-zinc-300 font-semibold hover:border-zinc-600 hover:text-white transition-all duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.98] text-sm"
                 >
-                  <Landmark className="size-4" /> Gestione tasse
+                  <Landmark className="size-4" strokeWidth={1.75} /> Gestione tasse
                 </Link>
               </div>
 
@@ -203,6 +216,7 @@ export default async function Home() {
               <ChartMockup />
             </div>
           </div>
+          </div>
         </section>
 
         {/* ── BENTO BOX ──────────────────────────────────────────────────────── */}
@@ -210,7 +224,7 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* tile 1 — Hub fiscale (large) */}
-            <div className="md:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 transition-colors">
+            <div className="md:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 hover:-translate-y-1 transition-all duration-300 [transition-timing-function:var(--ease-spring)]">
               <div className="flex items-start gap-3 mb-1">
                 <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
                   <Landmark className="size-4 text-emerald-400" strokeWidth={1.75} />
@@ -226,7 +240,7 @@ export default async function Home() {
             </div>
 
             {/* tile 2 — Istituzioni */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 transition-colors flex flex-col justify-between">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 hover:-translate-y-1 transition-all duration-300 [transition-timing-function:var(--ease-spring)] flex flex-col justify-between">
               <div>
                 <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center mb-4">
                   <BarChart3 className="size-4 text-emerald-400" strokeWidth={1.75} />
@@ -246,7 +260,7 @@ export default async function Home() {
             </div>
 
             {/* tile 3 — IRPEF */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 transition-colors">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 hover:-translate-y-1 transition-all duration-300 [transition-timing-function:var(--ease-spring)]">
               <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center mb-4">
                 <FileText className="size-4 text-emerald-400" strokeWidth={1.75} />
               </div>
@@ -262,7 +276,7 @@ export default async function Home() {
             </div>
 
             {/* tile 4 — Report */}
-            <div className="md:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 transition-colors">
+            <div className="md:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 hover:border-zinc-700 hover:-translate-y-1 transition-all duration-300 [transition-timing-function:var(--ease-spring)]">
               <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center mb-4">
                 <Receipt className="size-4 text-emerald-400" strokeWidth={1.75} />
               </div>
@@ -371,9 +385,12 @@ export default async function Home() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 h-12 px-8 rounded-lg bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors"
+              className="group inline-flex items-center gap-2.5 h-12 pl-8 pr-2.5 rounded-full bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-all duration-200 [transition-timing-function:var(--ease-spring)] active:scale-[0.98]"
             >
-              Entra nella dashboard <ArrowRight className="size-4" />
+              Entra nella dashboard
+              <span className="flex items-center justify-center size-8 rounded-full bg-zinc-950/10 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5">
+                <ArrowRight className="size-4" strokeWidth={2} />
+              </span>
             </Link>
           </div>
         </section>

@@ -28,8 +28,13 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[--bg] px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center bg-[--bg] px-4 overflow-hidden">
+      {/* glow ambientale, fisso e non interattivo */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-[--brand]/[0.07] blur-[100px]" />
+      </div>
+
+      <div className="relative w-full max-w-sm space-y-6">
 
         {/* Brand */}
         <div className="flex flex-col items-center gap-3">
@@ -40,8 +45,9 @@ export default async function LoginPage({
           </div>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-[--border] bg-[--surface] shadow-[--shadow] p-6 space-y-4">
+        {/* Card — doppio bordo per profondità "hardware" */}
+        <div className="rounded-[1.75rem] bg-[--surface-2]/60 ring-1 ring-[--border] p-1.5">
+        <div className="rounded-3xl border border-[--border] bg-[--surface] shadow-[var(--shadow-lg),var(--highlight)] p-6 space-y-4">
 
           {error === 'denied' && (
             <div className="rounded-lg border border-[--danger]/30 bg-[--danger-subtle] px-3 py-2.5">
@@ -62,7 +68,7 @@ export default async function LoginPage({
             />
             <button
               type="submit"
-              className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium hover:bg-[--brand-hover] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+              className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-[--brand-hover] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
             >
               Accedi
             </button>
@@ -77,11 +83,12 @@ export default async function LoginPage({
           <form action={googleSignIn}>
             <button
               type="submit"
-              className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] text-sm font-medium hover:bg-[--surface] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+              className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] text-sm font-medium hover:bg-[--surface] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
             >
               Continua con Google
             </button>
           </form>
+        </div>
         </div>
 
         <p className="text-center text-xs text-[--faint]">

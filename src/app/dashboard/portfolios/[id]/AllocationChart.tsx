@@ -58,6 +58,7 @@ export default function AllocationChart({ positions }: Props) {
   }))
 
   const total = data.reduce((s, d) => s + d.value, 0)
+  const singleCurrency = data.every((d) => d.currency === data[0].currency) ? data[0].currency : null
 
   const tooltipStyle = {
     background:   isDark ? '#1a2421' : '#ffffff',
@@ -68,7 +69,16 @@ export default function AllocationChart({ positions }: Props) {
   }
 
   return (
-    <div className="w-full">
+    <div className="relative w-full">
+      {/* Totale al centro della ciambella — solo se le posizioni condividono la stessa valuta */}
+      {singleCurrency && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: 40 }}>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-[--faint]">Totale</span>
+          <span className="font-mono tabular-nums text-lg font-semibold text-[--ink]">
+            {formatVal(total, singleCurrency)}
+          </span>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie

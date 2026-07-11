@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useId } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
+import { motion, LayoutGroup } from 'motion/react'
 import { fetchHistoryAction } from './actions'
 import type { PricePoint } from '@/lib/prices/yahoo'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -40,6 +41,7 @@ function formatPrice(value: number, currency: string): string {
 export default function InstrumentPriceChart({ symbol, name, currency }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
+  const pillGroupId = useId()
 
   const [period, setPeriod]          = useState<string>('3m')
   const [data, setData]              = useState<PricePoint[]>([])
@@ -115,23 +117,31 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
             </span>
           )}
           {/* Period selector */}
-          <div className="flex rounded-lg border border-[--border] overflow-hidden">
-            {PERIODS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setPeriod(key)}
-                className="px-2.5 py-1 text-xs font-medium transition-colors duration-100"
-                style={{
-                  background: period === key
-                    ? (isDark ? 'oklch(0.22 0.06 160)' : 'oklch(0.92 0.05 160)')
-                    : 'transparent',
-                  color: period === key ? colors.brand : isDark ? 'oklch(0.55 0.01 160)' : 'oklch(0.55 0.01 160)',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <LayoutGroup id={pillGroupId}>
+            <div className="flex rounded-lg border border-[--border] overflow-hidden p-0.5 gap-0.5">
+              {PERIODS.map(({ key, label }) => {
+                const active = period === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setPeriod(key)}
+                    className="relative px-2 py-1 rounded-md text-xs font-medium transition-colors duration-150"
+                    style={{ color: active ? colors.brand : isDark ? 'oklch(0.55 0.01 160)' : 'oklch(0.55 0.01 160)' }}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="period-pill"
+                        className="absolute inset-0 rounded-md"
+                        style={{ background: isDark ? 'oklch(0.22 0.06 160)' : 'oklch(0.92 0.05 160)' }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </LayoutGroup>
         </div>
       </div>
 

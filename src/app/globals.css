@@ -51,9 +51,15 @@
   --ring: oklch(0.55 0.17 162 / 0.35);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
-  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.08), 0 2px 4px oklch(0 0 0 / 0.04);
-  --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.10), 0 4px 8px oklch(0 0 0 / 0.06);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.04), 0 1px 1px oklch(0 0 0 / 0.03);
+  --shadow-md: 0 8px 20px oklch(0 0 0 / 0.06), 0 2px 6px oklch(0 0 0 / 0.04);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.09), 0 4px 12px oklch(0 0 0 / 0.05);
+
+  /* Highlight interno (bordo superiore "vetro") */
+  --highlight: inset 0 1px 0 0 oklch(1 0 0 / 0.6);
+
+  /* Easing con massa fisica — mai linear/ease-in-out */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ─── Semantic tokens — Dark ────────────────────────────────────────────────── */
@@ -96,10 +102,13 @@
   /* Focus ring */
   --ring: oklch(0.72 0.18 162 / 0.40);
 
-  /* No shadows in dark — elevation via surface steps + border */
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
+  /* Shadow "vuota" (non none: resta componibile con --highlight) — elevazione via surface steps + border */
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+
+  /* Highlight interno più discreto su fondo scuro */
+  --highlight: inset 0 1px 0 0 oklch(1 0 0 / 0.06);
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────────── */
