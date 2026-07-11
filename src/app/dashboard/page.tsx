@@ -11,6 +11,7 @@ import AddInstitutionForm from './AddInstitutionForm'
 import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
 import NetWorthChart from './NetWorthChart'
+import RefreshNetWorthButton from './RefreshNetWorthButton'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 import { AddSection } from '@/components/dashboard/AddSection'
 import {
@@ -247,6 +248,7 @@ export default async function DashboardPage() {
                   <span className={latest.stale === 1 ? 'text-[--warning]' : ''}>
                     {latest.stale === 1 ? 'Dati parziali · ' : ''}Aggiornato al {latest.date}
                   </span>
+                  <RefreshNetWorthButton />
                 </div>
               )}
             </div>

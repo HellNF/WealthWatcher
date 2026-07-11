@@ -7,6 +7,7 @@ import { signOut } from '@/auth'
 import { createInstitution } from '@/lib/institutions'
 import { getProvider } from '@/lib/providers'
 import { setDashboardLayout, type WidgetConfig } from '@/lib/userSettings'
+import { refreshNetWorth } from '@/lib/valuation'
 
 const customSchema = z.object({
   name:    z.string().trim().min(1, 'Nome obbligatorio').max(100),
@@ -60,5 +61,18 @@ export async function signOutAction(): Promise<void> {
 export async function saveDashboardLayoutAction(layout: WidgetConfig[]): Promise<void> {
   const user = await requireUser()
   setDashboardLayout(user.id, layout)
+  revalidatePath('/dashboard')
+}
+
+/**
+ * Ricalcola lo snapshot di oggi su richiesta esplicita (bottone di refresh nella
+ * dashboard). ensureTodaySnapshot calcola solo se manca lo snapshot odierno —
+ * questa forza il ricalcolo anche se esiste già, utile subito dopo un'operazione
+ * che non passa per una server action che già chiama refreshNetWorth (es. un
+ * prezzo di mercato appena aggiornato altrove).
+ */
+export async function refreshNetWorthAction(): Promise<void> {
+  const user = await requireUser()
+  await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
 }
