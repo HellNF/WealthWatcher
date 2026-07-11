@@ -37,7 +37,7 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl }: Pro
             </a>{' '}
             e scegli &quot;Register new application&quot;.
           </li>
-          <li>Lascia l&apos;ambiente &quot;Sandbox&quot; e l&apos;opzione predefinita per la creazione della chiave privata.</li>
+          <li>Lascia l&apos;ambiente &quot;Production&quot; e l&apos;opzione predefinita per la creazione della chiave privata.</li>
           <li>
             Nel campo delle URL di redirect autorizzate, incolla esattamente questo indirizzo:
             <code className="block mt-1 px-2.5 py-1.5 rounded-md bg-[--surface-2] text-[--ink] text-xs break-all select-all">

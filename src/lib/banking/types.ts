@@ -65,6 +65,12 @@ export interface EbTransaction {
   remittance_information?: string[]
   creditor?: { name?: string }
   debtor?:   { name?: string }
+  // Codice merchant (ISO 18245, es. 5411 = supermercati) — presente solo per
+  // transazioni carta e solo se l'ASPSP lo fornisce. Usato come fallback di
+  // categorizzazione quando nessuna regola utente/alias merchant fa match
+  // (src/lib/merchants.ts → resolveMccCategory).
+  merchant_category_code?: string
+  bank_transaction_code?: { code?: string; sub_code?: string; description?: string }
 }
 
 // Risposta paginata di GET /accounts/{uid}/transactions.

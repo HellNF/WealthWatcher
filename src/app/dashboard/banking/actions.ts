@@ -103,6 +103,11 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
   const result = await syncConnection(connection)
   if (result.status === 'synced') await refreshNetWorth(user.id)
   revalidatePath(`/dashboard/institutions/${connection.institution_id}`)
+  // Il sync può essere avviato dalla pagina di un singolo conto (AccountSyncButton):
+  // invalida anche quelle così i nuovi movimenti compaiono senza un refresh manuale.
+  for (const acc of result.accounts) {
+    revalidatePath(`/dashboard/accounts/${acc.accountId}`)
+  }
 
   if (result.status === 'expired') {
     return { insertedCount: 0, duplicateCount: 0, error: 'Connessione scaduta: riconnetti la banca.' }

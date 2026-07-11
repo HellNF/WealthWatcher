@@ -9,6 +9,7 @@ import TxnFilters from './TxnFilters'
 import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
 import InterestForm from './InterestForm'
+import AccountSyncButton from './AccountSyncButton'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renameAccountAction, deleteAccountAction } from './manage-actions'
 import { Breadcrumb, Card, Stat, ConfirmDelete } from '@/components/ui'
@@ -107,6 +108,9 @@ export default async function AccountPage({ params, searchParams }: Props) {
 
       {/* Azioni */}
       <div className="flex gap-3 items-center flex-wrap">
+        {account.eb_connection_id && (
+          <AccountSyncButton connectionId={account.eb_connection_id} />
+        )}
         {importSupported ? (
           <Link
             href={`/dashboard/accounts/${id}/import`}

@@ -11,7 +11,7 @@
 // leggere saldi/movimenti.
 import { createHash } from 'crypto'
 import { dec, toMinor } from '@/lib/money'
-import { normalizeDescription, resolveCategoryRule, resolveMerchant } from '@/lib/merchants'
+import { normalizeDescription, resolveCategoryRule, resolveMerchant, resolveMccCategory } from '@/lib/merchants'
 import { insertBatch, type InsertableTransaction } from '@/lib/transactions'
 import { setAccountBalanceAnchor } from '@/lib/accounts'
 import { getEnableBankingKey } from '@/lib/userSettings'
@@ -69,7 +69,11 @@ export function mapTransactions(
 
     const normalized = normalizeDescription(`${descriptionRaw} ${counterpartyRaw}`)
     const merchant    = resolveMerchant(normalized)
-    const categoryId  = resolveCategoryRule(normalized, ownerId, absMinor) ?? merchant?.categoryId ?? null
+    // Priorità: regola utente → alias merchant → MCC fornito dall'ASPSP (se presente).
+    const categoryId  = resolveCategoryRule(normalized, ownerId, absMinor)
+      ?? merchant?.categoryId
+      ?? resolveMccCategory(t.merchant_category_code)
+      ?? null
 
     const externalId = t.entry_reference ?? t.transaction_id ?? null
     let dedupHash: string

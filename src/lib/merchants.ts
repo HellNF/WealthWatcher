@@ -56,6 +56,55 @@ export function resolveIntesaCategory(intesaCategory: string): number | null {
   return row?.id ?? null
 }
 
+// ── Merchant Category Code (MCC) → WealthWatcher category fallback ───────────
+// Usato per le transazioni Open Banking (Enable Banking): a differenza degli
+// export bancari proprietari (es. Intesa), il Berlin Group/NextGenPSD2 non ha
+// una tassonomia di categoria propria, ma alcuni ASPSP espongono l'MCC
+// standard ISO 18245 delle transazioni carta. Copertura non esaustiva (~600
+// codici esistono in tutto): mappa i codici più comuni, sullo stesso principio
+// di INTESA_CATEGORY_MAP — un fallback "meglio di niente", con priorità più
+// bassa delle regole utente e degli alias merchant.
+const MCC_CATEGORY_MAP: Record<string, string> = {
+  // Supermercati e alimentari
+  '5411': 'Supermercato', '5422': 'Supermercato', '5441': 'Supermercato',
+  '5451': 'Supermercato', '5462': 'Supermercato', '5499': 'Supermercato',
+  // Ristoranti e bar
+  '5812': 'Ristorante & Bar', '5813': 'Ristorante & Bar', '5814': 'Ristorante & Bar',
+  // Trasporti
+  '4111': 'Trasporti', '4112': 'Trasporti', '4121': 'Trasporti', '4131': 'Trasporti',
+  '4511': 'Trasporti', '4784': 'Trasporti', '7512': 'Trasporti', '7523': 'Trasporti',
+  // Carburante
+  '5541': 'Carburante', '5542': 'Carburante',
+  // Salute
+  '8011': 'Salute', '8021': 'Salute', '8031': 'Salute', '8041': 'Salute',
+  '8042': 'Salute', '8043': 'Salute', '8049': 'Salute', '8050': 'Salute',
+  '8062': 'Salute', '8071': 'Salute', '8099': 'Salute', '5122': 'Salute', '5912': 'Salute',
+  // Shopping
+  '5311': 'Shopping', '5331': 'Shopping', '5399': 'Shopping', '5611': 'Shopping',
+  '5621': 'Shopping', '5631': 'Shopping', '5641': 'Shopping', '5651': 'Shopping',
+  '5661': 'Shopping', '5691': 'Shopping', '5732': 'Shopping', '5940': 'Shopping',
+  '5945': 'Shopping', '5999': 'Shopping',
+  // Abbonamenti (telco, pay-TV, subscription merchants)
+  '4814': 'Abbonamenti', '4899': 'Abbonamenti', '5968': 'Abbonamenti',
+  // Utenze
+  '4900': 'Utenze',
+  // Istruzione
+  '8211': 'Istruzione', '8220': 'Istruzione', '8241': 'Istruzione',
+  '8244': 'Istruzione', '8249': 'Istruzione', '8299': 'Istruzione',
+  // Intrattenimento
+  '7832': 'Intrattenimento', '7922': 'Intrattenimento', '7929': 'Intrattenimento',
+  '7996': 'Intrattenimento', '7997': 'Intrattenimento', '7998': 'Intrattenimento',
+  '7999': 'Intrattenimento', '5815': 'Intrattenimento',
+}
+
+export function resolveMccCategory(mcc: string | undefined | null): number | null {
+  if (!mcc) return null
+  const myName = MCC_CATEGORY_MAP[mcc.trim()]
+  if (!myName) return null
+  const row = db.select({ id: categories.id }).from(categories).where(eq(categories.name, myName)).get()
+  return row?.id ?? null
+}
+
 // ── Alias-based merchant resolution ──────────────────────────────────────────
 
 export interface ResolvedMerchant {
