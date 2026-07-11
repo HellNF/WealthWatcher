@@ -23,13 +23,17 @@ export default async function SettingsPage() {
   const hasEbKey   = hasEnableBankingKey(user.id)
   const ebSetAt    = getEnableBankingKeySetAt(user.id)
 
-  // URL di redirect da whitelistare nel Control Panel Enable Banking — dedotto
-  // dall'host della richiesta corrente così l'utente lo copia senza indovinare
-  // dominio/protocollo (dietro proxy usiamo l'header x-forwarded-*, come fa auth.ts).
+  // URL da inserire nel form di registrazione app sul Control Panel Enable
+  // Banking (redirect, privacy, termini) — dedotti dall'host della richiesta
+  // corrente così l'utente li copia senza indovinare dominio/protocollo
+  // (dietro proxy usiamo l'header x-forwarded-*, come fa auth.ts).
   const hdrs  = await headers()
   const host  = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost:3000'
   const proto = hdrs.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
-  const ebRedirectUrl = `${proto}://${host}/api/banking/callback`
+  const origin = `${proto}://${host}`
+  const ebRedirectUrl = `${origin}/api/banking/callback`
+  const ebPrivacyUrl  = `${origin}/privacy`
+  const ebTermsUrl    = `${origin}/terms`
 
   const isAdmin    = user.role === 'admin'
   const allowlist  = isAdmin ? listAllowedEmails() : []
@@ -96,7 +100,13 @@ export default async function SettingsPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        <EnableBankingKeyForm hasKey={hasEbKey} setAt={ebSetAt} redirectUrl={ebRedirectUrl} />
+        <EnableBankingKeyForm
+          hasKey={hasEbKey}
+          setAt={ebSetAt}
+          redirectUrl={ebRedirectUrl}
+          privacyUrl={ebPrivacyUrl}
+          termsUrl={ebTermsUrl}
+        />
       </Card>
 
       {isAdmin && (
