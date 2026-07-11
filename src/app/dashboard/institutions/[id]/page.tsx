@@ -58,7 +58,12 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
   // sezione mostra un invito a farlo invece di sparire silenziosamente —
   // qui è un'azione che l'utente stesso può completare, non uno switch admin.
   const ebCreds = getEnableBankingKey(user.id)
-  const aspsps = ebCreds ? await getAspsps(ebCreds, institution.country ?? undefined) : null
+  // null/'IT' = italiano (stessa convenzione di institutions.country altrove
+  // nell'app, es. bollo/IVAFE): senza questo default, un'istituzione senza
+  // paese impostato chiederebbe le ASPSP di *tutti* i paesi, centinaia di
+  // banche in un'unica lista — il motivo principale per cui era difficile
+  // trovare la propria banca nel selettore.
+  const aspsps = ebCreds ? await getAspsps(ebCreds, institution.country ?? 'IT') : null
   const connections = ebCreds ? listConnectionsForInstitution(user.id, id) : []
   const visibleConnections = connections.filter((c) => c.status !== 'revoked')
 
