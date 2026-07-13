@@ -16,6 +16,7 @@
 // stima come "stale" mantenendo l'ultimo valore noto. Un campione insufficiente NON è
 // più un'anomalia fatale: vedi cascata di rilassamento sotto.
 import type { Quote } from './provider'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 const BASE = 'https://www.autoscout24.it'
 const USER_AGENT =
@@ -232,7 +233,7 @@ export async function estimateVehicleValue(v: VehicleQuery): Promise<VehicleEsti
     for (let level = 0; level < RELAXATION_LEVELS.length; level++) {
       const cfg = RELAXATION_LEVELS[level]
       const url = buildSearchUrl(v, cfg)
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         headers: {
           'User-Agent':       USER_AGENT,
           'Accept-Language':  'it-IT,it;q=0.9',

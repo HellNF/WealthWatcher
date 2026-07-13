@@ -1,10 +1,19 @@
 // src/__tests__/api/messages.test.ts
-import { GET, POST } from '@/app/api/messages/route'
 import { NextRequest } from 'next/server'
 import { sqlite } from '@/db'
+import { requireUser } from '@/lib/dal'
+
+jest.mock('@/lib/dal', () => ({ requireUser: jest.fn() }))
+const mockRequireUser = requireUser as jest.Mock
+
+// Import dopo il mock: la route chiama requireUser() solo su POST.
+import { GET, POST } from '@/app/api/messages/route'
+
+const FAKE_USER = { id: 1, role: 'member' as const, name: 'Mario Rossi', email: 'mario@example.com' }
 
 beforeEach(() => {
   sqlite.exec('DELETE FROM messages')
+  mockRequireUser.mockReset()
 })
 
 function makeRequest(method: string, body?: object, params?: Record<string, string>): NextRequest {
@@ -19,28 +28,38 @@ function makeRequest(method: string, body?: object, params?: Record<string, stri
   })
 }
 
-test('GET restituisce array vuoto inizialmente', async () => {
+test('GET restituisce array vuoto inizialmente (lettura pubblica, nessuna sessione richiesta)', async () => {
   const res = await GET(makeRequest('GET'))
   expect(res.status).toBe(200)
   const data = await res.json()
   expect(data).toEqual([])
 })
 
-test('POST crea un messaggio e lo restituisce', async () => {
-  const res = await POST(makeRequest('POST', { author: 'Mario', content: 'Test proposta' }))
+test('POST senza sessione viene rifiutato con 401', async () => {
+  mockRequireUser.mockRejectedValue(new Error('redirect'))
+  const res = await POST(makeRequest('POST', { content: 'Test proposta' }))
+  expect(res.status).toBe(401)
+})
+
+test('POST con sessione crea un messaggio con autore derivato dall\'utente', async () => {
+  mockRequireUser.mockResolvedValue(FAKE_USER)
+  const res = await POST(makeRequest('POST', { content: 'Test proposta' }))
   expect(res.status).toBe(201)
   const data = await res.json()
-  expect(data.author).toBe('Mario')
+  expect(data.author).toBe('Mario Rossi')
   expect(data.content).toBe('Test proposta')
 })
 
-test('POST rifiuta author mancante', async () => {
-  const res = await POST(makeRequest('POST', { content: 'Testo' }))
-  expect(res.status).toBe(400)
+test('POST ignora un author fornito dal client e usa quello di sessione', async () => {
+  mockRequireUser.mockResolvedValue(FAKE_USER)
+  const res = await POST(makeRequest('POST', { author: 'Impostore', content: 'Test' }))
+  const data = await res.json()
+  expect(data.author).toBe('Mario Rossi')
 })
 
 test('POST rifiuta content mancante', async () => {
-  const res = await POST(makeRequest('POST', { author: 'Mario' }))
+  mockRequireUser.mockResolvedValue(FAKE_USER)
+  const res = await POST(makeRequest('POST', {}))
   expect(res.status).toBe(400)
 })
 
@@ -62,12 +81,15 @@ test('GET con since non valido restituisce 400', async () => {
   expect(res.status).toBe(400)
 })
 
-test('POST rifiuta author più lungo di 50 caratteri', async () => {
-  const res = await POST(makeRequest('POST', { author: 'a'.repeat(51), content: 'Testo valido' }))
+test('POST rifiuta content più lungo di 1000 caratteri', async () => {
+  mockRequireUser.mockResolvedValue(FAKE_USER)
+  const res = await POST(makeRequest('POST', { content: 'x'.repeat(1001) }))
   expect(res.status).toBe(400)
 })
 
-test('POST rifiuta content più lungo di 1000 caratteri', async () => {
-  const res = await POST(makeRequest('POST', { author: 'Mario', content: 'x'.repeat(1001) }))
-  expect(res.status).toBe(400)
+test('POST tronca l\'autore a 50 caratteri se il nome utente è molto lungo', async () => {
+  mockRequireUser.mockResolvedValue({ ...FAKE_USER, name: 'N'.repeat(80) })
+  const res = await POST(makeRequest('POST', { content: 'Test' }))
+  const data = await res.json()
+  expect(data.author).toHaveLength(50)
 })

@@ -7,6 +7,7 @@ import { PARSERS } from '@/lib/import/registry'
 import { normalizeDescription, resolveMerchant, resolveCategoryRule, resolveIntesaCategory } from '@/lib/merchants'
 import { previewRows, insertBatch, type InsertableTransaction, type PreviewRow } from '@/lib/transactions'
 import { refreshNetWorth } from '@/lib/valuation'
+import { assertUploadOk, IMPORT_STATEMENT_UPLOAD } from '@/lib/uploads'
 
 // ── Shared: parse XLSX + resolve merchants ────────────────────────────────────
 // Il parser è scelto dal provider dell'istituzione del conto. Se il provider non
@@ -25,6 +26,8 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
     )
   }
   const parse = PARSERS[parserKey]
+
+  assertUploadOk(file, IMPORT_STATEMENT_UPLOAD)
 
   const buffer = Buffer.from(await file.arrayBuffer())
   const parsed = parse(buffer)

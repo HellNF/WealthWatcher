@@ -53,7 +53,9 @@ export function mapTransactions(
   for (const t of rows) {
     const bookedDate = t.booking_date ?? t.value_date
     if (!bookedDate) {
-      console.warn('[enablebanking] transazione senza data, saltata:', t.entry_reference ?? t.transaction_id)
+      // Niente entry_reference/transaction_id nel log: sono identificativi
+      // bancari (PII lieve) dell'utente proprietario del conto.
+      console.warn('[enablebanking] transazione senza data, saltata')
       continue
     }
 

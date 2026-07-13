@@ -4,6 +4,7 @@
 // borse non mappate), fallback su Yahoo search che risolve l'ISIN direttamente
 // nel simbolo Yahoo (anche per i fondi, es. LU… → "0P…").
 import { searchYahoo } from '@/lib/prices/yahoo'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 export interface IsinResult {
   figi:        string
@@ -72,7 +73,7 @@ async function openFigiLookup(isin: string): Promise<IsinResult[]> {
   if (key) headers['X-OPENFIGI-APIKEY'] = key
 
   try {
-    const res = await fetch('https://api.openfigi.com/v3/mapping', {
+    const res = await fetchWithTimeout('https://api.openfigi.com/v3/mapping', {
       method:  'POST',
       headers,
       body:    JSON.stringify([{ idType: 'ID_ISIN', idValue: isin }]),

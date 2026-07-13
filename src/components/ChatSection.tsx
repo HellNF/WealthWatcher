@@ -1,24 +1,21 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import ChatFeed from './ChatFeed'
 import ChatForm from './ChatForm'
 import type { Message } from '@/lib/messages'
 
-const AUTHOR_KEY = 'ww_author'
-
 interface Props {
   initialMessages: Message[]
   isAdmin?: boolean
+  /** Nome/email dell'utente autenticato — null se il visitatore non ha una sessione. */
+  ownAuthor: string | null
+  /** true se la sessione corrente può scrivere (vedi POST /api/messages). */
+  canPost: boolean
 }
 
-export default function ChatSection({ initialMessages, isAdmin = false }: Props) {
+export default function ChatSection({ initialMessages, isAdmin = false, ownAuthor, canPost }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
-  const [ownAuthor, setOwnAuthor] = useState<string | null>(null)
-
-  useEffect(() => {
-    setOwnAuthor(localStorage.getItem(AUTHOR_KEY))
-  }, [])
 
   const handleNewMessages = useCallback((newMsgs: Message[]) => {
     setMessages((prev) => {
@@ -29,8 +26,6 @@ export default function ChatSection({ initialMessages, isAdmin = false }: Props)
 
   function handleSent(message: Message) {
     setMessages((prev) => [...prev, message])
-    setOwnAuthor(message.author)
-    localStorage.setItem(AUTHOR_KEY, message.author)
   }
 
   function handleResolve(id: number, resolved: boolean) {
@@ -55,7 +50,7 @@ export default function ChatSection({ initialMessages, isAdmin = false }: Props)
           onDelete={handleDelete}
         />
       </div>
-      <ChatForm onSent={handleSent} />
+      <ChatForm onSent={handleSent} canPost={canPost} />
     </div>
   )
 }

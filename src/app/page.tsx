@@ -112,9 +112,14 @@ function FiscalMockup() {
 }
 
 export default async function Home() {
-  const messages = getMessages()
-  const session  = await getSession()
-  const isAdmin  = session?.role === 'admin'
+  const messages   = getMessages()
+  const session    = await getSession()
+  const isAdmin    = session?.role === 'admin'
+  // Autore lato server: la scrittura in chat richiede una sessione (vedi
+  // /api/messages), quindi il nome mostrato/da usare è quello dell'utente
+  // autenticato, non un nickname libero scelto dal client.
+  const ownAuthor  = session?.uid ? (session.user?.name ?? session.user?.email ?? null) : null
+  const canPost    = !!session?.uid
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-300 font-sans">
@@ -366,7 +371,7 @@ export default async function Home() {
                 <span className="ml-auto text-xs font-mono text-zinc-600">inserisci proposte · segnala bug · discuti idee</span>
               </div>
               <div className="flex-1 overflow-hidden">
-                <ChatSection initialMessages={messages} isAdmin={isAdmin} />
+                <ChatSection initialMessages={messages} isAdmin={isAdmin} ownAuthor={ownAuthor} canPost={canPost} />
               </div>
             </div>
 

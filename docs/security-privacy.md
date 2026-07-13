@@ -1,0 +1,103 @@
+# Sicurezza & Privacy — riferimento tecnico
+
+Documento tecnico per chi sviluppa/gestisce l'istanza. Per il testo legale
+rivolto agli utenti finali vedi `/privacy` (`src/app/privacy/page.tsx`).
+
+## Autenticazione
+
+- **Provider**: Google OAuth sempre attivo; login passwordless (`Credentials`)
+  registrato **solo** se `AUTH_DEV_LOGIN=true` (`src/auth.ts`). Va lasciato
+  disattivato su qualunque istanza raggiungibile da chi non è pienamente
+  fidato — VPN inclusa, a maggior ragione se esposta su Internet — perché
+  l'unico "segreto" di quel provider è conoscere un'email in allowlist,
+  nessuna prova di possesso.
+- **Allowlist**: `allowed_emails` (ruoli `admin`/`member`). `SEED_ADMIN_EMAIL`
+  fa solo da bootstrap una tantum: non bypassa l'autenticazione, quell'email
+  deve comunque autenticarsi via Google (o Credentials se attivo).
+- **Sessione**: JWT, durata massima 7 giorni. Il callback `jwt` ri-verifica
+  l'allowlist a ogni richiesta (non solo al login): un'email rimossa o
+  declassata perde l'accesso/il ruolo aggiornato immediatamente, senza dover
+  aspettare la scadenza del token.
+- **Rate limiting** (`src/lib/rateLimit.ts`, in-memory, per singolo processo):
+  tentativi di login passwordless, POST `/api/messages`, avvio/consenso e
+  sync Open Banking.
+- **Redirect post-login**: `callbackUrl` validato con `isSafeRedirectPath`
+  (`src/lib/security/redirect.ts`) — rifiuta URL protocol-relative
+  (`//evil.com`) e backslash iniziali, accetta solo path interni.
+
+## Cifratura a riposo
+
+- **Segreti per-utente** (chiave OpenAI, chiave privata Enable Banking,
+  session_id bancari) — AES-256-GCM, envelope versionato in
+  `src/lib/crypto.ts`:
+  - **v2 (corrente)**: chiave da `DATA_ENCRYPTION_KEY` (fallback
+    `AUTH_SECRET`) con salt dedicato. Impostare `DATA_ENCRYPTION_KEY`
+    permette di ruotare `AUTH_SECRET` (sessioni) senza invalidare i segreti
+    già cifrati.
+  - **v1 (legacy)**: formato precedente, derivato solo da `AUTH_SECRET`.
+    `decryptSecret` lo riconosce e decifra ancora — nessuna migrazione
+    forzata: ogni segreto passa a v2 la prossima volta che viene riscritto.
+- **Backup del database** (`scripts/backup.ts`, `src/lib/backupCrypto.ts`):
+  AES-256-GCM binario (IV|TAG|ciphertext), chiave da
+  `BACKUP_ENCRYPTION_KEY` (fallback `AUTH_SECRET`, salt dedicato e diverso
+  da quello dei segreti utente). Il `.db` intermedio in chiaro è solo
+  transitorio e viene rimosso subito dopo la cifratura. Restore:
+  `npm run restore-backup` (vedi `docs/backup.md`).
+- **Dati non cifrati a livello di campo**: saldi, transazioni, reddito,
+  patrimonio netto restano in chiaro nel DB SQLite (cifratura field-level
+  scartata: romperebbe ordinamenti/aggregazioni SQL usati ovunque
+  nell'app). La protezione è a livello di backup (sopra) e di volume/OS —
+  documentare/valutare la cifratura del volume se l'host non è pienamente
+  fidato.
+
+## Minimizzazione dati
+
+- **IBAN**: non persistito per intero. Se la banca non fornisce un nome
+  conto, il fallback è un IBAN mascherato (`maskIban`,
+  `src/lib/privacy.ts`), non l'IBAN completo.
+- **Log**: le risposte dell'API Enable Banking non vengono mai loggate per
+  intero (solo status + path); gli errori OpenAI vengono loggati per
+  categoria (`auth`/`rate-limit`/`other`), mai come messaggio grezzo (può
+  contenere frammenti della chiave o del prompt); il net worth per-utente
+  non finisce nei log di `scripts/snapshot.ts` a meno di
+  `SNAPSHOT_VERBOSE=1` esplicito.
+- **Catalogo strumenti condiviso** (`instruments`, nessun `owner_id` — è
+  reference data comune a tutti gli utenti): i campi KID (nome corretto,
+  TER, costi, SRI) si possono solo *aggiungere* se ancora vuoti
+  (`updateInstrumentKidFields`, `COALESCE`), mai sovrascrivere un valore già
+  confermato da un altro utente — evita che un utente alteri silenziosamente
+  dati visti da altri.
+
+## Superfici esterne
+
+- **Header di sicurezza + CSP** (`next.config.ts`, script condiviso in
+  `src/lib/security/csp.ts`): CSP hash-based (mantiene il rendering
+  statico), HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, `Permissions-Policy`. `img-src` include `https:` perché
+  le icone crypto (CoinGecko) e le thumbnail news (Yahoo Finance) arrivano
+  da domini di terze parti non elencabili in anticipo.
+- **Timeout** su tutte le fetch esterne (`src/lib/fetchWithTimeout.ts`,
+  default 10s) — prezzi, Enable Banking, scraping AutoScout24.
+- **Upload** (estratti conto, PDF KID): limiti di dimensione/estensione
+  (`src/lib/uploads.ts`) — mitiga DoS via file enormi/zip-bomb.
+- **`xlsx`**: migrato dalla distribuzione npm (0.18.5, due CVE HIGH note e
+  senza fix su npm) alla distribuzione ufficiale SheetJS via CDN
+  (`https://cdn.sheetjs.com`), che include entrambe le patch.
+
+## Cosa NON è (ancora) coperto
+
+- Cifratura field-level dei dati finanziari (scelta deliberata, vedi sopra).
+- Rate limiting distribuito (l'app è single-processo/self-hosted: uno store
+  condiviso tipo Redis servirebbe solo per un deploy multi-istanza).
+- Pseudonimizzazione permanente delle descrizioni/controparti delle
+  transazioni bancarie (restano in chiaro: servono per la categorizzazione e
+  sono visibili solo al proprietario del conto).
+
+## Conservazione ed erasure per l'utente
+
+Vedi `/privacy` §6–7: i dati restano finché l'account esiste; l'eliminazione
+di istituzione/conto/portafoglio cancella a cascata i movimenti collegati;
+le chiavi API personali si rimuovono dalle Impostazioni; la disconnessione
+Open Banking revoca anche la sessione lato Enable Banking. Non essendoci un
+export "conto in un click", l'export/erasure completo passa dall'accesso
+diretto al database SQLite (istanza self-hosted).

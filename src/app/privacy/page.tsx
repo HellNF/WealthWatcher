@@ -4,7 +4,7 @@ export const metadata = { title: 'Privacy Policy — WealthWatcher' }
 
 export default function PrivacyPage() {
   return (
-    <PublicPageShell title="Privacy Policy" updated="10 luglio 2026">
+    <PublicPageShell title="Privacy Policy" updated="13 luglio 2026">
 
       <p className="text-sm text-zinc-500 leading-relaxed border border-zinc-800 rounded-lg px-4 py-3 bg-zinc-900/40">
         WealthWatcher è un&apos;applicazione self-hosted: chi la installa e la gestisce (il
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         <p>WealthWatcher tratta i dati che inserisci volontariamente per tracciare il tuo patrimonio:</p>
         <List items={[
           <>Dati di accesso: email e nome, tramite Google Sign-In o login con email in whitelist.</>,
-          <>Dati bancari: istituzioni, conti correnti, saldi e movimenti — inseriti manualmente, importati da estratto conto (Intesa Sanpaolo, BBVA, Revolut) o, se attivi il collegamento Open Banking, sincronizzati automaticamente tramite Enable Banking.</>,
+          <>Dati bancari: istituzioni, conti correnti, saldi e movimenti — inseriti manualmente, importati da estratto conto (Intesa Sanpaolo, BBVA, Revolut) o, se attivi il collegamento Open Banking, sincronizzati automaticamente tramite Enable Banking. L&apos;IBAN completo non viene salvato: se la banca non fornisce un nome conto viene usato un IBAN mascherato (es. <code>IT••••••••3456</code>).</>,
           <>Dati di investimento: portafogli, strumenti finanziari, operazioni di acquisto/vendita, ISIN.</>,
           <>Profilo fiscale: residenza fiscale, data di nascita, tipo di impiego, reddito lordo — usati esclusivamente per calcolare stime IRPEF e imposte patrimoniali <em>in locale</em>, mai inviati a terzi.</>,
           <>Documenti KID (PDF) caricati per l&apos;estrazione automatica dei dati del prodotto finanziario, se usi questa funzione.</>,
@@ -63,10 +63,14 @@ export default function PrivacyPage() {
       <Section title="5. Sicurezza">
         <p>
           Le chiavi API e altri segreti (chiave privata Enable Banking, chiave OpenAI, session
-          ID delle connessioni bancarie) sono cifrati at-rest con AES-256-GCM. L&apos;accesso
-          all&apos;app richiede autenticazione; le sessioni sono gestite tramite cookie firmati
-          (NextAuth). Nessun sistema è invulnerabile: valuta tu il livello di esposizione
-          accettabile per l&apos;ambiente dove ospiti l&apos;istanza.
+          ID delle connessioni bancarie) sono cifrati at-rest con AES-256-GCM; anche i backup del
+          database sono cifrati, mai salvati in chiaro. L&apos;accesso all&apos;app richiede
+          autenticazione; le sessioni durano al massimo 7 giorni e vengono ri-verificate contro
+          la whitelist a ogni richiesta (rimuovere un accesso ha effetto immediato, non solo al
+          prossimo login). Tentativi di accesso ripetuti e altre azioni sensibili sono soggetti a
+          un limite di frequenza. Nessun sistema è invulnerabile: valuta tu il livello di
+          esposizione accettabile per l&apos;ambiente dove ospiti l&apos;istanza. Dettagli tecnici
+          in <code>docs/security-privacy.md</code> nel repository.
         </p>
       </Section>
 
@@ -74,7 +78,9 @@ export default function PrivacyPage() {
         <p>
           I dati restano finché il tuo account esiste. Eliminando un&apos;istituzione, un conto o
           un portafoglio, tutti i movimenti collegati vengono eliminati a cascata. Puoi
-          rimuovere le tue chiavi API in qualsiasi momento dalle Impostazioni.
+          rimuovere le tue chiavi API in qualsiasi momento dalle Impostazioni. I backup del
+          database, se configurati dal titolare, seguono la politica di conservazione che il
+          titolare stesso ha impostato per l&apos;istanza.
         </p>
       </Section>
 

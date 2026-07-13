@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/dal'
 import { createSession } from '@/lib/banking/client'
 import { getEnableBankingKey } from '@/lib/userSettings'
+import { maskIban } from '@/lib/privacy'
 import {
   activateConnection,
   getConnectionByStateForUser,
@@ -64,12 +65,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   activateConnection(connection.id, session.session_id)
 
   for (const account of session.accounts) {
+    // Se la banca non fornisce un nome conto, NON usiamo l'IBAN completo come
+    // fallback: finirebbe in chiaro in bank_accounts.name (visibile ovunque
+    // quel nome è mostrato/esportato). Un IBAN mascherato resta comunque
+    // identificativo per l'utente senza esporre il numero di conto per intero.
+    const fallbackName = account.iban ? maskIban(account.iban) : `Conto ${account.uid.slice(0, 8)}`
     linkOrCreateAccount(
       user.id,
       connection.institution_id,
       connection.id,
       account.uid,
-      account.name ?? account.iban ?? `Conto ${account.uid.slice(0, 8)}`,
+      account.name ?? fallbackName,
       account.currency ?? 'EUR',
     )
   }

@@ -62,7 +62,10 @@ function initDb() {
 
 /**
  * Bootstrap the allowlist with an admin so a fresh deploy is reachable.
- * Idempotent: only inserts if the email is not already present.
+ * Idempotent: only inserts if the email is not already present. This just
+ * grants allowlist membership — it does NOT bypass authentication: with
+ * AUTH_DEV_LOGIN unset/false (see src/auth.ts) that email still has to sign
+ * in via Google OAuth to actually get a session.
  */
 function seedAdmin(sqlite: Database.Database): void {
   const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase()

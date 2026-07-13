@@ -16,8 +16,17 @@ import {
   setConnectionStatus,
 } from '@/lib/banking/connections'
 import { syncConnection } from '@/lib/banking/sync'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export type ActionState = { error?: string } | undefined
+
+// Entrambe le operazioni chiamano l'API di Enable Banking (rete + quota
+// dell'utente presso l'aggregatore): un limite protegge sia dall'abuso sia da
+// click ripetuti accidentali (es. doppio submit).
+const CONNECT_LIMIT     = 5
+const CONNECT_WINDOW_MS = 60_000
+const SYNC_LIMIT        = 10
+const SYNC_WINDOW_MS    = 60_000
 
 // Durata del consenso richiesto alla banca (SPEC apre §Enable Banking): 90
 // giorni è un compromesso comune fra sicurezza e frequenza di riautorizzazione.
@@ -39,6 +48,10 @@ export async function startConnectAction(
   aspspCountry:  string,
 ): Promise<ActionState> {
   const user = await requireUser()
+
+  const { allowed } = checkRateLimit(`banking-connect:${user.id}`, CONNECT_LIMIT, CONNECT_WINDOW_MS)
+  if (!allowed) return { error: 'Troppi tentativi di collegamento, riprova tra qualche minuto.' }
+
   const institution = getInstitutionForUser(user.id, institutionId)
   if (!institution) return { error: 'Istituzione non trovata' }
 
@@ -88,6 +101,10 @@ export interface SyncActionResult {
 
 export async function syncConnectionAction(connectionId: number): Promise<SyncActionResult> {
   const user = await requireUser()
+
+  const { allowed } = checkRateLimit(`banking-sync:${user.id}`, SYNC_LIMIT, SYNC_WINDOW_MS)
+  if (!allowed) return { insertedCount: 0, duplicateCount: 0, error: 'Troppe sincronizzazioni ravvicinate, riprova tra un minuto.' }
+
   const connection = getConnectionForUser(user.id, connectionId)
   if (!connection) return { insertedCount: 0, duplicateCount: 0, error: 'Connessione non trovata' }
   if (connection.status !== 'active') {

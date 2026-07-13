@@ -3,6 +3,7 @@
 // Implementa PriceProvider: mai lancia eccezioni.
 import type { PriceProvider, Quote } from './provider'
 import type { PricePoint } from './yahoo'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 const BASE = 'https://pro-api.coinmarketcap.com'
 
@@ -26,7 +27,7 @@ export async function getCoinHistoryCMC(
 
   try {
     const url = `${BASE}/v1/cryptocurrency/ohlcv/historical?symbol=${encodeURIComponent(ticker)}&convert=EUR&count=${count}&interval=daily`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'X-CMC_PRO_API_KEY': key },
       next:    { revalidate: 1800 },
     })
@@ -64,7 +65,7 @@ export const coinMarketCapProvider: PriceProvider = {
     const ticker = symbol.replace(/-EUR$/, '').replace(/-USD$/, '').toUpperCase()
     try {
       const url = `${BASE}/v1/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(ticker)}&convert=EUR`
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         headers: { 'X-CMC_PRO_API_KEY': key },
         next: { revalidate: 0 },
       })

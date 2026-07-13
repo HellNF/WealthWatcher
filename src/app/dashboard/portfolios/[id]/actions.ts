@@ -19,6 +19,7 @@ import { toMinor, dec } from '@/lib/money'
 import { getOpenAiKey } from '@/lib/userSettings'
 import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
 import { refreshNetWorth } from '@/lib/valuation'
+import { assertUploadOk, UploadValidationError, KID_PDF_UPLOAD } from '@/lib/uploads'
 import { sqlite } from '@/db'
 
 export type ActionState = { error?: string } | undefined
@@ -384,6 +385,12 @@ export async function extractKidAction(
   const file = formData.get('kid_pdf')
   if (!(file instanceof File) || file.size === 0) {
     return { error: 'Seleziona un file PDF' }
+  }
+
+  try {
+    assertUploadOk(file, KID_PDF_UPLOAD)
+  } catch (err) {
+    return { error: err instanceof UploadValidationError ? err.message : 'File non valido' }
   }
 
   let text: string

@@ -111,7 +111,15 @@ export async function extractKidData(
     return { ok: true, data: parsed.data, model }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[KID] OpenAI error:', msg)
+    // Non logghiamo il messaggio grezzo del provider: può includere frammenti
+    // della chiave API (utente) o del contenuto della richiesta. Solo una
+    // categoria dell'errore, sufficiente per il debug.
+    const category = msg.includes('401') || msg.includes('Incorrect API key')
+      ? 'auth'
+      : msg.includes('429')
+      ? 'rate-limit'
+      : 'other'
+    console.error(`[KID] OpenAI error (${category})`)
     if (msg.includes('401') || msg.includes('Incorrect API key')) {
       return { ok: false, error: 'Chiave API OpenAI non valida o scaduta' }
     }

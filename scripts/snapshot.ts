@@ -47,12 +47,19 @@ async function main() {
     }
 
     const snapshot = await takeSnapshot(userId)
-    const eur = (snapshot.net_worth_eur_minor / 100).toLocaleString('it-IT', {
-      style: 'currency',
-      currency: 'EUR',
-    })
     const staleNote = snapshot.stale ? ' ⚠ parziale' : ''
-    console.log(`  Net worth ${snapshot.date}: ${eur}${staleNote}`)
+    // Il net worth per-utente non va nei log di default (finiscono su file/cron
+    // log, spesso meno protetti del DB): mostralo solo con SNAPSHOT_VERBOSE=1,
+    // per debug locale manuale.
+    if (process.env.SNAPSHOT_VERBOSE === '1') {
+      const eur = (snapshot.net_worth_eur_minor / 100).toLocaleString('it-IT', {
+        style: 'currency',
+        currency: 'EUR',
+      })
+      console.log(`  Net worth ${snapshot.date}: ${eur}${staleNote}`)
+    } else {
+      console.log(`  Snapshot ${snapshot.date} salvato${staleNote}`)
+    }
   }
 }
 

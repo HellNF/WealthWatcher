@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { AuthError } from 'next-auth'
-import { signIn } from '@/auth'
+import { signIn, isDevLoginEnabled } from '@/auth'
 import { BrandMark } from '@/components/ui'
+import { isSafeRedirectPath } from '@/lib/security/redirect'
 
 export default async function LoginPage({
   searchParams,
@@ -9,7 +10,7 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string }>
 }) {
   const { callbackUrl, error } = await searchParams
-  const redirectTo = callbackUrl && callbackUrl.startsWith('/') ? callbackUrl : '/dashboard'
+  const redirectTo = callbackUrl && isSafeRedirectPath(callbackUrl) ? callbackUrl : '/dashboard'
 
   async function googleSignIn() {
     'use server'
@@ -57,28 +58,33 @@ export default async function LoginPage({
             </div>
           )}
 
-          {/* Email login (sempre disponibile) */}
-          <form action={emailSignIn} className="space-y-3">
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="La tua email"
-              className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
-            />
-            <button
-              type="submit"
-              className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-[--brand-hover] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
-            >
-              Accedi
-            </button>
-          </form>
+          {/* Email login — solo se AUTH_DEV_LOGIN=true (dev/self-host fidato):
+              passwordless, quindi da non esporre oltre una rete fidata. */}
+          {isDevLoginEnabled && (
+            <>
+              <form action={emailSignIn} className="space-y-3">
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="La tua email"
+                  className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+                />
+                <button
+                  type="submit"
+                  className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-[--brand-hover] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+                >
+                  Accedi
+                </button>
+              </form>
 
-          <div className="relative flex items-center gap-3">
-            <div className="flex-1 border-t border-[--border]" />
-            <span className="text-xs text-[--faint]">oppure</span>
-            <div className="flex-1 border-t border-[--border]" />
-          </div>
+              <div className="relative flex items-center gap-3">
+                <div className="flex-1 border-t border-[--border]" />
+                <span className="text-xs text-[--faint]">oppure</span>
+                <div className="flex-1 border-t border-[--border]" />
+              </div>
+            </>
+          )}
 
           <form action={googleSignIn}>
             <button

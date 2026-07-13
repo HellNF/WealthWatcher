@@ -3,6 +3,7 @@
 // (e.g. "bitcoin", "ethereum"). Falls back to lowercased symbol if null.
 import type { PriceProvider, Quote } from './provider'
 import type { PricePoint } from './yahoo'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 const BASE = 'https://api.coingecko.com/api/v3'
 
@@ -11,7 +12,7 @@ export const coingeckoProvider: PriceProvider = {
     const coinId = (providerSymbol ?? symbol).toLowerCase()
     try {
       const url = `${BASE}/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=eur&include_last_updated_at=true`
-      const res = await fetch(url, { next: { revalidate: 0 } })
+      const res = await fetchWithTimeout(url, { next: { revalidate: 0 } })
       if (!res.ok) {
         console.warn(`[coingecko] HTTP ${res.status} per coin id "${coinId}"`)
         return null
@@ -53,7 +54,7 @@ export async function searchCoins(query: string): Promise<CoinSearchResult[]> {
   if (!query.trim()) return []
   try {
     const url = `${BASE}/search?query=${encodeURIComponent(query.trim())}`
-    const res = await fetch(url, { next: { revalidate: 0 } })
+    const res = await fetchWithTimeout(url, { next: { revalidate: 0 } })
     if (!res.ok) {
       console.warn(`[coingecko] searchCoins HTTP ${res.status} per query "${query}"`)
       return []
@@ -95,7 +96,7 @@ export async function getCoinHistory(
   const days = PERIOD_DAYS[period] ?? 90
   try {
     const url = `${BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=eur&days=${days}`
-    const res = await fetch(url, { next: { revalidate: 1800 } })
+    const res = await fetchWithTimeout(url, { next: { revalidate: 1800 } })
     if (!res.ok) {
       console.warn(`[coingecko] getCoinHistory HTTP ${res.status} per coin id "${coinId}"`)
       return []

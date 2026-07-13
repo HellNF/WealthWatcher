@@ -111,14 +111,28 @@ export function updateInstrumentWhitelistPct(id: number, whitelistPct: string): 
   sqlite.prepare('UPDATE instruments SET whitelist_percentage = ? WHERE id = ?').run(whitelistPct, id)
 }
 
+/**
+ * Scrive i campi KID solo dove sono ancora NULL (COALESCE(colonna, ?)).
+ *
+ * `instruments` è un catalogo GLOBALE senza owner_id (vedi commento in cima
+ * al file): qualunque utente autenticato può confermare il KID di un
+ * simbolo che non possiede affatto, perché confirmKidAction fa
+ * find-or-create per symbol senza scoping. Senza questa cautela, chiunque
+ * potrebbe sovrascrivere silenziosamente i dati KID (nome, TER, costi, SRI)
+ * già confermati da un altro utente per lo stesso strumento — un problema di
+ * integrità cross-tenant, non di esposizione di dati privati (il catalogo è
+ * condiviso by design). Con COALESCE il primo utente che valorizza un campo
+ * "vince"; per correggere un valore già presente serve un intervento diretto
+ * sul DB (nessun flusso applicativo lo consente, di proposito).
+ */
 export function updateInstrumentKidFields(id: number, fields: KidFields): void {
   const sets: string[] = []
   const args: (string | number | null)[] = []
-  if (fields.name       !== undefined) { sets.push('name = ?');       args.push(fields.name ?? null) }
-  if (fields.ter        !== undefined) { sets.push('ter = ?');        args.push(fields.ter ?? null) }
-  if (fields.entry_cost !== undefined) { sets.push('entry_cost = ?'); args.push(fields.entry_cost ?? null) }
-  if (fields.exit_cost  !== undefined) { sets.push('exit_cost = ?');  args.push(fields.exit_cost ?? null) }
-  if (fields.sri        !== undefined) { sets.push('sri = ?');        args.push(fields.sri ?? null) }
+  if (fields.name       !== undefined) { sets.push('name = COALESCE(name, ?)');             args.push(fields.name ?? null) }
+  if (fields.ter        !== undefined) { sets.push('ter = COALESCE(ter, ?)');               args.push(fields.ter ?? null) }
+  if (fields.entry_cost !== undefined) { sets.push('entry_cost = COALESCE(entry_cost, ?)'); args.push(fields.entry_cost ?? null) }
+  if (fields.exit_cost  !== undefined) { sets.push('exit_cost = COALESCE(exit_cost, ?)');   args.push(fields.exit_cost ?? null) }
+  if (fields.sri        !== undefined) { sets.push('sri = COALESCE(sri, ?)');               args.push(fields.sri ?? null) }
   if (sets.length === 0) return
   args.push(id)
   sqlite.prepare(`UPDATE instruments SET ${sets.join(', ')} WHERE id = ?`).run(...args)

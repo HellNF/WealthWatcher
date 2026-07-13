@@ -8,6 +8,7 @@
 // gratuito Enable Banking = un'app per account utente, non un'app globale
 // dell'istanza — vedi src/lib/userSettings.ts).
 import { getEnableBankingJwt } from './jwt'
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import type {
   Aspsp, AspspsResponse, AuthResponse, EnableBankingCredentials, Session,
   BalancesResponse, EbBalance, EbTransaction, TransactionsResponse,
@@ -23,49 +24,53 @@ function authHeaders(creds: EnableBankingCredentials): HeadersInit {
   }
 }
 
+// NB: non logghiamo mai il body delle risposte (né in caso di errore): può
+// contenere saldi/transazioni/PII del conto bancario dell'utente. Solo
+// status + path, sufficienti per il debug operativo senza finire nei log
+// dati finanziari altrui.
 async function get<T>(creds: EnableBankingCredentials, path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, { headers: authHeaders(creds), cache: 'no-store' })
+    const res = await fetchWithTimeout(`${BASE}${path}`, { headers: authHeaders(creds), cache: 'no-store' })
     if (!res.ok) {
-      console.warn(`[enablebanking] GET ${path} → ${res.status} ${await res.text().catch(() => '')}`)
+      console.warn(`[enablebanking] GET ${path} → ${res.status}`)
       return null
     }
     return (await res.json()) as T
   } catch (err) {
-    console.warn(`[enablebanking] GET ${path} failed:`, err)
+    console.warn(`[enablebanking] GET ${path} failed:`, err instanceof Error ? err.message : 'errore sconosciuto')
     return null
   }
 }
 
 async function post<T>(creds: EnableBankingCredentials, path: string, body: unknown): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetchWithTimeout(`${BASE}${path}`, {
       method:  'POST',
       headers: authHeaders(creds),
       body:    JSON.stringify(body),
       cache:   'no-store',
     })
     if (!res.ok) {
-      console.warn(`[enablebanking] POST ${path} → ${res.status} ${await res.text().catch(() => '')}`)
+      console.warn(`[enablebanking] POST ${path} → ${res.status}`)
       return null
     }
     return (await res.json()) as T
   } catch (err) {
-    console.warn(`[enablebanking] POST ${path} failed:`, err)
+    console.warn(`[enablebanking] POST ${path} failed:`, err instanceof Error ? err.message : 'errore sconosciuto')
     return null
   }
 }
 
 async function del(creds: EnableBankingCredentials, path: string): Promise<boolean> {
   try {
-    const res = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: authHeaders(creds), cache: 'no-store' })
+    const res = await fetchWithTimeout(`${BASE}${path}`, { method: 'DELETE', headers: authHeaders(creds), cache: 'no-store' })
     if (!res.ok) {
       console.warn(`[enablebanking] DELETE ${path} → ${res.status}`)
       return false
     }
     return true
   } catch (err) {
-    console.warn(`[enablebanking] DELETE ${path} failed:`, err)
+    console.warn(`[enablebanking] DELETE ${path} failed:`, err instanceof Error ? err.message : 'errore sconosciuto')
     return false
   }
 }
