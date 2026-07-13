@@ -26,7 +26,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${geist.variable} ${geistMono.variable}`}
     >
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* suppressHydrationWarning: falso positivo noto — dopo l'inserimento
+            nel DOM i browser svuotano deliberatamente l'attributo `nonce`
+            quando lo si rilegge (contromisura contro script che lo
+            leggerebbero per riusarlo altrove), quindi React vede sempre
+            nonce="" lato client contro il valore reale renderizzato dal
+            server. Lo script viene comunque eseguito correttamente: il nonce
+            è già stato verificato dal browser al parsing, prima che React
+            rilegga (e trovi vuoto) l'attributo per il confronto di hydration. */}
+        <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="font-sans antialiased bg-[--bg] text-[--ink] min-h-screen">
         <ThemeProvider>
