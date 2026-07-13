@@ -160,6 +160,21 @@ rivolto agli utenti finali vedi `/privacy` (`src/app/privacy/page.tsx`).
   transazioni bancarie (restano in chiaro: servono per la categorizzazione e
   sono visibili solo al proprietario del conto).
 
+## Deploy automatico (CI/CD)
+
+`.github/workflows/deploy.yml`: ad ogni push su `main`, un GitHub Actions
+runner **self-hosted** installato nativamente (systemd, non containerizzato)
+sull'LXC Proxmox che ospita l'istanza fa `git reset --hard origin/main` +
+`docker compose up -d --build` + `docker image prune -f` nella cartella di
+deploy (`/root/WealthWatcher`). Nessun `actions/checkout`: si opera sulla
+cartella esistente apposta, così `.env` e `data/` (mai tracciati da git)
+restano intatti — `git reset --hard` tocca solo i file tracciati.
+
+Il runner si connette a GitHub solo in uscita (nessuna porta esposta) ed è
+stato installato con `RUNNER_ALLOW_RUNASROOT=1` (l'LXC opera già come root
+per Docker/Compose — nessun isolamento aggiuntivo rispetto a quanto già
+vero per il resto dello stack).
+
 ## Conservazione ed erasure per l'utente
 
 Vedi `/privacy` §6–7: i dati restano finché l'account esiste; l'eliminazione

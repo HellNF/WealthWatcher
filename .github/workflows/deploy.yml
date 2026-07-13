@@ -1,0 +1,35 @@
+name: Deploy
+
+# Ad ogni push su main, il runner self-hosted (quello installato nell'LXC
+# Proxmox — vedi docs/security-privacy.md) fa il pull della nuova revisione,
+# ricostruisce l'immagine Docker e ripulisce le immagini vecchie rimaste
+# orfane. Nessun checkout via actions/checkout: si opera direttamente sulla
+# cartella di deploy esistente sul server (/root/WealthWatcher), che contiene
+# .env e data/ (mai tracciati da git, quindi mai toccati da git reset --hard).
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Pull latest main
+        run: |
+          cd /root/WealthWatcher
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Build & restart
+        run: |
+          cd /root/WealthWatcher
+          docker compose up -d --build
+
+      - name: Prune immagini orfane
+        run: |
+          docker image prune -f
