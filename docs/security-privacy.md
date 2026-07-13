@@ -59,9 +59,21 @@ rivolto agli utenti finali vedi `/privacy` (`src/app/privacy/page.tsx`).
    reverse proxy con TLS reale (es. Let's Encrypt) davanti all'istanza prima
    di poter usare Google OAuth fuori da `localhost`.
 6. Copia "Client ID" e "Client secret" in `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`.
-7. Nessuna variabile `AUTH_URL`/`NEXTAUTH_URL`: l'host del redirect è dedotto
-   a runtime da `trustHost: true` (`src/auth.ts`) leggendo `X-Forwarded-Host`
-   — il reverse proxy davanti all'app deve impostarlo correttamente.
+7. **Imposta `AUTH_URL`** con l'origin pubblico esatto (es.
+   `https://wealthwatcher.tuodominio.it`, niente path in coda). Senza
+   `AUTH_URL`, `trustHost: true` (`src/auth.ts`) deduce l'host leggendo
+   `X-Forwarded-Host`/`X-Forwarded-Proto` a ogni richiesta — se il reverse
+   proxy non li inoltra in modo perfettamente coerente su OGNI richiesta
+   (osservato in produzione con Tailscale Serve: funziona ma non sempre in
+   modo identico tra la richiesta di autorizzazione e quella di scambio del
+   codice), il `redirect_uri` calcolato può differire tra i due passaggi del
+   flusso OAuth e Google rifiuta lo scambio con
+   `invalid_request` / *"doesn't comply with Google's OAuth 2.0 policy"*.
+   `AUTH_URL`, se impostata, **bypassa completamente** la lettura degli
+   header (verificato nel sorgente di `next-auth`/`@auth/core`: non è un
+   fallback, è uno short-circuit incondizionato) — eliminando il problema
+   alla radice indipendentemente dal comportamento del proxy. Raccomandato
+   per qualunque istanza dietro reverse proxy, non solo con Google OAuth.
 
 ## Cifratura a riposo
 
