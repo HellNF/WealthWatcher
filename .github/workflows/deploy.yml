@@ -9,6 +9,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:  # permette di lanciarlo a mano da GitHub senza un nuovo commit
 
 concurrency:
   group: deploy
