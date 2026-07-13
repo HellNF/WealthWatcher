@@ -14,7 +14,14 @@ export default async function LoginPage({
 
   async function googleSignIn() {
     'use server'
-    await signIn('google', { redirectTo })
+    try {
+      await signIn('google', { redirectTo })
+    } catch (e) {
+      // AuthError = login rifiutato (es. email non in whitelist, o non
+      // verificata da Google — vedi callback signIn in src/auth.ts).
+      if (e instanceof AuthError) redirect('/login?error=denied')
+      throw e
+    }
   }
 
   async function emailSignIn(formData: FormData) {
@@ -53,7 +60,7 @@ export default async function LoginPage({
           {error === 'denied' && (
             <div className="rounded-lg border border-[--danger]/30 bg-[--danger-subtle] px-3 py-2.5">
               <p className="text-sm text-[--danger]">
-                Accesso negato: questa email non è nella whitelist.
+                Accesso negato: verifica che l&apos;email sia nella whitelist (e, per Google, verificata dal provider).
               </p>
             </div>
           )}
