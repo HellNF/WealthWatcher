@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+.swc/
 
 # production
 /build
@@ -32,6 +33,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -43,3 +45,9 @@ next-env.d.ts
 # database (keep the dir, ignore data + WAL/SHM + backups)
 /data/*
 !/data/.gitkeep
+
+# Claude Code (local, machine-specific settings/permissions)
+.claude/settings.local.json
+
+# Impeccable design skill (local cache + generated critique reports)
+.impeccable/
