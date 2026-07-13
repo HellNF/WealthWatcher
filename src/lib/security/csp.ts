@@ -1,18 +1,17 @@
 // src/lib/security/csp.ts
 //
-// Condiviso tra next.config.ts (header di sicurezza) e app/layout.tsx (script
-// inline per il tema): tenere qui l'unica fonte di verità del contenuto dello
-// script evita di dover ricalcolare a mano l'hash CSP ogni volta che cambia.
+// Contenuto dell'unico script inline dell'app (applica il tema salvato prima
+// del paint, per evitare il flash del tema sbagliato). Fonte di verità
+// condivisa con app/layout.tsx, che lo renderizza con l'attributo `nonce`
+// letto dall'header impostato in src/proxy.ts.
 //
-// Approccio "hash-based" (non nonce-based): l'app resta staticamente
-// renderizzabile (nessun forcing a dynamic rendering) — vedi
-// node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md,
-// sezione "Without Nonces".
-import { createHash } from 'crypto'
-
-// Applica il tema salvato prima del paint, per evitare il flash del tema
-// sbagliato. Contenuto letterale del tag <script> inline in app/layout.tsx —
-// se lo cambi lì, non serve toccare nulla qui: l'hash si ricalcola da solo.
+// La CSP è nonce-based (non hash-based): Next.js App Router inietta propri
+// script inline per l'hydration (payload RSC/self.__next_f, contenuto
+// diverso a ogni render) che non si possono "hashare" in anticipo — un CSP a
+// hash statico blocca quegli script e rompe l'app. Il nonce, generato per
+// richiesta nel proxy, viene invece propagato automaticamente da Next.js a
+// tutti gli script che genera lui stesso (vedi
+// node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
 export const THEME_SCRIPT = `
 (function(){
   try {
@@ -22,8 +21,3 @@ export const THEME_SCRIPT = `
   } catch(e){}
 })();
 `
-
-/** Restituisce la direttiva CSP `'sha256-...'` per il contenuto esatto di uno script inline. */
-export function scriptHash(source: string): string {
-  return `'sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}'`
-}

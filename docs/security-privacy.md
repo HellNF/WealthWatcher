@@ -70,12 +70,29 @@ rivolto agli utenti finali vedi `/privacy` (`src/app/privacy/page.tsx`).
 
 ## Superfici esterne
 
-- **Header di sicurezza + CSP** (`next.config.ts`, script condiviso in
-  `src/lib/security/csp.ts`): CSP hash-based (mantiene il rendering
-  statico), HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
-  `Referrer-Policy`, `Permissions-Policy`. `img-src` include `https:` perché
-  le icone crypto (CoinGecko) e le thumbnail news (Yahoo Finance) arrivano
-  da domini di terze parti non elencabili in anticipo.
+- **Header di sicurezza + CSP**: HSTS, `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`
+  sono statici (`next.config.ts`). La **Content-Security-Policy** è invece
+  generata per-richiesta in `src/proxy.ts`, con un nonce fresco a ogni
+  request (`script-src 'self' 'nonce-...' 'strict-dynamic'`) — **non**
+  hash-based: Next.js App Router inietta propri script inline per
+  l'hydration (payload RSC) con contenuto diverso a ogni render, che un hash
+  statico non può coprire; Next.js propaga automaticamente il nonce ai
+  propri script (vedi il commento in `src/proxy.ts` e la doc Next.js
+  linkata lì). Il nonce viene letto in `app/layout.tsx` via `headers()` e
+  passato all'unico script inline manuale dell'app (tema). Conseguenza:
+  tutte le pagine sono renderizzate dinamicamente (leggere `headers()` nel
+  layout root lo forza), incluse `/privacy` e `/terms` che prima erano
+  statiche — costo trascurabile per un'app self-hosted a basso traffico.
+  `img-src` include `https:` perché le icone crypto (CoinGecko) e le
+  thumbnail news (Yahoo Finance) arrivano da domini di terze parti non
+  elencabili in anticipo. **`upgrade-insecure-requests` non è incluso di
+  default**: forzerebbe il browser a richiedere ogni asset (JS/CSS/font) via
+  HTTPS sullo stesso host, e se l'istanza è servita in HTTP puro (es. dietro
+  VPN senza TLS terminato) questo rompe l'intera pagina
+  (`ERR_SSL_UNRECOGNIZED_NAME_ALERT` su ogni risorsa, osservato in
+  produzione). Impostare `FORCE_HTTPS_UPGRADE=true` **solo** quando
+  l'istanza è davvero raggiunta via HTTPS end-to-end.
 - **Timeout** su tutte le fetch esterne (`src/lib/fetchWithTimeout.ts`,
   default 10s) — prezzi, Enable Banking, scraping AutoScout24.
 - **Upload** (estratti conto, PDF KID): limiti di dimensione/estensione

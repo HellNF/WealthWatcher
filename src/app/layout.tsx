@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -13,7 +14,11 @@ export const metadata: Metadata = {
   description: 'Il tuo patrimonio netto, sempre sotto controllo.',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce impostato per-richiesta da src/proxy.ts — necessario per superare
+  // la CSP (script-src 'nonce-...') sull'unico script inline dell'app.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     <html
       lang="it"
@@ -21,8 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geist.variable} ${geistMono.variable}`}
     >
       <head>
-        {/* Contenuto esatto condiviso con la CSP (script-src hash) — vedi src/lib/security/csp.ts */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="font-sans antialiased bg-[--bg] text-[--ink] min-h-screen">
         <ThemeProvider>
