@@ -1,5 +1,6 @@
 import { Check, CheckCheck, Trash2 } from 'lucide-react'
 import type { Message } from '@/lib/messages'
+import { formatTimeIt } from '@/lib/formatDate'
 
 interface Props {
   message: Message
@@ -10,10 +11,7 @@ interface Props {
 }
 
 function formatTime(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleTimeString('it-IT', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatTimeIt(unixSeconds, { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function ChatBubble({ message, isOwn, isAdmin = false, onResolve, onDelete }: Props) {

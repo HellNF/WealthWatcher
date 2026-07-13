@@ -10,6 +10,7 @@ import {
 import type { CoinSearchResult } from '@/lib/prices/coingecko'
 import type { Position } from '@/lib/investments/fifo'
 import { fromMinor } from '@/lib/money'
+import { formatDateTimeIt } from '@/lib/formatDate'
 import {
   Button, Badge, EmptyState, Field, Input,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
@@ -193,9 +194,7 @@ function HoldingForm({
 
 function fmtDate(epoch: number | null): string {
   if (!epoch) return '—'
-  return new Date(epoch * 1000).toLocaleString('it-IT', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTimeIt(epoch, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function HoldingsManager({

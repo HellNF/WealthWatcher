@@ -3,6 +3,7 @@ import { useTransition } from 'react'
 import { RefreshCw, TrendingUp } from 'lucide-react'
 import { refreshPricesAction } from './actions'
 import { fromMinor } from '@/lib/money'
+import { formatDateTimeIt } from '@/lib/formatDate'
 import type { Position } from '@/lib/investments/fifo'
 import {
   Button, Badge, EmptyState,
@@ -12,9 +13,7 @@ import {
 
 function fmtDate(epoch: number | null): string {
   if (!epoch) return '—'
-  return new Date(epoch * 1000).toLocaleString('it-IT', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTimeIt(epoch, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function PlCell({ minor, pct }: { minor: number | null; pct: string | null }) {

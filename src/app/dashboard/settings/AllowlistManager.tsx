@@ -4,6 +4,7 @@ import { useActionState, useTransition } from 'react'
 import { addAllowedEmailAction, removeAllowedEmailAction, updateAllowedEmailRoleAction } from './actions'
 import { Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge } from '@/components/ui'
 import { UserPlus, Trash2 } from 'lucide-react'
+import { formatDateIt } from '@/lib/formatDate'
 
 interface AllowedEntry {
   email:      string
@@ -17,7 +18,7 @@ interface Props {
 }
 
 function fmtDate(epoch: number): string {
-  return new Date(epoch * 1000).toLocaleDateString('it-IT')
+  return formatDateIt(epoch)
 }
 
 function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {

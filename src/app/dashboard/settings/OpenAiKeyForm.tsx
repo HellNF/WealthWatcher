@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { saveOpenAiKeyAction, removeOpenAiKeyAction } from './actions'
 import { Button, Input } from '@/components/ui'
+import { formatDateIt } from '@/lib/formatDate'
 
 type Props = { hasKey: boolean; setAt: number | null }
 type State = { error?: string; success?: string } | undefined
@@ -12,7 +13,7 @@ export default function OpenAiKeyForm({ hasKey, setAt }: Props) {
   const [removeState, removeAction, removePending] = useActionState<State, FormData>(removeOpenAiKeyAction, undefined)
 
   const setAtLabel = setAt
-    ? new Date(setAt * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+    ? formatDateIt(setAt, { day: '2-digit', month: 'long', year: 'numeric' })
     : null
 
   return (

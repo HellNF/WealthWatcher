@@ -5,6 +5,7 @@ import { listAccounts, getAccountPreview, estimateInterest } from '@/lib/account
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioValuationEur } from '@/lib/portfolioValuation'
 import { fromMinor } from '@/lib/money'
+import { formatDateIt } from '@/lib/formatDate'
 import { getEnableBankingKey } from '@/lib/userSettings'
 import { getAspsps } from '@/lib/banking/client'
 import { listConnectionsForInstitution } from '@/lib/banking/connections'
@@ -210,7 +211,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
                 connectionId={c.id}
                 status={c.status}
                 aspsp={{ name: c.aspsp_name, country: c.aspsp_country }}
-                lastSyncedAt={c.last_synced_at ? new Date(c.last_synced_at * 1000).toLocaleDateString('it-IT') : null}
+                lastSyncedAt={c.last_synced_at ? formatDateIt(c.last_synced_at) : null}
               />
             ))}
           </Card>

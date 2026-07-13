@@ -6,6 +6,7 @@ import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction } fr
 import { ASSET_KINDS, KIND_MAP } from './assetKinds'
 import { FUEL_OPTIONS, GEARBOX_OPTIONS, COUNTRY_OPTIONS, DRIVETRAIN_OPTIONS } from './vehicleFields'
 import { fromMinor } from '@/lib/money'
+import { formatDateIt } from '@/lib/formatDate'
 import type { Asset, VehicleDetails } from '@/lib/assets'
 
 type State = { error?: string } | undefined
@@ -176,7 +177,7 @@ export default function AssetRow({
               {vehicleDetails.auto_estimate ? (
                 vehicleDetails.last_estimate_at ? (
                   <>
-                    <span>· stima {new Date(vehicleDetails.last_estimate_at * 1000).toLocaleDateString('it-IT')}</span>
+                    <span>· stima {formatDateIt(vehicleDetails.last_estimate_at)}</span>
                     {vehicleDetails.last_estimate_confidence && CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence] && (
                       <Badge
                         variant={CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].variant}

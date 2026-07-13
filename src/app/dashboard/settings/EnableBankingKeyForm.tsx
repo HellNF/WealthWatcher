@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { saveEnableBankingKeyAction, removeEnableBankingKeyAction } from './actions'
 import { Button, Field, Input, Textarea } from '@/components/ui'
+import { formatDateIt } from '@/lib/formatDate'
 
 type Props = {
   hasKey:      boolean
@@ -26,7 +27,7 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
   const [removeState, removeAction, removePending] = useActionState<State, FormData>(removeEnableBankingKeyAction, undefined)
 
   const setAtLabel = setAt
-    ? new Date(setAt * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+    ? formatDateIt(setAt, { day: '2-digit', month: 'long', year: 'numeric' })
     : null
 
   return (
