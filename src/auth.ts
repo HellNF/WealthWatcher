@@ -62,8 +62,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   callbacks: {
     // Authorization gate — runs for every provider before a session is issued.
-    signIn({ user }) {
-      return !!user.email && isEmailAllowed(user.email)
+    signIn({ user, account, profile }) {
+      if (!user.email || !isEmailAllowed(user.email)) return false
+
+      // La fusione degli account (§ upsertUser) si fida ciecamente dell'email
+      // restituita dal provider per decidere a quale utente collegare il
+      // login: se Google la segnala come non verificata, non è un'identità
+      // su cui appoggiare quella fusione — meglio rifiutare il login che
+      // rischiare di agganciare la sessione all'utente sbagliato.
+      if (account?.provider === 'google' && profile?.email_verified === false) {
+        return false
+      }
+
+      return true
     },
     // Al login (user presente): rispecchia l'utente nella nostra tabella e
     // timbra id + ruolo sul token. Alle richieste successive (user assente,

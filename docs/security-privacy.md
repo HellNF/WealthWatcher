@@ -24,6 +24,44 @@ rivolto agli utenti finali vedi `/privacy` (`src/app/privacy/page.tsx`).
 - **Redirect post-login**: `callbackUrl` validato con `isSafeRedirectPath`
   (`src/lib/security/redirect.ts`) — rifiuta URL protocol-relative
   (`//evil.com`) e backslash iniziali, accetta solo path interni.
+- **Fusione account per email**: `users.email` ha vincolo UNIQUE
+  (`src/db/schema.ts`) e `upsertUser` (`src/lib/users.ts`) fa
+  `INSERT ... ON CONFLICT(email) DO UPDATE` — un'email che accede prima via
+  Credentials (whitelist) e poi via Google (o viceversa) risolve sempre alla
+  **stessa riga** `users`, stesso `id`, stessi dati posseduti (`owner_id`).
+  Nessuna tabella `accounts` di NextAuth: l'identità è puramente
+  email-based, normalizzata con `normalizeEmail` (trim + lowercase).
+  Verificato in `src/__tests__/lib/users.test.ts`.
+- **`email_verified` (Google)**: il callback `signIn` rifiuta il login
+  Google se `profile.email_verified === false` — la fusione per email si
+  fida di quell'indirizzo, quindi un'email non verificata dal provider non
+  è un'identità su cui appoggiarla.
+
+### Google OAuth — checklist di setup (Google Cloud Console)
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → crea/seleziona un progetto.
+2. **APIs & Services → OAuth consent screen**: tipo "External", stato
+   "Testing" va bene per uso familiare/self-hosted (evita la revisione di
+   verifica Google, ma limita a max 100 utenti di test — sufficiente qui).
+   Aggiungi come "Test user" ogni email Google che deve poter accedere
+   (deve comunque essere anche in `allowed_emails`: OAuth autentica, non
+   autorizza — vedi SPEC §2).
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**,
+   tipo "Web application".
+4. **Authorized JavaScript origins**: l'origine pubblica dell'app, es.
+   `https://wealthwatcher.tuodominio.it` (+ `http://localhost:3000` per lo
+   sviluppo locale).
+5. **Authorized redirect URIs**: `https://wealthwatcher.tuodominio.it/api/auth/callback/google`
+   (+ `http://localhost:3000/api/auth/callback/google` per lo sviluppo).
+   **Google richiede HTTPS per qualunque host diverso da `localhost`** — un
+   dominio LAN servito in HTTP puro (es. `http://wealthwatcher.home.nf`,
+   come discusso per `FORCE_HTTPS_UPGRADE`) non verrà accettato: serve un
+   reverse proxy con TLS reale (es. Let's Encrypt) davanti all'istanza prima
+   di poter usare Google OAuth fuori da `localhost`.
+6. Copia "Client ID" e "Client secret" in `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`.
+7. Nessuna variabile `AUTH_URL`/`NEXTAUTH_URL`: l'host del redirect è dedotto
+   a runtime da `trustHost: true` (`src/auth.ts`) leggendo `X-Forwarded-Host`
+   — il reverse proxy davanti all'app deve impostarlo correttamente.
 
 ## Cifratura a riposo
 
