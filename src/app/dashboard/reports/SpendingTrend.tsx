@@ -1,15 +1,18 @@
 'use client'
 
+// Andamento giornaliero del mese su calendario completo: i giorni a zero
+// esistono (il "ritmo" è reale) e la media è per giorno di calendario.
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
-import type { DailyPoint } from '@/lib/reports'
+import type { DailyCalPoint } from '@/lib/monthReport'
 import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
-  data:     DailyPoint[]
-  currency: string
+  data:          DailyCalPoint[]
+  avgDailyMinor: number       // media per giorno trascorso, calcolata dal motore
+  currency:      string
 }
 
 function fmt(minor: number, currency: string) {
@@ -18,7 +21,7 @@ function fmt(minor: number, currency: string) {
   })
 }
 
-export default function SpendingTrend({ data, currency }: Props) {
+export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
 
@@ -30,13 +33,19 @@ export default function SpendingTrend({ data, currency }: Props) {
     return <p className="text-sm text-[--faint] py-8 text-center">Nessun dato disponibile.</p>
   }
 
-  const avgOutflow = Math.round(data.reduce((s, d) => s + d.outflowMinor, 0) / data.length)
+  const visible = data.filter((d) => !d.isFuture)
+  const maxOutflow = Math.max(...visible.map((d) => d.outflowMinor))
 
   const chartData = data.map((d) => ({
     day:     d.day,
-    uscite:  d.outflowMinor,
-    entrate: d.inflowMinor,
+    uscite:  d.isFuture ? null : d.outflowMinor,
+    entrate: d.isFuture ? null : d.inflowMinor,
+    isMax:   d.outflowMinor === maxOutflow && maxOutflow > 0 && !d.isFuture,
+    weekend: d.weekday === 0 || d.weekday === 6,
   }))
+
+  // Tick ogni ~5 giorni, sempre il giorno 1 e l'ultimo
+  const tickInterval = Math.max(1, Math.round(data.length / 7))
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -47,7 +56,7 @@ export default function SpendingTrend({ data, currency }: Props) {
           tick={{ fill: colors.axis, fontSize: 10 }}
           tickLine={false}
           axisLine={false}
-          interval={4}
+          interval={tickInterval - 1}
         />
         <YAxis
           tickFormatter={(v) => fmt(v, currency)}
@@ -61,7 +70,10 @@ export default function SpendingTrend({ data, currency }: Props) {
             fmt(Number(value), currency),
             name === 'uscite' ? 'Uscite' : 'Entrate',
           ]}
-          labelFormatter={(l) => `Giorno ${String(l)}`}
+          labelFormatter={(l) => {
+            const point = chartData[Number(l) - 1]
+            return `Giorno ${String(l)}${point?.weekend ? ' · weekend' : ''}`
+          }}
           contentStyle={{
             background: colors.tooltipBg,
             border: `1px solid ${colors.tooltipBorder}`,
@@ -70,16 +82,24 @@ export default function SpendingTrend({ data, currency }: Props) {
             boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
           }}
         />
-        {avgOutflow > 0 && (
+        {avgDailyMinor > 0 && (
           <ReferenceLine
-            y={avgOutflow}
+            y={avgDailyMinor}
             stroke={colors.axis}
             strokeDasharray="4 2"
-            label={{ value: 'media', position: 'insideTopRight', fill: colors.axis, fontSize: 10 }}
+            label={{ value: 'media/giorno', position: 'insideTopRight', fill: colors.axis, fontSize: 10 }}
           />
         )}
-        <Bar dataKey="uscite"  fill={colors.outflow} opacity={0.85} radius={[3, 3, 0, 0]} maxBarSize={20} />
-        <Bar dataKey="entrate" fill={colors.inflow}  opacity={0.70} radius={[3, 3, 0, 0]} maxBarSize={20} />
+        <Bar dataKey="uscite" radius={[3, 3, 0, 0]} maxBarSize={16}>
+          {chartData.map((d) => (
+            <Cell
+              key={d.day}
+              fill={colors.outflow}
+              opacity={d.isMax ? 1 : 0.6}
+            />
+          ))}
+        </Bar>
+        <Bar dataKey="entrate" fill={colors.inflow} opacity={0.7} radius={[3, 3, 0, 0]} maxBarSize={16} />
       </BarChart>
     </ResponsiveContainer>
   )

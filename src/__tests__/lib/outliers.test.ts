@@ -8,6 +8,7 @@ let nextId = 1
 function txn(partial: Partial<FlowTxn> & { booked_date: string; amount_minor: number }): FlowTxn {
   return {
     id: nextId++,
+    bank_account_id: 1,
     category_id: 1,
     category_name: 'Supermercato',
     category_kind: 'expense',

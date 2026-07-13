@@ -137,6 +137,7 @@ export interface FlowTxn {
   id:              number
   booked_date:     string   // YYYY-MM-DD
   amount_minor:    number   // con segno
+  bank_account_id: number
   category_id:     number | null
   category_name:   string | null
   category_kind:   string | null   // 'expense' | 'income' | 'transfer'
@@ -149,7 +150,7 @@ function fetchFlow(ctx: FlowContext, where: string, sinceMonths: number): FlowTx
   return sqlite
     .prepare(
       `SELECT
-         t.id, t.booked_date, t.amount_minor, t.category_id,
+         t.id, t.booked_date, t.amount_minor, t.bank_account_id, t.category_id,
          c.name AS category_name,
          c.kind AS category_kind,
          t.merchant_id,

@@ -56,10 +56,14 @@ const BRIDGE_MIN_DELTA_PCT   = 0.15
 /**
  * Confronta la spesa per categoria del mese focus con il "mese tipico"
  * (mediana per categoria sui 6 mesi completi precedenti, zeri inclusi).
- * Focus: mese corrente se siamo a fine mese (giorno ≥ 25), altrimenti
- * l'ultimo mese completo.
+ * Focus di default: mese corrente se siamo a fine mese (giorno ≥ 25),
+ * altrimenti l'ultimo mese completo. `focusMonth` (YYYY-MM) lo sovrascrive.
  */
-export function monthBridge(expenses: FlowTxn[], today = new Date()): MonthBridge {
+export function monthBridge(
+  expenses: FlowTxn[],
+  today = new Date(),
+  focusMonth?: string,
+): MonthBridge {
   const empty: MonthBridge = {
     hasData: false, month: '', isPartialMonth: false,
     totalActualMinor: 0, totalTypicalMinor: 0, totalDeltaMinor: 0,
@@ -67,7 +71,8 @@ export function monthBridge(expenses: FlowTxn[], today = new Date()): MonthBridg
   }
 
   const current = currentMonthKey(today)
-  const focus   = today.getUTCDate() >= 25 ? current : previousMonths(current, 1)[0]
+  const focus   = focusMonth
+    ?? (today.getUTCDate() >= 25 ? current : previousMonths(current, 1)[0])
   const isPartialMonth = focus === current
 
   const baselineMonths = previousMonths(focus, 6)
@@ -150,7 +155,7 @@ export interface FixedVariableSplit {
 }
 
 /** Categorie considerate strutturalmente vincolate (nomi dal seed). */
-const COMMITTED_CATEGORIES = new Set(['Mutuo', 'Utenze', 'Abbonamenti', 'Tasse', 'Previdenza'])
+export const COMMITTED_CATEGORIES = new Set(['Mutuo', 'Utenze', 'Abbonamenti', 'Tasse', 'Previdenza'])
 
 /**
  * Divide la spesa in fissa (ricorrenti attivi subscription/bill + categorie
