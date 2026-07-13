@@ -1,8 +1,28 @@
 // src/lib/analytics.ts — Aggregazioni statistiche avanzate su patrimonio e transazioni.
 // Patrimonio: basato su valuation_snapshots (già storicizzata).
 // Transazioni: query SQL raw su transactions, multi-mese.
+// Tutte le metriche sulle transazioni escludono i trasferimenti tra conti propri
+// (categoria kind='transfer' + coppie rilevate) tramite FlowContext — vedi spending.ts.
 import { sqlite } from '@/db'
 import { listSnapshots } from '@/lib/valuation'
+import {
+  buildFlowContext,
+  fetchTrueExpenses,
+  fetchTrueIncomes,
+  flowTxnKey,
+  gapsInDays,
+  mad,
+  median,
+  normalizeDescKey,
+  robustZ,
+  IS_TRANSFER_SQL,
+  TRUE_EXPENSE_WHERE,
+  type FlowContext,
+  type FlowTxn,
+} from '@/lib/spending'
+
+export type { FlowContext, FlowTxn } from '@/lib/spending'
+export { buildFlowContext } from '@/lib/spending'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PATRIMONIO
@@ -181,26 +201,54 @@ function computeVolatility(snapshots: ReturnType<typeof listSnapshots>): Volatil
 
 export interface MonthlyCashflow {
   month:        string   // YYYY-MM
-  inflow:       number   // minor, positivo
-  outflow:      number   // minor, positivo (valore assoluto)
+  inflow:       number   // minor, positivo — reddito reale (trasferimenti esclusi)
+  outflow:      number   // minor, positivo (valore assoluto) — spesa reale
   net:          number   // minor, con segno
-  savingsRate:  number | null  // (net / inflow) * 100, null se inflow = 0
+  transferOutMinor: number  // trasferimenti in uscita (espliciti + coppie rilevate)
+  transferInMinor:  number  // trasferimenti in entrata
+  /** (net / inflow) × 100 sul flusso reale — alias storico di expenseSavingsRate. */
+  savingsRate:  number | null
+  /** Quota del reddito non spesa: (inflow − outflow) / inflow × 100. */
+  expenseSavingsRate: number | null
+  /** Quota del reddito trasferita verso risparmio/investimenti: max(0, netTransferOut) / inflow × 100. */
+  investmentRate: number | null
 }
 
 export interface WeekdaySpending {
   weekday:     number  // 0 = Dom, 1 = Lun, …, 6 = Sab
   label:       string
-  avgMinor:    number  // spesa media per quel giorno della settimana
+  totalMinor:  number  // spesa totale in quel giorno della settimana
+  sharePct:    number  // quota % della spesa complessiva
+  avgPerDayMinor: number  // spesa media per singola occorrenza del giorno nel periodo
   count:       number
+  topCategory: string | null  // categoria più pesante in quel giorno
 }
 
-export interface RecurringPayment {
+export type RecurringCadence =
+  | 'weekly' | 'biweekly' | 'monthly' | 'bimonthly'
+  | 'quarterly' | 'semiannual' | 'annual'
+
+export type RecurringKind = 'subscription' | 'bill' | 'habit'
+
+export interface RecurringItem {
+  key:           string        // chiave stabile: 'm:<merchantId>' o 'd:<descKey>'
   merchant_id:   number | null
   merchant_name: string | null
-  description:   string        // fallback se no merchant
-  monthlyMinor:  number        // importo medio mensile
-  yearlyMinor:   number        // proiezione annuale
-  months:        number        // numero di mesi in cui è apparso
+  description:   string        // etichetta display
+  kind:          RecurringKind
+  cadence:       RecurringCadence | null  // null per habit
+  cadenceLabel:  string | null            // 'mensile', 'settimanale', …
+  amountMinor:   number        // mediana degli ultimi 3 addebiti
+  monthlyEquivalentMinor: number
+  yearlyMinor:   number        // amount × fattore cadenza (habit: spesa mensile × 12)
+  occurrences:   number
+  months:        number        // mesi distinti in cui appare
+  firstDate:     string
+  lastDate:      string
+  status:        'active' | 'ceased'
+  nextExpectedDate: string | null
+  priceChangePct:   number | null  // Δ mediana(ultimi 3) vs mediana(primi 3), se ≥ 6 addebiti
+  oldAmountMinor:   number | null
 }
 
 export interface SpendingOutlier {
@@ -209,226 +257,388 @@ export interface SpendingOutlier {
   amount_minor:  number        // negativo
   description:   string
   category_name: string | null
-  category_avg:  number        // media assoluta della categoria (minor)
-  excess_pct:    number        // quanto sopra la media (%)
+  categoryMedianMinor: number  // mediana assoluta della categoria (ultimi 12 mesi)
+  robustZ:       number        // z-score robusto (0.6745·(x−med)/MAD)
+  excessMinor:   number        // |amount| − mediana
 }
 
 export interface TransactionStats {
+  ctx:          FlowContext
   cashflow:     MonthlyCashflow[]
   weekday:      WeekdaySpending[]
-  recurring:    RecurringPayment[]
+  recurring:    RecurringItem[]
   outliers:     SpendingOutlier[]
+  /** Uscite reali degli ultimi 24 mesi (array condiviso tra i motori). */
+  expenses:     FlowTxn[]
+  /** Entrate reali degli ultimi 24 mesi. */
+  incomes:      FlowTxn[]
 }
 
 /** Calcola statistiche avanzate sulle transazioni dell'utente. */
 export function transactionStats(userId: number): TransactionStats {
+  const ctx      = buildFlowContext(userId)
+  const expenses = fetchTrueExpenses(ctx, 24)
+  const incomes  = fetchTrueIncomes(ctx, 24)
+  const recurring = detectRecurring(expenses)
   return {
-    cashflow:  monthlyCashflow(userId),
-    weekday:   weekdaySpending(userId),
-    recurring: recurringPayments(userId),
-    outliers:  spendingOutliers(userId),
+    ctx,
+    cashflow:  monthlyCashflow(ctx),
+    weekday:   weekdaySpending(ctx),
+    recurring,
+    outliers:  spendingOutliers(expenses, recurring),
+    expenses,
+    incomes,
   }
 }
 
 // ── Cashflow mensile storico ──────────────────────────────────────────────────
 
-function monthlyCashflow(userId: number): MonthlyCashflow[] {
+export function monthlyCashflow(ctx: FlowContext): MonthlyCashflow[] {
   const rows = sqlite
     .prepare(
       `SELECT
-         substr(booked_date, 1, 7) AS month,
-         COALESCE(SUM(CASE WHEN amount_minor > 0 THEN  amount_minor ELSE 0 END), 0) AS inflow,
-         COALESCE(SUM(CASE WHEN amount_minor < 0 THEN -amount_minor ELSE 0 END), 0) AS outflow
-       FROM transactions
-       WHERE owner_id = ?
+         substr(t.booked_date, 1, 7) AS month,
+         COALESCE(SUM(CASE WHEN NOT ${IS_TRANSFER_SQL} AND t.amount_minor > 0 THEN  t.amount_minor ELSE 0 END), 0) AS inflow,
+         COALESCE(SUM(CASE WHEN NOT ${IS_TRANSFER_SQL} AND t.amount_minor < 0 THEN -t.amount_minor ELSE 0 END), 0) AS outflow,
+         COALESCE(SUM(CASE WHEN ${IS_TRANSFER_SQL} AND t.amount_minor < 0 THEN -t.amount_minor ELSE 0 END), 0) AS transfer_out,
+         COALESCE(SUM(CASE WHEN ${IS_TRANSFER_SQL} AND t.amount_minor > 0 THEN  t.amount_minor ELSE 0 END), 0) AS transfer_in
+       FROM transactions t
+       WHERE t.owner_id = :owner
        GROUP BY month
        ORDER BY month ASC`,
     )
-    .all(userId) as { month: string; inflow: number; outflow: number }[]
+    .all({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as {
+      month: string; inflow: number; outflow: number
+      transfer_out: number; transfer_in: number
+    }[]
 
-  return rows.map((r) => ({
-    month:       r.month,
-    inflow:      r.inflow,
-    outflow:     r.outflow,
-    net:         r.inflow - r.outflow,
-    savingsRate: r.inflow > 0
-      ? Math.round(((r.inflow - r.outflow) / r.inflow) * 10_000) / 100
-      : null,
-  }))
+  return rows.map((r) => {
+    const net = r.inflow - r.outflow
+    const expenseSavingsRate = r.inflow > 0
+      ? Math.round((net / r.inflow) * 10_000) / 100
+      : null
+    const netTransferOut = Math.max(0, r.transfer_out - r.transfer_in)
+    const investmentRate = r.inflow > 0
+      ? Math.round((netTransferOut / r.inflow) * 10_000) / 100
+      : null
+    return {
+      month:            r.month,
+      inflow:           r.inflow,
+      outflow:          r.outflow,
+      net,
+      transferOutMinor: r.transfer_out,
+      transferInMinor:  r.transfer_in,
+      savingsRate:      expenseSavingsRate,
+      expenseSavingsRate,
+      investmentRate,
+    }
+  })
 }
 
 // ── Pattern per giorno della settimana ───────────────────────────────────────
 
 const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab']
 
-function weekdaySpending(userId: number): WeekdaySpending[] {
+export function weekdaySpending(ctx: FlowContext): WeekdaySpending[] {
+  const params = { owner: ctx.userId, excluded: ctx.excludedIdsJson }
   const rows = sqlite
     .prepare(
       `SELECT
-         CAST(strftime('%w', booked_date) AS INTEGER) AS weekday,
+         CAST(strftime('%w', t.booked_date) AS INTEGER) AS weekday,
          COUNT(*) AS cnt,
-         SUM(-amount_minor) AS total_minor
-       FROM transactions
-       WHERE owner_id = ?
-         AND amount_minor < 0
+         SUM(-t.amount_minor) AS total_minor,
+         MIN(t.booked_date) AS min_date,
+         MAX(t.booked_date) AS max_date
+       FROM transactions t
+       WHERE t.owner_id = :owner
+         AND ${TRUE_EXPENSE_WHERE}
        GROUP BY weekday
        ORDER BY weekday`,
     )
-    .all(userId) as { weekday: number; cnt: number; total_minor: number }[]
-
-  return rows.map((r) => ({
-    weekday:  r.weekday,
-    label:    WEEKDAY_LABELS[r.weekday] ?? String(r.weekday),
-    avgMinor: r.cnt > 0 ? Math.round(r.total_minor / r.cnt) : 0,
-    count:    r.cnt,
-  }))
-}
-
-// ── Rilevamento pagamenti ricorrenti / abbonamenti ────────────────────────────
-//
-// Strategia: raggruppa per merchant_id (o, se assente, per normalized description)
-// e conta su quanti mesi distinti appare il raggruppamento.
-// Un pagamento è "ricorrente" se appare in ≥ 3 mesi diversi.
-
-function recurringPayments(userId: number, minMonths = 3): RecurringPayment[] {
-  // Merchants con ID noto
-  const merchantRows = sqlite
-    .prepare(
-      `SELECT
-         t.merchant_id,
-         m.canonical_name AS merchant_name,
-         COUNT(DISTINCT substr(t.booked_date, 1, 7)) AS month_count,
-         COUNT(*) AS txn_count,
-         ABS(AVG(t.amount_minor)) AS avg_minor
-       FROM transactions t
-       LEFT JOIN merchants m ON m.id = t.merchant_id
-       WHERE t.owner_id = ?
-         AND t.amount_minor < 0
-         AND t.merchant_id IS NOT NULL
-       GROUP BY t.merchant_id
-       HAVING month_count >= ?
-       ORDER BY avg_minor DESC
-       LIMIT 20`,
-    )
-    .all(userId, minMonths) as {
-      merchant_id:   number
-      merchant_name: string | null
-      month_count:   number
-      txn_count:     number
-      avg_minor:     number
+    .all(params) as {
+      weekday: number; cnt: number; total_minor: number
+      min_date: string; max_date: string
     }[]
 
-  // Transazioni senza merchant ma con descrizione stabile (ipotesi: se la descrizione
-  // normalizzata appare nello stesso mese per ≥3 mesi distinti con importo simile)
-  const descRows = sqlite
+  if (rows.length === 0) return []
+
+  // Categoria dominante per giorno della settimana
+  const topRows = sqlite
     .prepare(
-      `SELECT
-         lower(trim(description_raw)) AS desc_key,
-         COUNT(DISTINCT substr(booked_date, 1, 7)) AS month_count,
-         COUNT(*) AS txn_count,
-         ABS(AVG(amount_minor)) AS avg_minor
-       FROM transactions
-       WHERE owner_id = ?
-         AND amount_minor < 0
-         AND merchant_id IS NULL
-       GROUP BY desc_key
-       HAVING month_count >= ?
-         AND length(desc_key) > 4
-       ORDER BY avg_minor DESC
-       LIMIT 10`,
-    )
-    .all(userId, minMonths) as {
-      desc_key:    string
-      month_count: number
-      txn_count:   number
-      avg_minor:   number
-    }[]
-
-  const result: RecurringPayment[] = []
-
-  for (const r of merchantRows) {
-    const monthly = Math.round(r.avg_minor)
-    result.push({
-      merchant_id:   r.merchant_id,
-      merchant_name: r.merchant_name,
-      description:   r.merchant_name ?? 'Sconosciuto',
-      monthlyMinor:  monthly,
-      yearlyMinor:   monthly * 12,
-      months:        r.month_count,
-    })
-  }
-
-  for (const r of descRows) {
-    const monthly = Math.round(r.avg_minor)
-    // Tronca descrizione a 40 caratteri per display
-    const label = r.desc_key.length > 40 ? r.desc_key.slice(0, 40) + '…' : r.desc_key
-    result.push({
-      merchant_id:   null,
-      merchant_name: null,
-      description:   label,
-      monthlyMinor:  monthly,
-      yearlyMinor:   monthly * 12,
-      months:        r.month_count,
-    })
-  }
-
-  // Ordina per importo mensile decrescente
-  result.sort((a, b) => b.monthlyMinor - a.monthlyMinor)
-  return result.slice(0, 20)
-}
-
-// ── Anomalie di spesa (outlier per categoria) ─────────────────────────────────
-//
-// Per ogni categoria calcola la media delle uscite; poi trova transazioni
-// che superano del 200% la media (molto sopra la norma) con un importo
-// minimo di 10€ per evitare micro-transazioni.
-
-function spendingOutliers(userId: number, thresholdMultiplier = 3): SpendingOutlier[] {
-  const rows = sqlite
-    .prepare(
-      `WITH cat_stats AS (
+      `SELECT weekday, name FROM (
          SELECT
-           category_id,
-           ABS(AVG(amount_minor)) AS avg_abs,
-           COUNT(*) AS cnt
-         FROM transactions
-         WHERE owner_id = ?
-           AND amount_minor < 0
-         GROUP BY category_id
-         HAVING cnt >= 3
-       )
-       SELECT
-         t.id,
-         t.booked_date,
-         t.amount_minor,
-         t.description_raw AS description,
-         c.name AS category_name,
-         cs.avg_abs AS category_avg
-       FROM transactions t
-       JOIN cat_stats cs ON cs.category_id = t.category_id
-       LEFT JOIN categories c ON c.id = t.category_id
-       WHERE t.owner_id = ?
-         AND t.amount_minor < 0
-         AND ABS(t.amount_minor) >= 1000              -- min 10€
-         AND ABS(t.amount_minor) > cs.avg_abs * ?
-       ORDER BY ABS(t.amount_minor) DESC
-       LIMIT 15`,
+           CAST(strftime('%w', t.booked_date) AS INTEGER) AS weekday,
+           c.name AS name,
+           ROW_NUMBER() OVER (
+             PARTITION BY CAST(strftime('%w', t.booked_date) AS INTEGER)
+             ORDER BY SUM(-t.amount_minor) DESC
+           ) AS rn
+         FROM transactions t
+         JOIN categories c ON c.id = t.category_id
+         WHERE t.owner_id = :owner
+           AND ${TRUE_EXPENSE_WHERE}
+         GROUP BY weekday, c.name
+       ) WHERE rn = 1`,
     )
-    .all(userId, userId, thresholdMultiplier) as {
-      id:            number
-      booked_date:   string
-      amount_minor:  number
-      description:   string
-      category_name: string | null
-      category_avg:  number
-    }[]
+    .all(params) as { weekday: number; name: string }[]
+  const topByWeekday = new Map(topRows.map((r) => [r.weekday, r.name]))
+
+  // Quante volte ogni giorno della settimana compare nel range dati
+  const globalMin = rows.reduce((m, r) => (r.min_date < m ? r.min_date : m), rows[0].min_date)
+  const globalMax = rows.reduce((m, r) => (r.max_date > m ? r.max_date : m), rows[0].max_date)
+  const totalDays = Math.round((Date.parse(globalMax) - Date.parse(globalMin)) / 86_400_000) + 1
+  const startW    = new Date(globalMin + 'T00:00:00Z').getUTCDay()
+  const weekdayOccurrences = (w: number): number => {
+    const base  = Math.floor(totalDays / 7)
+    const extra = (w - startW + 7) % 7 < totalDays % 7 ? 1 : 0
+    return Math.max(1, base + extra)
+  }
+
+  const grandTotal = rows.reduce((s, r) => s + r.total_minor, 0)
 
   return rows.map((r) => ({
-    ...r,
-    excess_pct: Math.round(
-      (Math.abs(r.amount_minor) / r.category_avg - 1) * 100,
-    ),
+    weekday:    r.weekday,
+    label:      WEEKDAY_LABELS[r.weekday] ?? String(r.weekday),
+    totalMinor: r.total_minor,
+    sharePct:   grandTotal > 0 ? Math.round((r.total_minor / grandTotal) * 1000) / 10 : 0,
+    avgPerDayMinor: Math.round(r.total_minor / weekdayOccurrences(r.weekday)),
+    count:      r.cnt,
+    topCategory: topByWeekday.get(r.weekday) ?? null,
   }))
+}
+
+// ── Rilevamento pagamenti ricorrenti v2 ───────────────────────────────────────
+//
+// Inferenza della cadenza dai gap mediani tra addebiti consecutivi, importo dalla
+// mediana degli ultimi 3 addebiti, annualizzazione con il fattore di cadenza reale.
+// Classificazione: subscription (cadenza regolare, importo stabile), bill (cadenza
+// regolare, importo variabile — utenze), habit (spesa abituale senza cadenza, es.
+// supermercato — MAI annualizzata con un fattore di cadenza).
+
+const CADENCE_BANDS: { cadence: RecurringCadence; min: number; max: number; factor: number; label: string }[] = [
+  { cadence: 'weekly',     min: 6,   max: 8,   factor: 52, label: 'settimanale'  },
+  { cadence: 'biweekly',   min: 12,  max: 16,  factor: 26, label: 'quindicinale' },
+  { cadence: 'monthly',    min: 27,  max: 34,  factor: 12, label: 'mensile'      },
+  { cadence: 'bimonthly',  min: 55,  max: 66,  factor: 6,  label: 'bimestrale'   },
+  { cadence: 'quarterly',  min: 84,  max: 98,  factor: 4,  label: 'trimestrale'  },
+  { cadence: 'semiannual', min: 170, max: 195, factor: 2,  label: 'semestrale'   },
+  { cadence: 'annual',     min: 350, max: 380, factor: 1,  label: 'annuale'      },
+]
+
+const RECURRING_MIN_YEARLY_MINOR = 2000  // €20/anno di materialità
+const CEASED_GAP_MULTIPLIER = 1.8
+
+export function detectRecurring(expenses: FlowTxn[], today = new Date()): RecurringItem[] {
+  // Raggruppa per merchant o per descrizione normalizzata
+  const groups = new Map<string, { txns: FlowTxn[]; merchantId: number | null; label: string }>()
+  for (const t of expenses) {
+    let key: string
+    let label: string
+    if (t.merchant_id !== null) {
+      key = `m:${t.merchant_id}`
+      label = t.merchant_name ?? t.description_raw
+    } else {
+      const descKey = normalizeDescKey(t.description_raw)
+      if (!descKey) continue
+      key = `d:${descKey}`
+      label = descKey.length > 40 ? descKey.slice(0, 40) + '…' : descKey
+    }
+    let g = groups.get(key)
+    if (!g) { g = { txns: [], merchantId: t.merchant_id, label }; groups.set(key, g) }
+    g.txns.push(t)
+  }
+
+  const todayMs = today.getTime()
+  const result: RecurringItem[] = []
+
+  for (const [key, g] of groups) {
+    const txns = g.txns   // già ordinate per data crescente (fetch ORDER BY)
+    const dates = txns.map((t) => t.booked_date)
+    const amounts = txns.map((t) => Math.abs(t.amount_minor))
+    const distinctMonths = new Set(dates.map((d) => d.slice(0, 7))).size
+
+    const gaps   = gapsInDays(dates)
+    const medGap = gaps.length > 0 ? median(gaps) : null
+    const band   = medGap !== null
+      ? CADENCE_BANDS.find((b) => medGap >= b.min && medGap <= b.max) ?? null
+      : null
+    const regular = band !== null && medGap !== null && mad(gaps) / medGap <= 0.25
+
+    // Requisiti minimi: ≥3 addebiti, oppure ≥2 per candidati annuali
+    const minOccurrences = band?.cadence === 'annual' ? 2 : 3
+    if (txns.length < minOccurrences) continue
+
+    const medAmount = median(amounts)
+    const relMad    = medAmount > 0 ? mad(amounts) / medAmount : 0
+
+    // Una "bolletta" a importo variabile con cadenza settimanale non esiste:
+    // le cadenze brevi con importi variabili sono spesa abituale (es. supermercato).
+    const billableCadence = band !== null && band.factor <= 12
+    let kind: RecurringKind
+    if (regular && relMad <= 0.10)      kind = 'subscription'
+    else if (regular && billableCadence) kind = 'bill'
+    else if (txns.length >= 6 && distinctMonths >= 3) kind = 'habit'
+    else continue
+
+    const lastDate  = dates[dates.length - 1]
+    const firstDate = dates[0]
+
+    let amountMinor: number
+    let yearlyMinor: number
+    let monthlyEquivalentMinor: number
+    if (kind === 'habit') {
+      const totalSpend = amounts.reduce((s, a) => s + a, 0)
+      monthlyEquivalentMinor = Math.round(totalSpend / distinctMonths)
+      amountMinor = Math.round(medAmount)
+      yearlyMinor = monthlyEquivalentMinor * 12
+    } else {
+      amountMinor = Math.round(median(amounts.slice(-3)))
+      yearlyMinor = amountMinor * band!.factor
+      monthlyEquivalentMinor = Math.round(yearlyMinor / 12)
+    }
+
+    if (yearlyMinor < RECURRING_MIN_YEARLY_MINOR) continue
+
+    // Aumento di prezzo: mediana(ultimi 3) vs mediana(primi 3), solo con ≥6 addebiti
+    let priceChangePct: number | null = null
+    let oldAmountMinor: number | null = null
+    if (kind !== 'habit' && txns.length >= 6) {
+      const oldMed    = median(amounts.slice(0, 3))
+      const recentMed = median(amounts.slice(-3))
+      const deltaPct  = oldMed > 0 ? (recentMed / oldMed - 1) * 100 : 0
+      if (Math.abs(deltaPct) >= 5 && Math.abs(recentMed - oldMed) >= 50) {
+        priceChangePct = Math.round(deltaPct * 10) / 10
+        oldAmountMinor = Math.round(oldMed)
+      }
+    }
+
+    // Stato + prossimo addebito atteso
+    const expectedGap = medGap ?? 30
+    const daysSinceLast = (todayMs - Date.parse(lastDate)) / 86_400_000
+    const status: RecurringItem['status'] =
+      daysSinceLast > expectedGap * CEASED_GAP_MULTIPLIER ? 'ceased' : 'active'
+    const nextExpectedDate = regular && status === 'active'
+      ? new Date(Date.parse(lastDate) + Math.round(expectedGap) * 86_400_000)
+          .toISOString().slice(0, 10)
+      : null
+
+    result.push({
+      key,
+      merchant_id:   g.merchantId,
+      merchant_name: g.merchantId !== null ? g.label : null,
+      description:   g.label,
+      kind,
+      cadence:       kind === 'habit' ? null : band!.cadence,
+      cadenceLabel:  kind === 'habit' ? null : band!.label,
+      amountMinor,
+      monthlyEquivalentMinor,
+      yearlyMinor,
+      occurrences:   txns.length,
+      months:        distinctMonths,
+      firstDate,
+      lastDate,
+      status,
+      nextExpectedDate,
+      priceChangePct,
+      oldAmountMinor,
+    })
+  }
+
+  result.sort((a, b) => b.yearlyMinor - a.yearlyMinor)
+  return result.slice(0, 25)
+}
+
+// ── Anomalie di spesa v2 (outlier robusti per categoria) ─────────────────────
+//
+// Baseline per categoria: mediana + MAD sugli ultimi 12 mesi (≥ 8 transazioni).
+// Candidati: solo gli ultimi 6 mesi. Outlier se z robusto ≥ 3.5 con soglie di
+// materialità. Gli addebiti riconducibili a un ricorrente attivo (es. affitto)
+// non sono anomalie.
+
+const OUTLIER_Z_THRESHOLD     = 3.5
+const OUTLIER_MIN_ABS_MINOR   = 2500  // €25
+const OUTLIER_MIN_EXCESS      = 2000  // €20 sopra la mediana
+const OUTLIER_BASELINE_MIN_N  = 8
+
+export function spendingOutliers(
+  expenses:  FlowTxn[],
+  recurring: RecurringItem[] = [],
+  today = new Date(),
+): SpendingOutlier[] {
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
+  const monthsAgo = (n: number) => {
+    const d = new Date(today)
+    d.setMonth(d.getMonth() - n)
+    return iso(d)
+  }
+  const baselineFrom  = monthsAgo(12)
+  const candidateFrom = monthsAgo(6)
+
+  // Set di addebiti "attesi" dai ricorrenti (subscription/bill): stesso gruppo,
+  // importo entro ±10% dell'importo tipico → non è un'anomalia.
+  const recurringByKey = new Map(
+    recurring.filter((r) => r.kind !== 'habit').map((r) => [r.key, r]),
+  )
+
+  // Baseline per categoria (null = non categorizzate)
+  const byCategory = new Map<number | 'none', number[]>()
+  for (const t of expenses) {
+    if (t.booked_date < baselineFrom) continue
+    const key = t.category_id ?? 'none'
+    const list = byCategory.get(key) ?? []
+    list.push(Math.abs(t.amount_minor))
+    byCategory.set(key, list)
+  }
+
+  const stats = new Map<number | 'none', { med: number; madv: number }>()
+  for (const [key, values] of byCategory) {
+    if (values.length < OUTLIER_BASELINE_MIN_N) continue
+    stats.set(key, { med: median(values), madv: mad(values) })
+  }
+
+  const outliers: SpendingOutlier[] = []
+  for (const t of expenses) {
+    if (t.booked_date < candidateFrom) continue
+    const st = stats.get(t.category_id ?? 'none')
+    if (!st) continue
+
+    const abs = Math.abs(t.amount_minor)
+    if (abs < OUTLIER_MIN_ABS_MINOR) continue
+    if (abs - st.med < OUTLIER_MIN_EXCESS) continue
+
+    let isOutlier: boolean
+    let z: number
+    if (st.madv === 0) {
+      // Categoria di importi identici: fallback su multiplo della mediana
+      isOutlier = abs >= st.med * 3 && abs >= 5000
+      z = 99
+    } else {
+      z = robustZ(abs, st.med, st.madv)
+      isOutlier = z >= OUTLIER_Z_THRESHOLD
+    }
+    if (!isOutlier) continue
+
+    // Addebito atteso di un ricorrente → non è un'anomalia
+    const rKey = flowTxnKey(t)
+    if (rKey) {
+      const r = recurringByKey.get(rKey)
+      if (r && Math.abs(abs - r.amountMinor) <= r.amountMinor * 0.10) continue
+    }
+
+    outliers.push({
+      id:            t.id,
+      booked_date:   t.booked_date,
+      amount_minor:  t.amount_minor,
+      description:   t.description_raw,
+      category_name: t.category_name,
+      categoryMedianMinor: Math.round(st.med),
+      robustZ:       Math.min(99, Math.round(z * 10) / 10),
+      excessMinor:   Math.round(abs - st.med),
+    })
+  }
+
+  outliers.sort((a, b) => b.excessMinor - a.excessMinor)
+  return outliers.slice(0, 10)
 }
 
 // ── Spesa per giorno del mese ────────────────────────────────────────────────
@@ -440,7 +650,7 @@ export interface DaySpendingPoint {
 }
 
 /** Media di spesa giornaliera per ogni giorno del mese (1-31). */
-export function spendingCycleByDay(userId: number): DaySpendingPoint[] {
+export function spendingCycleByDay(ctx: FlowContext): DaySpendingPoint[] {
   const rows = sqlite
     .prepare(
       `SELECT
@@ -449,17 +659,17 @@ export function spendingCycleByDay(userId: number): DaySpendingPoint[] {
          COUNT(*) AS months
        FROM (
          SELECT
-           substr(booked_date, 9, 2) AS day_str,
-           substr(booked_date, 1, 7) AS month,
-           SUM(-amount_minor) AS daily_total
-         FROM transactions
-         WHERE owner_id = ? AND amount_minor < 0
+           substr(t.booked_date, 9, 2) AS day_str,
+           substr(t.booked_date, 1, 7) AS month,
+           SUM(-t.amount_minor) AS daily_total
+         FROM transactions t
+         WHERE t.owner_id = :owner AND ${TRUE_EXPENSE_WHERE}
          GROUP BY day_str, month
        )
        GROUP BY day_of_month
        ORDER BY day_of_month`,
     )
-    .all(userId) as { day_of_month: number; avg_minor: number; months: number }[]
+    .all({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as { day_of_month: number; avg_minor: number; months: number }[]
 
   return rows.map((r) => ({
     day:      r.day_of_month,
@@ -474,20 +684,20 @@ export function spendingCycleByDay(userId: number): DaySpendingPoint[] {
 
 // ── Helper condiviso ─────────────────────────────────────────────────────────
 
-function avgMonthlySpendingMinor(userId: number, lookbackMonths = 12): number {
+function avgMonthlySpendingMinor(ctx: FlowContext, lookbackMonths = 12): number {
   const row = sqlite
     .prepare(
       `SELECT COALESCE(AVG(monthly_out), 0) AS avg
        FROM (
-         SELECT SUM(-amount_minor) AS monthly_out
-         FROM transactions
-         WHERE owner_id = ?
-           AND amount_minor < 0
-           AND booked_date >= date('now', '-${lookbackMonths} months')
-         GROUP BY substr(booked_date, 1, 7)
+         SELECT SUM(-t.amount_minor) AS monthly_out
+         FROM transactions t
+         WHERE t.owner_id = :owner
+           AND ${TRUE_EXPENSE_WHERE}
+           AND t.booked_date >= date('now', '-${lookbackMonths} months')
+         GROUP BY substr(t.booked_date, 1, 7)
        )`,
     )
-    .get(userId) as { avg: number }
+    .get({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as { avg: number }
   return Math.round(row?.avg ?? 0)
 }
 
@@ -511,18 +721,18 @@ export interface RunwayStats {
  * in tre scenari (spesa normale, survival, worst case).
  * `liquidityMinor` = saldo conti correnti in EUR minor units.
  */
-export function runwayStats(userId: number, liquidityMinor: number): RunwayStats {
+export function runwayStats(ctx: FlowContext, liquidityMinor: number): RunwayStats {
   const rows = sqlite
     .prepare(
-      `SELECT SUM(-amount_minor) AS outflow
-       FROM transactions
-       WHERE owner_id = ?
-         AND amount_minor < 0
-         AND booked_date >= date('now', '-12 months')
-       GROUP BY substr(booked_date, 1, 7)
-       ORDER BY substr(booked_date, 1, 7)`,
+      `SELECT SUM(-t.amount_minor) AS outflow
+       FROM transactions t
+       WHERE t.owner_id = :owner
+         AND ${TRUE_EXPENSE_WHERE}
+         AND t.booked_date >= date('now', '-12 months')
+       GROUP BY substr(t.booked_date, 1, 7)
+       ORDER BY substr(t.booked_date, 1, 7)`,
     )
-    .all(userId) as { outflow: number }[]
+    .all({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as { outflow: number }[]
 
   if (rows.length === 0) return { liquidityMinor, scenarios: [], hasData: false }
 
@@ -567,11 +777,11 @@ export interface FireStats {
  * risolve n per: P*(1+r)^n + S*((1+r)^n - 1)/r = FV.
  */
 export function fireStats(
-  userId:                  number,
+  ctx:                     FlowContext,
   currentInvestmentsMinor: number,
   portfolioCAGRPct:        number | null,
 ): FireStats {
-  const monthlyExpenses = avgMonthlySpendingMinor(userId, 12)
+  const monthlyExpenses = avgMonthlySpendingMinor(ctx, 12)
   if (monthlyExpenses === 0) {
     return {
       annualExpensesMinor: 0, fireNumberMinor: 0, currentInvestmentsMinor,
@@ -584,17 +794,16 @@ export function fireStats(
   const fireNumber     = Math.round(annualExpenses / 0.04)
   const progressPct    = Math.round(currentInvestmentsMinor / fireNumber * 100)
 
-  // Risparmio netto ultimi 12 mesi
+  // Risparmio netto ultimi 12 mesi: reddito reale − spesa reale
+  // (i trasferimenti verso i propri conti non sono né l'uno né l'altra)
   const netRow = sqlite
     .prepare(
-      `SELECT
-         COALESCE(SUM(CASE WHEN amount_minor > 0 THEN  amount_minor ELSE 0 END), 0) -
-         COALESCE(SUM(CASE WHEN amount_minor < 0 THEN -amount_minor ELSE 0 END), 0) AS net
-       FROM transactions
-       WHERE owner_id = ?
-         AND booked_date >= date('now', '-12 months')`,
+      `SELECT COALESCE(SUM(CASE WHEN NOT ${IS_TRANSFER_SQL} THEN t.amount_minor ELSE 0 END), 0) AS net
+       FROM transactions t
+       WHERE t.owner_id = :owner
+         AND t.booked_date >= date('now', '-12 months')`,
     )
-    .get(userId) as { net: number }
+    .get({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as { net: number }
   const annualNet = Math.max(0, netRow?.net ?? 0)
 
   // n = log((FV + S/r) / (P + S/r)) / log(1+r)  — formula somma geometrica
@@ -650,7 +859,7 @@ export interface CashDragStats {
  * `series` = allocationTimeSeries da netWorthStats (già in memoria, evita doppia query).
  */
 export function cashDragStats(
-  userId:           number,
+  ctx:              FlowContext,
   series:           AllocationPoint[],
   portfolioCAGRPct: number | null,
 ): CashDragStats {
@@ -658,7 +867,7 @@ export function cashDragStats(
     return { avgExcessLiquidityMinor: 0, emergencyBufferMinor: 0, opportunityCostMinor: null, portfolioCAGRPct, periodYears: 0, hasData: false }
   }
 
-  const avgMonthlySpend  = avgMonthlySpendingMinor(userId, 12)
+  const avgMonthlySpend  = avgMonthlySpendingMinor(ctx, 12)
   const emergencyBuffer  = avgMonthlySpend * 3
 
   const excessValues = series.map((s) =>
@@ -717,20 +926,20 @@ function linearSlope(values: number[]): number {
 }
 
 /** Correlazione tra crescita delle entrate e delle uscite nel tempo. */
-export function lifestyleCreepStats(userId: number): LifestyleCreepStats {
+export function lifestyleCreepStats(ctx: FlowContext): LifestyleCreepStats {
   const rows = sqlite
     .prepare(
       `SELECT
-         substr(booked_date, 1, 7) AS month,
-         COALESCE(SUM(CASE WHEN amount_minor > 0 THEN  amount_minor ELSE 0 END), 0) AS inflow,
-         COALESCE(SUM(CASE WHEN amount_minor < 0 THEN -amount_minor ELSE 0 END), 0) AS outflow
-       FROM transactions
-       WHERE owner_id = ?
+         substr(t.booked_date, 1, 7) AS month,
+         COALESCE(SUM(CASE WHEN NOT ${IS_TRANSFER_SQL} AND t.amount_minor > 0 THEN  t.amount_minor ELSE 0 END), 0) AS inflow,
+         COALESCE(SUM(CASE WHEN NOT ${IS_TRANSFER_SQL} AND t.amount_minor < 0 THEN -t.amount_minor ELSE 0 END), 0) AS outflow
+       FROM transactions t
+       WHERE t.owner_id = :owner
        GROUP BY month
        HAVING inflow > 0
        ORDER BY month ASC`,
     )
-    .all(userId) as LifestyleCreepPoint[]
+    .all({ owner: ctx.userId, excluded: ctx.excludedIdsJson }) as LifestyleCreepPoint[]
 
   if (rows.length < 6) {
     return { months: rows, incomeGrowthPct: null, spendGrowthPct: null, elasticity: null, verdict: 'insufficient_data', hasData: rows.length > 0 }
@@ -775,7 +984,7 @@ export function lifestyleCreepStats(userId: number): LifestyleCreepStats {
 
 // ── ROI Abbonamenti (costo opportunità) ────────────────────────────────────────
 
-export interface RecurringWithCost extends RecurringPayment {
+export interface RecurringWithCost extends RecurringItem {
   yearly5yMinor: number | null   // valore proiettato se investito per 5 anni
 }
 
@@ -784,13 +993,13 @@ export interface RecurringWithCost extends RecurringPayment {
  * capitalizzato al CAGR del portafoglio dell'utente su 5 anni.
  */
 export function recurringWithOpportunityCost(
-  recurring:        RecurringPayment[],
+  recurring:        RecurringItem[],
   portfolioCAGRPct: number | null,
 ): RecurringWithCost[] {
   const r = (portfolioCAGRPct ?? 0) / 100
 
   return recurring.map((p) => {
-    const annualMinor = p.monthlyMinor * 12
+    const annualMinor = p.yearlyMinor
     let yearly5y: number | null = null
     if (r > 0.001) {
       // FV di una rendita annua: A * ((1+r)^5 - 1) / r
@@ -1046,10 +1255,14 @@ export interface AffinityPair {
 export function affinityStats(userId: number): AffinityPair[] {
   const rows = sqlite
     .prepare(
-      `WITH cat_totals AS (
+      `WITH expense_cats AS (
+         SELECT id FROM categories WHERE kind = 'expense'
+       ),
+       cat_totals AS (
          SELECT category_id, COUNT(*) AS total_count
          FROM transactions
-         WHERE owner_id = ? AND amount_minor < 0 AND category_id IS NOT NULL
+         WHERE owner_id = ? AND amount_minor < 0
+           AND category_id IN (SELECT id FROM expense_cats)
            AND booked_date >= date('now', '-24 months')
          GROUP BY category_id
        ),
@@ -1068,8 +1281,8 @@ export function affinityStats(userId: number): AffinityPair[] {
                AND julianday(t1.booked_date) + 3
          WHERE t1.owner_id = ?
            AND t1.amount_minor < 0
-           AND t1.category_id IS NOT NULL
-           AND t2.category_id IS NOT NULL
+           AND t1.category_id IN (SELECT id FROM expense_cats)
+           AND t2.category_id IN (SELECT id FROM expense_cats)
            AND t1.booked_date >= date('now', '-24 months')
        )
        SELECT
@@ -1127,12 +1340,12 @@ export interface DecumuloStats {
  *  B) drawdown massimo storico applicato immediatamente, poi crescita al CAGR
  */
 export function decumuloStats(
-  userId:               number,
+  ctx:                  FlowContext,
   currentNetWorthMinor: number,
   maxDrawdownPct:       number | null,
   portfolioCAGRPct:     number | null,
 ): DecumuloStats {
-  const monthlyExp = avgMonthlySpendingMinor(userId, 12)
+  const monthlyExp = avgMonthlySpendingMinor(ctx, 12)
 
   if (monthlyExp === 0 || currentNetWorthMinor <= 0) {
     return {
@@ -1420,9 +1633,12 @@ export interface CashflowForecastStats {
   proj60Minor:              number   // saldo proiettato tra 60 giorni
   thresholdMinor:           number   // 1 mese di spesa media (soglia di allerta)
   crossesThresholdInDays:   number | null  // null = non scende sotto la soglia entro 60 gg
-  recurringOutflowMonthly:  number   // totale uscite ricorrenti rilevate/mese
+  recurringOutflowMonthly:  number   // totale uscite ricorrenti attive (equivalente mensile)
   /** Quota mensile delle imposte patrimoniali annue (bollo+IVAFE), se nota */
   wealthTaxMonthlyMinor:    number
+  /** Trasferimenti netti in uscita tipici (mediana mensile): non sono spesa,
+   *  ma riducono comunque la liquidità proiettata. */
+  plannedTransfersMonthlyMinor: number
 }
 
 /**
@@ -1435,7 +1651,7 @@ export interface CashflowForecastStats {
  */
 export function cashflowForecastStats(
   cashflow:              MonthlyCashflow[],
-  recurring:             RecurringPayment[],
+  recurring:             RecurringItem[],
   liquidityMinor:        number,
   annualWealthTaxMinor = 0,
 ): CashflowForecastStats {
@@ -1443,7 +1659,7 @@ export function cashflowForecastStats(
     hasData: false, avgMonthlyInflowMinor: 0, avgMonthlyOutflowMinor: 0,
     avgMonthlyNetMinor: 0, proj30Minor: liquidityMinor, proj60Minor: liquidityMinor,
     thresholdMinor: 0, crossesThresholdInDays: null, recurringOutflowMonthly: 0,
-    wealthTaxMonthlyMinor: 0,
+    wealthTaxMonthlyMinor: 0, plannedTransfersMonthlyMinor: 0,
   }
   if (cashflow.length < 2) return empty
 
@@ -1452,19 +1668,33 @@ export function cashflowForecastStats(
   const avgOutflow = Math.round(window.reduce((s, m) => s + m.outflow, 0) / window.length)
   const avgNet     = avgInflow - avgOutflow  // negativo = spesa netta mensile
 
-  const recurringOut = recurring.reduce((s, r) => s + r.monthlyMinor, 0)
+  // Solo ricorrenti attivi con cadenza reale, in equivalente mensile
+  const recurringOut = recurring
+    .filter((r) => r.status === 'active' && r.cadence !== null)
+    .reduce((s, r) => s + r.monthlyEquivalentMinor, 0)
 
   // Quota mensile delle imposte patrimoniali (spalmate su 12 mesi)
   const wealthTaxMonthly = Math.round(annualWealthTaxMinor / 12)
 
-  // Proiezioni: include la quota mensile del bollo/IVAFE
-  const proj30 = liquidityMinor + avgNet - wealthTaxMonthly
-  const proj60 = liquidityMinor + avgNet * 2 - wealthTaxMonthly * 2
+  // Trasferimenti netti in uscita tipici: mediana degli ultimi 6 mesi.
+  // Non sono spesa (il patrimonio non cambia), ma svuotano il conto corrente.
+  const transferNets = cashflow.slice(-6).map((m) => Math.max(0, m.transferOutMinor - m.transferInMinor))
+  const sortedTransfers = [...transferNets].sort((a, b) => a - b)
+  const mid = Math.floor(sortedTransfers.length / 2)
+  const plannedTransfersMonthly = sortedTransfers.length === 0 ? 0
+    : Math.round(sortedTransfers.length % 2 === 1
+        ? sortedTransfers[mid]
+        : (sortedTransfers[mid - 1] + sortedTransfers[mid]) / 2)
+
+  // Proiezioni: media netta − quota bollo/IVAFE − trasferimenti pianificati
+  const monthlyDrain = avgNet - wealthTaxMonthly - plannedTransfersMonthly
+  const proj30 = liquidityMinor + monthlyDrain
+  const proj60 = liquidityMinor + monthlyDrain * 2
   const threshold = avgOutflow  // 1 mese di spese come soglia di allerta
 
   // Calcola il giorno in cui il saldo scende sotto la soglia (interpolazione lineare)
   let crossDay: number | null = null
-  const effectiveDailyNet = (avgNet - wealthTaxMonthly) / 30
+  const effectiveDailyNet = monthlyDrain / 30
   if (effectiveDailyNet < 0) {
     const daysToThreshold = (liquidityMinor - threshold) / -effectiveDailyNet
     if (daysToThreshold > 0 && daysToThreshold <= 60) {
@@ -1483,6 +1713,7 @@ export function cashflowForecastStats(
     crossesThresholdInDays:  crossDay,
     recurringOutflowMonthly: recurringOut,
     wealthTaxMonthlyMinor:   wealthTaxMonthly,
+    plannedTransfersMonthlyMinor: plannedTransfersMonthly,
   }
 }
 

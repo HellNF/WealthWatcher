@@ -19,10 +19,21 @@ import {
 } from '@/lib/analytics'
 import { estimatedWealthTaxes } from '@/lib/tax/wealth'
 import {
+  monthBridge,
+  fixedVariableSplit,
+  personalInflation,
+  incomeProfile,
+  monthPacing,
+  merchantConcentration,
+  miscategorizedFlows,
+  sameMonthYoY,
+} from '@/lib/spendingInsights'
+import { computeInsights, type InsightIcon, type InsightSeverity } from '@/lib/insights'
+import {
   TrendingUp, BarChart2, Target, ShieldCheck,
   Repeat2, Zap, Calendar, AlertCircle, Rocket,
   Activity, Link2, Clock, Gauge, Shuffle,
-  ArrowRight, Wallet,
+  ArrowRight, Wallet, Lightbulb, PiggyBank, Scale, Coins,
 } from 'lucide-react'
 import { Breadcrumb, Card, Stat, Badge, EmptyState } from '@/components/ui'
 import Link from 'next/link'
@@ -31,6 +42,9 @@ import CashflowChart        from './CashflowChart'
 import WeekdayChart         from './WeekdayChart'
 import DayOfMonthChart      from './DayOfMonthChart'
 import LifestyleCreepChart  from './LifestyleCreepChart'
+import MonthBridgeChart     from './MonthBridgeChart'
+import PacingChart          from './PacingChart'
+import FixedVariableChart   from './FixedVariableChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,12 +100,37 @@ function ClusterHeader({ icon: Icon, title }: { icon: React.ElementType; title: 
   )
 }
 
+// ── Considerazioni ────────────────────────────────────────────────────────────
+
+const INSIGHT_ICONS: Record<InsightIcon, React.ElementType> = {
+  trend: TrendingUp, repeat: Repeat2, alert: AlertCircle,
+  piggy: PiggyBank, calendar: Calendar, scale: Scale, coins: Coins,
+}
+
+const SEVERITY_META: Record<InsightSeverity, {
+  rail: string
+  badge: 'danger' | 'warning' | 'gain' | 'neutral'
+  label: string
+}> = {
+  critical:    { rail: 'var(--danger)',        badge: 'danger',  label: 'Critico'     },
+  warn:        { rail: '#f59e0b',              badge: 'warning', label: 'Attenzione'  },
+  opportunity: { rail: 'var(--brand)',         badge: 'gain',    label: 'Opportunità' },
+  info:        { rail: 'oklch(0.55 0.01 160)', badge: 'neutral', label: 'Info'        },
+}
+
+function monthLabelIt(yyyyMm: string): string {
+  const names = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+    'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
+  return `${names[Number(yyyyMm.slice(5, 7)) - 1] ?? yyyyMm} ${yyyyMm.slice(0, 4)}`
+}
+
 // ── Pagina ────────────────────────────────────────────────────────────────────
 
 export default async function StatistichePage() {
   const user    = await requireUser()
   const nwStats = netWorthStats(user.id)
   const txStats = transactionStats(user.id)
+  const ctx     = txStats.ctx
 
   // Dati derivati dal patrimonio
   const latest         = nwStats.allocationTimeSeries.at(-1)
@@ -106,14 +145,14 @@ export default async function StatistichePage() {
   const cagrPct    = cagrPeriod?.cagrPct ?? null
 
   // Pianificazione
-  const fire     = fireStats(user.id, investMinor, cagrPct)
-  const runway   = runwayStats(user.id, liquidityMinor)
-  const cashDrag = cashDragStats(user.id, nwStats.allocationTimeSeries, cagrPct)
-  const decumulo = decumuloStats(user.id, totalNWMinor, nwStats.volatility.maxDrawdownPct, cagrPct)
+  const fire     = fireStats(ctx, investMinor, cagrPct)
+  const runway   = runwayStats(ctx, liquidityMinor)
+  const cashDrag = cashDragStats(ctx, nwStats.allocationTimeSeries, cagrPct)
+  const decumulo = decumuloStats(ctx, totalNWMinor, nwStats.volatility.maxDrawdownPct, cagrPct)
 
   // Transazioni avanzate
-  const creep         = lifestyleCreepStats(user.id)
-  const daySpending   = spendingCycleByDay(user.id)
+  const creep         = lifestyleCreepStats(ctx)
+  const daySpending   = spendingCycleByDay(ctx)
   const mwrr          = portfolioMWRR(user.id)
   const recurringCost = recurringWithOpportunityCost(txStats.recurring, cagrPct)
   const wealthEffect  = wealthEffectStats(nwStats.allocationTimeSeries, txStats.cashflow)
@@ -128,6 +167,27 @@ export default async function StatistichePage() {
   )
   const dcaRec        = dcaRecommendationStats(user.id, liquidityMinor, txStats.cashflow)
 
+  // Metriche contabili avanzate (fase Considerazioni)
+  const bridge        = monthBridge(txStats.expenses)
+  const fixedVar      = fixedVariableSplit(txStats.expenses, txStats.recurring, txStats.cashflow)
+  const inflation     = personalInflation(txStats.expenses)
+  const income        = incomeProfile(txStats.incomes)
+  const pacing        = monthPacing(txStats.expenses)
+  const concentration = merchantConcentration(txStats.expenses)
+  const yoy           = sameMonthYoY(txStats.expenses)
+  const miscategorized = miscategorizedFlows(txStats.expenses, txStats.incomes)
+
+  const insights = computeInsights({
+    cashflow:  txStats.cashflow,
+    recurring: txStats.recurring,
+    outliers:  txStats.outliers,
+    bridge, fixedVar, inflation, income, pacing, concentration, yoy, miscategorized,
+    forecast,
+    pairCount: ctx.pairCount,
+    hasMultipleCurrencies: ctx.hasMultipleCurrencies,
+    excessCashMinor: dcaRec.hasData ? dcaRec.excessCashMinor : undefined,
+  })
+
   // Flag sezioni
   const hasCashflow  = txStats.cashflow.length >= 2
   const hasRecurring = recurringCost.length > 0
@@ -136,10 +196,17 @@ export default async function StatistichePage() {
   const hasDCA       = dca.hasData
   const hasInvSection = hasMWRR || dca.hasBuyTxns
 
-  // Savings rate media ultimi 6 mesi
-  const recentCf = txStats.cashflow.slice(-6).filter((m) => m.inflow > 0)
-  const avgSavingsRate = recentCf.length > 0
-    ? recentCf.reduce((s, m) => s + (m.savingsRate ?? 0), 0) / recentCf.length
+  // Savings rate aggregato ultimi 6 mesi: Σnetto / Σentrate (flusso reale).
+  // La media delle percentuali mensili esploderebbe nei mesi a reddito ~zero.
+  const recentCf = txStats.cashflow.slice(-6)
+  const sumInflow  = recentCf.reduce((s, m) => s + m.inflow, 0)
+  const sumOutflow = recentCf.reduce((s, m) => s + m.outflow, 0)
+  const sumTransferNet = recentCf.reduce((s, m) => s + Math.max(0, m.transferOutMinor - m.transferInMinor), 0)
+  const avgSavingsRate = sumInflow > 0
+    ? ((sumInflow - sumOutflow) / sumInflow) * 100
+    : null
+  const avgInvestmentRate = sumInflow > 0
+    ? (sumTransferNet / sumInflow) * 100
     : null
 
   // Colore FIRE progress
@@ -153,6 +220,59 @@ export default async function StatistichePage() {
         { label: 'Dashboard', href: '/dashboard' },
         { label: 'Statistiche' },
       ]} />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          CLUSTER 0 — CONSIDERAZIONI (insight prioritizzati per impatto)
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section className="space-y-6">
+        <ClusterHeader icon={Lightbulb} title="Considerazioni" />
+        {insights.length === 0 ? (
+          <Card>
+            <p className="text-sm text-[--muted]">
+              Nessuna considerazione rilevante: le tue finanze sono in linea con il tuo storico.
+              Le considerazioni compaiono solo quando c&apos;è qualcosa di materiale da dirti.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((ins) => {
+              const meta = SEVERITY_META[ins.severity]
+              const Icon = INSIGHT_ICONS[ins.icon]
+              return (
+                <Card key={ins.id} className="relative overflow-hidden">
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 w-1"
+                    style={{ background: meta.rail }}
+                  />
+                  <div className="pl-2 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon className="size-4 shrink-0 text-[--muted]" strokeWidth={1.75} />
+                        <h3 className="text-sm font-semibold text-[--ink] truncate">{ins.title}</h3>
+                      </div>
+                      <Badge variant={meta.badge} className="shrink-0">{meta.label}</Badge>
+                    </div>
+                    <p className="text-sm text-[--muted] leading-relaxed">{ins.body}</p>
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      {ins.impactLabel ? (
+                        <span className="text-xs font-medium font-mono tabular-nums text-[--ink] bg-[--surface-2] rounded-md px-2 py-1">
+                          {ins.impactLabel}
+                        </span>
+                      ) : <span />}
+                      {ins.href && (
+                        <Link href={ins.href} className="text-xs text-[--brand-text] hover:underline shrink-0">
+                          Approfondisci →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
           CLUSTER A — PERFORMANCE & VOLATILITÀ
@@ -315,10 +435,14 @@ export default async function StatistichePage() {
               <h3 className="text-sm font-semibold text-[--ink]">Proiezione cashflow — Prossimi 30/60 giorni</h3>
             </div>
             <p className="text-xs text-[--muted]">
-              Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite.
-              Non tiene conto di eventi straordinari.
+              Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite reali
+              (trasferimenti tra conti propri esclusi). Non tiene conto di eventi straordinari.
               {forecast.wealthTaxMonthlyMinor > 0 && (
                 <> Incluse <strong className="text-[--ink]">{fmtEur(forecast.wealthTaxMonthlyMinor)}/mese</strong> di imposte patrimoniali stimate.</>
+              )}
+              {forecast.plannedTransfersMonthlyMinor > 0 && (
+                <> Considerati <strong className="text-[--ink]">{fmtEur(forecast.plannedTransfersMonthlyMinor)}/mese</strong> di
+                trasferimenti abituali verso risparmio/investimenti: non sono spesa, ma riducono la liquidità.</>
               )}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -551,19 +675,23 @@ export default async function StatistichePage() {
               <div className="flex flex-col gap-4">
                 <Card className="space-y-4 flex-1">
                   <h3 className="text-sm font-semibold text-[--ink]">Tasso di risparmio</h3>
-                  <Stat label="Media ultimi 6 mesi" value={avgSavingsRate !== null ? fmtPct(avgSavingsRate) : '—'} size="lg" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Stat label="Risparmio su spese" value={avgSavingsRate !== null ? fmtPct(avgSavingsRate) : '—'} size="md" sub="media 6 mesi" />
+                    <Stat label="Quota investita" value={avgInvestmentRate !== null ? fmtPct(avgInvestmentRate) : '—'} size="md" sub="trasferita a risparmio" />
+                  </div>
                   {txStats.cashflow.length > 0 && (() => {
                     const last = txStats.cashflow.at(-1)!
                     return (
                       <div className="space-y-1 pt-2 border-t border-[--border]">
                         <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Ultimo mese</p>
-                        <p className={`text-sm font-medium tabular-nums ${pctColor(last.savingsRate)}`}>
-                          {last.savingsRate !== null ? fmtPct(last.savingsRate) : '—'}
+                        <p className={`text-sm font-medium tabular-nums ${pctColor(last.expenseSavingsRate)}`}>
+                          {last.expenseSavingsRate !== null ? fmtPct(last.expenseSavingsRate) : '—'}
                         </p>
                         <p className="text-xs text-[--faint]">{last.month} · Netto {fmtEur(last.net)}</p>
                       </div>
                     )
                   })()}
+                  <p className="text-xs text-[--faint]">Trasferimenti tra conti propri esclusi da entrate e uscite.</p>
                 </Card>
                 {cfVariability.hasData && (
                   <Card className="space-y-3">
@@ -596,6 +724,92 @@ export default async function StatistichePage() {
               </div>
             </div>
 
+            {/* Ponte del mese — variance analysis */}
+            {bridge.hasData && (
+              <Card className="space-y-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Scale className="size-4 text-[--muted]" strokeWidth={1.75} />
+                  <h3 className="text-sm font-semibold text-[--ink]">
+                    Ponte del mese — {monthLabelIt(bridge.month)} vs mese tipico
+                  </h3>
+                  {bridge.isPartialMonth && <Badge variant="info">mese in corso</Badge>}
+                </div>
+                <p className="text-xs text-[--muted]">
+                  Ogni barra è lo scostamento di una categoria dalla sua mediana degli ultimi{' '}
+                  {bridge.monthsInBaseline} mesi completi: la risposta alla domanda
+                  &ldquo;perché questo mese ho speso {bridge.totalDeltaMinor >= 0 ? 'di più' : 'di meno'}?&rdquo;.
+                </p>
+                <div className="grid grid-cols-3 gap-6">
+                  <Stat label="Speso nel mese" value={fmtEur(bridge.totalActualMinor)} size="sm" />
+                  <Stat label="Mese tipico" value={fmtEur(bridge.totalTypicalMinor)} size="sm" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Scostamento</p>
+                    <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${bridge.totalDeltaMinor > 0 ? 'text-[--danger]' : 'text-[--brand-text]'}`}>
+                      {sign(bridge.totalDeltaMinor)}{fmtEur(bridge.totalDeltaMinor)}
+                    </p>
+                  </div>
+                </div>
+                <MonthBridgeChart data={bridge} />
+              </Card>
+            )}
+
+            {/* Pacing intra-mese */}
+            {pacing.hasData && (
+              <Card className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
+                  <h3 className="text-sm font-semibold text-[--ink]">Ritmo del mese in corso</h3>
+                </div>
+                <p className="text-xs text-[--muted]">
+                  Spesa cumulata di questo mese contro il tuo mese tipico (mediana degli ultimi{' '}
+                  {pacing.monthsInBaseline} mesi completi) e proiezione a fine mese.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <Stat label={`Speso al giorno ${pacing.today}`} value={fmtEur(pacing.actualToDateMinor)} size="sm" />
+                  <Stat label="Tipico a oggi" value={fmtEur(pacing.typicalToDateMinor)} size="sm" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Proiezione fine mese</p>
+                    <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${pacing.projectedEndMinor > pacing.typicalEndMinor * 1.1 ? 'text-[--danger]' : 'text-[--ink]'}`}>
+                      {fmtEur(pacing.projectedEndMinor)}
+                    </p>
+                  </div>
+                  <Stat label="Tipico fine mese" value={fmtEur(pacing.typicalEndMinor)} size="sm" />
+                </div>
+                <PacingChart data={pacing} />
+              </Card>
+            )}
+
+            {/* Fissi vs variabili + break-even */}
+            {fixedVar.hasData && (
+              <Card className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Gauge className="size-4 text-[--muted]" strokeWidth={1.75} />
+                  <h3 className="text-sm font-semibold text-[--ink]">Spese fisse vs variabili — Punto di pareggio</h3>
+                </div>
+                <p className="text-xs text-[--muted]">
+                  Le spese fisse (ricorrenti attivi + categorie vincolate come mutuo, utenze e tasse) sono il
+                  tuo punto di pareggio: sotto quell&apos;entrata mensile il mese è strutturalmente in rosso.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <Stat label="Fisse / mese" value={fmtEur(fixedVar.fixedMonthlyMinor)} size="sm" sub="punto di pareggio" />
+                  <Stat label="Variabili / mese" value={fmtEur(fixedVar.variableMonthlyMinor)} size="sm" sub="mediana 6 mesi" />
+                  {fixedVar.medianIncomeMinor !== null && (
+                    <Stat label="Reddito mediano" value={fmtEur(fixedVar.medianIncomeMinor)} size="sm" />
+                  )}
+                  {fixedVar.committedRatioPct !== null && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Quota vincolata</p>
+                      <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${fixedVar.committedRatioPct > 60 ? 'text-[--danger]' : fixedVar.committedRatioPct > 50 ? 'text-[#f59e0b]' : 'text-[--brand-text]'}`}>
+                        {fmtPct(fixedVar.committedRatioPct)}
+                      </p>
+                      <p className="text-xs text-[--faint]">del reddito mediano</p>
+                    </div>
+                  )}
+                </div>
+                <FixedVariableChart data={fixedVar.series} />
+              </Card>
+            )}
+
             {/* Ciclo mensile + weekday */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {daySpending.length > 0 && (
@@ -617,7 +831,9 @@ export default async function StatistichePage() {
                     <Calendar className="size-4 text-[--muted]" strokeWidth={1.75} />
                     <h3 className="text-sm font-semibold text-[--ink]">Spesa per giorno della settimana</h3>
                   </div>
-                  <p className="text-xs text-[--muted]">Importo medio per transazione in uscita.</p>
+                  <p className="text-xs text-[--muted]">
+                    Spesa totale per giorno della settimana (quota % e categoria dominante nel tooltip).
+                  </p>
                   <WeekdayChart data={txStats.weekday} />
                 </Card>
               )}
@@ -751,45 +967,93 @@ export default async function StatistichePage() {
             )}
 
             {/* Pagamenti ricorrenti */}
-            {hasRecurring && (
+            {hasRecurring && (() => {
+              const subsAndBills = recurringCost.filter((r) => r.kind !== 'habit')
+              const habits       = recurringCost.filter((r) => r.kind === 'habit')
+              const activeSubs   = subsAndBills.filter((r) => r.status === 'active')
+              const fmtShortDate = (iso: string) =>
+                new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+              return (
               <Card className="space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <Repeat2 className="size-4 text-[--muted]" strokeWidth={1.75} />
-                    <h3 className="text-sm font-semibold text-[--ink]">Pagamenti ricorrenti stimati</h3>
+                    <h3 className="text-sm font-semibold text-[--ink]">Abbonamenti e pagamenti ricorrenti</h3>
                   </div>
                   <div className="text-xs text-[--faint] text-right space-y-0.5">
-                    <p>Totale/anno: <span className="font-medium text-[--ink]">{fmtEur(recurringCost.reduce((s, r) => s + r.yearlyMinor, 0))}</span></p>
+                    <p>Totale attivi/anno: <span className="font-medium text-[--ink]">{fmtEur(activeSubs.reduce((s, r) => s + r.yearlyMinor, 0))}</span></p>
                     {cagrPct !== null && (
-                      <p>Costo opp. 5 anni: <span className="font-medium text-[--danger]">{fmtEur(recurringCost.reduce((s, r) => s + (r.yearly5yMinor ?? 0), 0))}</span></p>
+                      <p>Costo opp. 5 anni: <span className="font-medium text-[--danger]">{fmtEur(activeSubs.reduce((s, r) => s + (r.yearly5yMinor ?? 0), 0))}</span></p>
                     )}
                   </div>
                 </div>
                 <p className="text-xs text-[--muted]">
-                  Movimenti rilevati in 3+ mesi distinti. La colonna &ldquo;5 anni investiti&rdquo; mostra il valore
-                  che quei fondi avrebbero generato al CAGR del portafoglio{cagrPct !== null ? ` (${fmtPct(cagrPct)}/anno)` : ''}.
+                  Cadenza dedotta dagli intervalli reali tra gli addebiti (l&apos;annualizzazione usa il fattore corretto:
+                  settimanale ×52, mensile ×12, annuale ×1). La colonna &ldquo;5 anni investiti&rdquo; capitalizza
+                  quei fondi al CAGR del portafoglio{cagrPct !== null ? ` (${fmtPct(cagrPct)}/anno)` : ''}.
                 </p>
-                <div className="divide-y divide-[--border]">
-                  {recurringCost.map((r, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <span className="text-xs tabular-nums text-[--faint] w-5 shrink-0 text-right">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[--ink] truncate font-medium">{r.merchant_name ?? r.description}</p>
-                        <p className="text-xs text-[--faint]">{r.months} mesi rilevati</p>
+                {subsAndBills.length > 0 && (
+                  <div className="divide-y divide-[--border]">
+                    {subsAndBills.map((r, i) => (
+                      <div key={r.key} className={`flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 ${r.status === 'ceased' ? 'opacity-55' : ''}`}>
+                        <span className="text-xs tabular-nums text-[--faint] w-5 shrink-0 text-right">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm text-[--ink] truncate font-medium">{r.merchant_name ?? r.description}</p>
+                            {r.cadenceLabel && <Badge variant="neutral">{r.cadenceLabel}</Badge>}
+                            {r.priceChangePct !== null && r.oldAmountMinor !== null && (
+                              <Badge variant={r.priceChangePct > 0 ? 'warning' : 'gain'}>
+                                {r.priceChangePct > 0 ? '▲' : '▼'} {sign(r.priceChangePct)}{fmtPct(r.priceChangePct)} da {fmtEur(r.oldAmountMinor)}
+                              </Badge>
+                            )}
+                            {r.status === 'ceased' && <Badge variant="neutral">cessato</Badge>}
+                          </div>
+                          <p className="text-xs text-[--faint] mt-0.5">
+                            {r.occurrences} addebiti in {r.months} mesi
+                            {r.status === 'ceased'
+                              ? ` · risparmio ${fmtEur(r.yearlyMinor)}/anno`
+                              : r.nextExpectedDate ? ` · prossimo ~${fmtShortDate(r.nextExpectedDate)}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0 space-y-0.5">
+                          <p className="text-sm font-medium tabular-nums text-[--ink]">
+                            {fmtEur(r.amountMinor)}
+                            <span className="text-[--faint] font-normal">
+                              {r.cadence === 'monthly' ? '/mese' : r.cadenceLabel ? ` ${r.cadenceLabel}` : ''}
+                            </span>
+                          </p>
+                          {r.status === 'active' && r.yearly5yMinor !== null && (
+                            <p className="text-xs text-[--danger] tabular-nums">{fmtEur(r.yearly5yMinor)} in 5a</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right shrink-0 space-y-0.5">
-                        <p className="text-sm font-medium tabular-nums text-[--ink]">
-                          {fmtEur(r.monthlyMinor)}<span className="text-[--faint] font-normal">/mese</span>
-                        </p>
-                        {r.yearly5yMinor !== null && (
-                          <p className="text-xs text-[--danger] tabular-nums">{fmtEur(r.yearly5yMinor)} in 5a</p>
-                        )}
-                      </div>
+                    ))}
+                  </div>
+                )}
+                {habits.length > 0 && (
+                  <div className="space-y-2 pt-3 border-t border-[--border]">
+                    <p className="text-xs font-medium text-[--muted] uppercase tracking-wide">Spesa abituale</p>
+                    <p className="text-xs text-[--faint]">
+                      Esercenti frequenti senza cadenza fissa (es. supermercato): mostrata la spesa mensile effettiva, non un canone.
+                    </p>
+                    <div className="divide-y divide-[--border]">
+                      {habits.map((r) => (
+                        <div key={r.key} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-[--ink] truncate">{r.merchant_name ?? r.description}</p>
+                            <p className="text-xs text-[--faint]">{r.occurrences} acquisti in {r.months} mesi</p>
+                          </div>
+                          <p className="text-sm font-medium tabular-nums text-[--ink] shrink-0">
+                            {fmtEur(r.monthlyEquivalentMinor)}<span className="text-[--faint] font-normal">/mese</span>
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </Card>
-            )}
+              )
+            })()}
 
             {/* Outlier */}
             {hasOutliers && (
@@ -798,22 +1062,25 @@ export default async function StatistichePage() {
                   <Zap className="size-4 text-[--muted]" strokeWidth={1.75} />
                   <h3 className="text-sm font-semibold text-[--ink]">Spese fuori scala</h3>
                 </div>
-                <p className="text-xs text-[--muted]">Transazioni con importo ≥ 3× la media storica della propria categoria.</p>
+                <p className="text-xs text-[--muted]">
+                  Transazioni degli ultimi 6 mesi con z-score robusto ≥ 3,5 rispetto alla mediana
+                  della propria categoria (baseline: 12 mesi). Gli addebiti di abbonamenti attivi non contano.
+                </p>
                 <div className="divide-y divide-[--border]">
-                  {txStats.outliers.map((o, i) => (
-                    <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                  {txStats.outliers.map((o) => (
+                    <div key={o.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                       <AlertCircle className="size-4 text-[--muted] shrink-0" strokeWidth={1.75} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-[--ink] truncate">
                           {o.description.length > 50 ? o.description.slice(0, 50) + '…' : o.description}
                         </p>
                         <p className="text-xs text-[--faint]">
-                          {o.booked_date}{o.category_name ? ` · ${o.category_name}` : ''} · media {fmtEur(o.category_avg)}
+                          {o.booked_date}{o.category_name ? ` · ${o.category_name}` : ''} · mediana {fmtEur(o.categoryMedianMinor)} · z {o.robustZ.toLocaleString('it-IT')}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-medium tabular-nums text-[--danger]">{fmtEur(Math.abs(o.amount_minor))}</p>
-                        <p className="text-xs text-[--faint]">+{o.excess_pct}% media</p>
+                        <p className="text-xs text-[--faint]">+{fmtEur(o.excessMinor)} vs mediana</p>
                       </div>
                     </div>
                   ))}

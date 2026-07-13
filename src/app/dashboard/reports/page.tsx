@@ -143,6 +143,13 @@ export default async function ReportsPage({ searchParams }: Props) {
             </Card>
           </div>
 
+          {report.transfersMinor > 0 && (
+            <p className="text-xs text-[--faint]">
+              Trasferimenti interni esclusi dal report: {fromMinor(report.transfersMinor, 'EUR')} in uscita
+              (non sono spesa: il patrimonio non cambia).
+            </p>
+          )}
+
           {/* ── Trend giornaliero ─────────────────────────────────────────── */}
           <Card className="space-y-4">
             <div className="flex items-center justify-between">

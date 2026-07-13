@@ -55,7 +55,7 @@ export default function WeekdayChart({ data }: Props) {
     .map((wd) => data.find((d) => d.weekday === wd))
     .filter(Boolean) as WeekdaySpending[]
 
-  const maxAvg = Math.max(...sorted.map((d) => d.avgMinor), 1)
+  const maxTotal = Math.max(...sorted.map((d) => d.totalMinor), 1)
 
   return (
     <ResponsiveContainer width="100%" height={180}>
@@ -75,7 +75,13 @@ export default function WeekdayChart({ data }: Props) {
           width={80}
         />
         <Tooltip
-          formatter={(value) => [fmtEur(Number(value)), 'Spesa media']}
+          formatter={(value, _name, entry) => {
+            const d = entry?.payload as WeekdaySpending | undefined
+            const extra = d
+              ? ` · ${d.sharePct.toLocaleString('it-IT')}% del totale${d.topCategory ? ` · soprattutto ${d.topCategory}` : ''}`
+              : ''
+            return [`${fmtEur(Number(value))}${extra}`, 'Spesa totale']
+          }}
           contentStyle={{
             background: colors.tooltipBg,
             border: `1px solid ${colors.tooltipBorder}`,
@@ -84,11 +90,11 @@ export default function WeekdayChart({ data }: Props) {
             boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
           }}
         />
-        <Bar dataKey="avgMinor" radius={[4, 4, 0, 0]} maxBarSize={40}>
+        <Bar dataKey="totalMinor" radius={[4, 4, 0, 0]} maxBarSize={40}>
           {sorted.map((entry, i) => (
             <Cell
               key={i}
-              fill={entry.avgMinor === maxAvg ? colors.bar : colors.barDim}
+              fill={entry.totalMinor === maxTotal ? colors.bar : colors.barDim}
             />
           ))}
         </Bar>

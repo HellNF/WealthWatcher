@@ -5,6 +5,7 @@ import { monthlyReport, availableMonths } from '@/lib/reports'
 
 let ownerId: number
 let accountId: number
+let accountId2: number
 
 beforeAll(() => {
   sqlite.exec(`
@@ -21,10 +22,15 @@ beforeAll(() => {
   const acc = sqlite.prepare('SELECT id FROM bank_accounts WHERE owner_id = ? ORDER BY id DESC LIMIT 1').get(ownerId) as { id: number }
   accountId = acc.id
 
+  sqlite.prepare('INSERT INTO bank_accounts (institution_id, owner_id, name, currency) VALUES (?,?,?,?)').run(inst.id, ownerId, 'Report Conto 2', 'EUR')
+  const acc2 = sqlite.prepare('SELECT id FROM bank_accounts WHERE owner_id = ? ORDER BY id DESC LIMIT 1').get(ownerId) as { id: number }
+  accountId2 = acc2.id
+
   // Lookup category ids from seed
   const catSuper  = sqlite.prepare("SELECT id FROM categories WHERE name='Supermercato'").get() as { id: number }
   const catRist   = sqlite.prepare("SELECT id FROM categories WHERE name='Ristorante & Bar'").get() as { id: number }
   const catStip   = sqlite.prepare("SELECT id FROM categories WHERE name='Stipendio'").get() as { id: number }
+  const catTransfer = sqlite.prepare("SELECT id FROM categories WHERE kind='transfer' LIMIT 1").get() as { id: number }
 
   insertBatch({
     ownerId, bankAccountId: accountId,
@@ -38,6 +44,11 @@ beforeAll(() => {
       { owner_id: ownerId, bank_account_id: accountId, booked_date: '2026-06-28', amount_minor: 250000, currency: 'EUR', description_raw: 'Stipendio', dedup_hash: 'r4', category_id: catStip.id },
       // May 2026
       { owner_id: ownerId, bank_account_id: accountId, booked_date: '2026-05-15', amount_minor: -1800, currency: 'EUR', description_raw: 'Amazon', dedup_hash: 'r5', category_id: null },
+      // June 2026 — trasferimento con categoria esplicita kind='transfer'
+      { owner_id: ownerId, bank_account_id: accountId, booked_date: '2026-06-15', amount_minor: -80000, currency: 'EUR', description_raw: 'Giroconto broker', dedup_hash: 'r6', category_id: catTransfer.id },
+      // June 2026 — coppia di trasferimento interno NON categorizzata (conto 1 → conto 2)
+      { owner_id: ownerId, bank_account_id: accountId,  booked_date: '2026-06-20', amount_minor: -60000, currency: 'EUR', description_raw: 'Bonifico interno out', dedup_hash: 'r7', category_id: null },
+      { owner_id: ownerId, bank_account_id: accountId2, booked_date: '2026-06-20', amount_minor:  60000, currency: 'EUR', description_raw: 'Bonifico interno in',  dedup_hash: 'r8', category_id: null },
     ],
   })
 })
@@ -51,13 +62,16 @@ afterAll(() => {
 })
 
 describe('monthlyReport', () => {
-  test('totals are correct for June 2026', () => {
+  test('totals are correct for June 2026 (transfers excluded)', () => {
     const r = monthlyReport(ownerId, '2026-06')
+    // Il giroconto esplicito (-800€) e la coppia interna (±600€) NON contano
     expect(r.totalOutflow).toBe(-2500 - 3200 - 4500) // -10200
     expect(r.totalInflow).toBe(250000)
+    // Trasferimenti in uscita esclusi e riportati a parte: 800 + 600 = 1400€
+    expect(r.transfersMinor).toBe(80000 + 60000)
   })
 
-  test('byCategory groups outflows only', () => {
+  test('byCategory groups outflows only and hides transfer categories', () => {
     const r = monthlyReport(ownerId, '2026-06')
     // Only expense categories, no inflow rows
     expect(r.byCategory.every((c) => c.total_minor < 0)).toBe(true)
@@ -65,6 +79,8 @@ describe('monthlyReport', () => {
     expect(superCat?.total_minor).toBe(-5700) // -2500 + -3200
     const ristCat = r.byCategory.find((c) => c.category_name === 'Ristorante & Bar')
     expect(ristCat?.total_minor).toBe(-4500)
+    // Nessuna categoria di tipo transfer nella donut
+    expect(r.byCategory.every((c) => c.kind !== 'transfer')).toBe(true)
   })
 
   test('May 2026 report only includes May transactions', () => {
