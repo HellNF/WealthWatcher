@@ -22,7 +22,7 @@ import Link from 'next/link'
 import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2, TrendingUp } from 'lucide-react'
 import { computeGoalsSummary, listGoals, isGoalCompleted } from '@/lib/goals'
 import { budgetStatus } from '@/lib/budgets'
-import { getFiscalCalendar } from '@/lib/calendar'
+import { getScadenziarioEvents } from '@/lib/calendar'
 import { getMarketNews } from '@/lib/prices/yahoo'
 import { getDashboardLayout } from '@/lib/userSettings'
 import { getOwnerInstrumentSymbols } from '@/lib/instruments'
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
     latentTaxStats(user.id).catch(() => null),
     estimatedWealthTaxes(user.id, currentYear).catch(() => null),
     computeGoalsSummary(user.id).catch(() => ({ totalCashMinor: 0, totalAllocatedMinor: 0, freeOperatingCashMinor: 0 })),
-    getFiscalCalendar(user.id, today, deadlineToDate).catch((): never[] => []),
+    getScadenziarioEvents(user.id, today, deadlineToDate).catch((): never[] => []),
     getMarketNews(newsSymbols, 6).catch((): never[] => []),
   ])
 
@@ -170,12 +170,17 @@ export default async function DashboardPage() {
       totalInvestmentsMinor: latest?.investments_eur_minor ?? 0,
     },
     deadlines: {
-      upcoming: deadlineEvents.slice(0, 6).map((e) => ({
-        date:        e.date,
-        label:       e.label,
-        source:      e.source,
-        amountMinor: e.amountMinor,
-      })),
+      // Cose su cui agire: uscite cash imminenti + opportunità con scadenza
+      // (crediti fiscali, consenso banca, harvesting, obiettivi a rischio).
+      upcoming: deadlineEvents
+        .filter((e) => e.kind === 'opportunity' || (e.kind === 'cash' && e.direction === 'out'))
+        .slice(0, 6)
+        .map((e) => ({
+          date:        e.date,
+          label:       e.label,
+          source:      e.source,
+          amountMinor: e.amountMinor,
+        })),
     },
     news: {
       articles: newsArticles,

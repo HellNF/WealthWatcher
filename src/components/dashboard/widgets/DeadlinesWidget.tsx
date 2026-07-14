@@ -21,21 +21,35 @@ function daysUntil(iso: string): number {
 }
 
 const SOURCE_DOT: Record<string, string> = {
-  bollo:           'var(--muted)',
-  ivafe:           'var(--muted)',
-  credito_fiscale: 'var(--warning)',
-  rata_mutuo:      'var(--info)',
-  ricorrente:      'var(--brand)',
-  custom:          'var(--brand)',
+  bollo:            'var(--muted)',
+  ivafe:            'var(--muted)',
+  credito_fiscale:  'var(--warning)',
+  rata_mutuo:       'var(--info)',
+  ricorrente:       'var(--brand)',
+  custom:           'var(--brand)',
+  dividendo_atteso: 'var(--brand)',
+  stipendio_atteso: 'var(--brand)',
+  interessi_conto:  'var(--brand)',
+  obiettivo:        'var(--info)',
+  consenso_banca:   'var(--warning)',
+  harvesting:       'var(--warning)',
+  franchigia_crypto:'var(--warning)',
 }
 
 const SOURCE_LABEL: Record<string, string> = {
-  bollo:           'Bollo',
-  ivafe:           'IVAFE',
-  credito_fiscale: 'Credito fiscale',
-  rata_mutuo:      'Mutuo',
-  ricorrente:      'Ricorrente',
-  custom:          'Personale',
+  bollo:            'Bollo',
+  ivafe:            'IVAFE',
+  credito_fiscale:  'Credito fiscale',
+  rata_mutuo:       'Mutuo',
+  ricorrente:       'Ricorrente',
+  custom:           'Personale',
+  dividendo_atteso: 'Dividendo',
+  stipendio_atteso: 'Stipendio',
+  interessi_conto:  'Interessi',
+  obiettivo:        'Obiettivo',
+  consenso_banca:   'Open Banking',
+  harvesting:       'Harvesting',
+  franchigia_crypto:'Crypto',
 }
 
 const ITEMS_VISIBLE: Record<WidgetSize, number> = { sm: 3, md: 4, lg: 8 }

@@ -4,7 +4,7 @@
 // [oggi, oggi+60gg] per rilevare rischi di scoperto con anticipo sufficiente.
 import { sqlite } from '@/db'
 import { computeGoalsSummary } from '@/lib/goals'
-import { getFiscalCalendar } from '@/lib/calendar'
+import { getScadenziarioEvents } from '@/lib/calendar'
 import type { DeadlineEvent } from '@/lib/calendar'
 
 export type RunwayStatus = 'OK' | 'WARNING' | 'CRITICAL_SHORTAGE'
@@ -59,11 +59,21 @@ export async function cashRunwayAlert(userId: number): Promise<RunwayResult> {
   `).get(userId, since, today) as { total: number }
 
   const monthlyIncome    = incomeRow.total / 6
-  const incomeExpected   = Math.round(monthlyIncome * 2)   // finestra ≈ 2 mesi
+  const heuristicIncome  = Math.round(monthlyIncome * 2)   // finestra ≈ 2 mesi
 
-  // ── Uscite schedulate ─────────────────────────────────────────────────────
-  const events       = await getFiscalCalendar(userId, today, to)
-  const outflows     = events.reduce((s, e) => s + e.amountMinor, 0)
+  // ── Eventi schedulati (distinti per direzione di cassa) ───────────────────
+  const allEvents  = await getScadenziarioEvents(userId, today, to)
+  const cashEvents = allEvents.filter(e => e.kind === 'cash')
+  const outEvents  = cashEvents.filter(e => e.direction === 'out')
+  const outflows   = outEvents.reduce((s, e) => s + e.amountMinor, 0)
+
+  // Entrate attese: euristica reddito (stipendio già incluso via categoria 'income')
+  // + entrate inferite che l'euristica NON cattura (dividendi, interessi stimati).
+  const extraInflows = cashEvents
+    .filter(e => e.direction === 'in'
+      && (e.source === 'dividendo_atteso' || e.source === 'interessi_conto'))
+    .reduce((s, e) => s + e.amountMinor, 0)
+  const incomeExpected = heuristicIncome + extraInflows
 
   // ── Stima minimo di cassa ─────────────────────────────────────────────────
   const lowest = cashStart + incomeExpected - outflows
@@ -85,6 +95,6 @@ export async function cashRunwayAlert(userId: number): Promise<RunwayResult> {
     windowDays:               60,
     from:                     today,
     to,
-    events,
+    events:                   outEvents,
   }
 }
