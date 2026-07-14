@@ -48,6 +48,7 @@ next-env.d.ts
 
 # Claude Code (local, machine-specific settings/permissions)
 .claude/settings.local.json
+.claude/skills/
 
 # Impeccable design skill (local cache + generated critique reports)
 .impeccable/
