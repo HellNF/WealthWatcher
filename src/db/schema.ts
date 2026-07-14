@@ -239,6 +239,11 @@ export const transactions = sqliteTable(
                         () => categories.id,
                         { onDelete: 'set null' },
                       ),
+    // Merchant Category Code ISO 18245 fornito dall'ASPSP per le transazioni
+    // carta (Open Banking). Persistito — oltre a derivarne category_id al sync
+    // — così la ricategorizzazione bulk (src/lib/categorization.ts) può
+    // riapplicarlo allo storico senza dover ri-sincronizzare dalla banca.
+    mcc:              text('mcc'),
     created_at:       integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
@@ -638,6 +643,24 @@ export const calendarEvents = sqliteTable(
   ],
 )
 
+// ── market_indicators ─────────────────────────────────────────────────────────
+// Cache GLOBALE (non per-utente) dei segnali di mercato mostrati nella pagina
+// "Panorama Mercati". I dati provengono da fonti esterne gratuite (Yahoo, ECB,
+// CoinGecko, alternative.me) e sono identici per tutti gli utenti → una sola
+// riga per indicatore, condivisa. Popolata dal job scripts/market-refresh.ts;
+// la pagina legge SOLO da qui (nessun fetch sincrono nel render → veloce e a
+// prova di rate-limit). `payload` è un JSON serializzato del MarketSignal
+// (valore, percentile, etichetta, fonte, finestra, asOf) — schema applicativo,
+// non vincolato dal DB, così aggiungere campi non richiede migrazioni.
+export const marketIndicators = sqliteTable(
+  'market_indicators',
+  {
+    code:       text('code').primaryKey(),                 // es. 'equities.cape.us', 'crypto.fng'
+    payload:    text('payload').notNull(),                 // JSON string (MarketSignal)
+    updated_at: integer('updated_at').notNull().default(sql`(unixepoch())`),
+  },
+)
+
 // Inferred row types — use these instead of hand-rolled interfaces.
 export type AllowedEmail        = InferSelectModel<typeof allowedEmails>
 export type User                = InferSelectModel<typeof users>
@@ -666,3 +689,4 @@ export type FinancialGoal       = InferSelectModel<typeof financialGoals>
 export type Budget              = InferSelectModel<typeof budgets>
 export type CategoryRule        = InferSelectModel<typeof categoryRules>
 export type CalendarEvent       = InferSelectModel<typeof calendarEvents>
+export type MarketIndicator     = InferSelectModel<typeof marketIndicators>

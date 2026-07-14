@@ -244,6 +244,44 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
   return { price, currency, ter }
 }
 
+// ── Metriche di mercato (per la sintesi "Panorama Mercati") ───────────────────
+
+export interface MarketMetrics {
+  price:       number | null   // prezzo corrente normalizzato
+  currency:    string | null
+  trailingPE:  number | null   // P/E trailing (spesso presente su indici/ETF, non sempre)
+}
+
+/**
+ * Metriche fondamentali best-effort da Yahoo `quote()`. Usato dagli analisti di
+ * settore per il driver valutazione (P/E) e come fallback prezzo. Null-safe:
+ * campi assenti → null, così il motore di sintesi disattiva il driver e
+ * rinormalizza i pesi invece di inventare un dato. Non lancia mai.
+ */
+export async function getMarketMetrics(symbol: string): Promise<MarketMetrics> {
+  try {
+    const yf = await getYf()
+    const q = await yf.quote(symbol)
+    let price: number | null = null
+    let currency: string | null = null
+    if (q?.regularMarketPrice && q?.currency) {
+      const norm = normalizeCurrencyAndPrice(q.currency as string, q.regularMarketPrice as number)
+      price = norm.price
+      currency = norm.currency
+    }
+    const pe = typeof q?.trailingPE === 'number' && q.trailingPE > 0 ? (q.trailingPE as number) : null
+    return { price, currency, trailingPE: pe }
+  } catch {
+    return { price: null, currency: null, trailingPE: null }
+  }
+}
+
+/** Valore numerico corrente di un simbolo (es. `^VIX`). Null se non disponibile. */
+export async function getQuoteValue(symbol: string): Promise<number | null> {
+  const q = await yahooProvider.getQuote(symbol)
+  return q ? Number(q.price) : null
+}
+
 // ── Notizie di mercato ────────────────────────────────────────────────────────
 
 export interface NewsItem {
