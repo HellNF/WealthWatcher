@@ -111,6 +111,8 @@ describe('mapTransactions — categorizzazione', () => {
     }
     const mapped = mapTransactions(userId, 42, [row])
     expect(categoryName(mapped[0].category_id)).toBe('Ristorante & Bar')
+    // L'MCC grezzo viene persistito, non solo consumato per derivare la categoria.
+    expect(mapped[0].mcc).toBe('5812')
   })
 
   test('alias merchant seedato vince sull\'MCC in conflitto', () => {
@@ -155,5 +157,6 @@ describe('mapTransactions — categorizzazione', () => {
     }
     const mapped = mapTransactions(userId, 42, [row])
     expect(mapped[0].category_id).toBeNull()
+    expect(mapped[0].mcc).toBeNull()
   })
 })

@@ -176,6 +176,20 @@
       "when": 1783718700278,
       "tag": "0024_motionless_steel_serpent",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1784020990773,
+      "tag": "0025_silky_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1784025365577,
+      "tag": "0026_yummy_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

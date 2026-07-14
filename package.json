@@ -16,6 +16,7 @@
     "restore-backup": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/restore-backup.ts",
     "snapshot": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node -r tsconfig-paths/register scripts/snapshot.ts",
     "bank-sync": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node -r tsconfig-paths/register scripts/bank-sync.ts",
+    "market-refresh": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node -r tsconfig-paths/register scripts/market-refresh.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

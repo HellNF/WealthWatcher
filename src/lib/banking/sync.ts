@@ -102,6 +102,9 @@ export function mapTransactions(
       dedup_hash:       dedupHash,
       merchant_id:      merchant?.merchantId ?? null,
       category_id:      categoryId,
+      // Persistiamo l'MCC grezzo (oltre alla categoria derivata) così la
+      // ricategorizzazione bulk può riapplicarlo senza ri-sincronizzare.
+      mcc:              t.merchant_category_code?.trim() || null,
     })
   }
 

@@ -17,6 +17,7 @@ import {
   Home,
   PiggyBank,
   CalendarClock,
+  LineChart,
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -47,6 +48,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Patrimonio',
     items: [
+      { label: 'Mercati',      href: '/dashboard/mercati',      icon: LineChart },
       { label: 'Tasse',        href: '/dashboard/tasse',        icon: Landmark },
       { label: 'Mutui',        href: '/dashboard/mutui',        icon: Home },
       { label: 'Obiettivi',    href: '/dashboard/obiettivi',    icon: PiggyBank },
