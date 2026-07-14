@@ -2,16 +2,17 @@
 // Derivato a runtime: nessuna tabella persistita.
 //
 // Normativa:
-//  - Art. 67–68 TUIR: plusvalenze su azioni, bond, ETF, cripto = imposta sostitutiva 26%
+//  - Art. 67–68 TUIR: plusvalenze su azioni, bond, ETF = imposta sostitutiva 26% (o sintetica)
+//  - Cripto: 26% fino al 2025, 33% dal 2026 (aliquota year-aware via effectiveRate)
 //  - ETF in guadagno = reddito di capitale (non compensa lo zainetto)
 //  - ETF in perdita  = reddito diverso (genera credito nello zainetto, 4 anni)
-//  - Cripto: franchigia €2.000 annua (Art. 67 c. 1 lett. c-sexies TUIR)
+//  - Cripto: franchigia €2.000 annua fino al 2024, abolita dal 2025 (cryptoFranchigiaMinor)
 //  - Compensazione: art. 68 TUIR, FIFO per scadenza
 import { sqlite } from '@/db'
 import { convertToEur } from '@/lib/fx/convert'
 import { realizedSaleEvents } from './realized'
 import { computeFiscalWallet, simulateOffset } from './wallet'
-import { syntheticRate, incomeType, CRYPTO_FRANCHIGIA_EUR_MINOR } from './rates'
+import { syntheticRate, effectiveRate, incomeType, cryptoFranchigiaMinor } from './rates'
 import type { InvestmentTxn } from '@/db/schema'
 
 // ── Tipi interni ──────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ export interface RealizedYearTax {
 export async function realizedTaxForYear(userId: number, year: string): Promise<RealizedYearTax> {
   const today = new Date().toISOString().slice(0, 10)
   const yearEnd = `${year}-12-31`
+  const yearNum = parseInt(year, 10)
 
   // ── Ritenuta dividendi (indipendente dal FIFO) ─────────────────────────────
   const dividendRows = sqlite.prepare(`
@@ -212,7 +214,7 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
       }
 
       const itype = incomeType(ev.cluster, ev.grossGainMinor)
-      const rate  = syntheticRate(instr.whitelist_percentage)
+      const rate  = effectiveRate(ev.cluster, instr.whitelist_percentage, yearNum)
 
       rawEvents.push({
         date:           ev.date,
@@ -244,8 +246,9 @@ export async function realizedTaxForYear(userId: number, year: string): Promise<
     }
   }
 
-  // Franchigia cripto: se plusvalenze crypto totali ≤ €2.000 → esenti
-  const cryptoExempt = cryptoGainMinor > 0 && cryptoGainMinor <= CRYPTO_FRANCHIGIA_EUR_MINOR
+  // Franchigia cripto (year-aware): €2.000 fino al 2024, abolita dal 2025.
+  const cryptoFranchigia = cryptoFranchigiaMinor(yearNum)
+  const cryptoExempt = cryptoGainMinor > 0 && cryptoFranchigia > 0 && cryptoGainMinor <= cryptoFranchigia
 
   // 5. Compensazione zainetto
   //    Somma le plus 'diverse' tassabili (escluse crypto esenti)

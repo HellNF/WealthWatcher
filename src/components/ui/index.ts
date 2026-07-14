@@ -43,3 +43,5 @@ export { ConfirmDelete } from './ConfirmDelete'
 export { DataCard, DataCardHeader, DataRow } from './DataCard'
 
 export { ProgressBar } from './ProgressBar'
+
+export { InsightCard, INSIGHT_META, INSIGHT_ICONS } from './InsightCard'

@@ -1,5 +1,8 @@
 // src/__tests__/lib/tax/rates.test.ts — Pure unit tests for the Italian tax rates module.
-import { syntheticRate, expiryDate, incomeType, RATE_STANDARD, RATE_WHITELIST, CRYPTO_FRANCHIGIA_EUR_MINOR } from '@/lib/tax/rates'
+import {
+  syntheticRate, expiryDate, incomeType, RATE_STANDARD, RATE_WHITELIST, CRYPTO_FRANCHIGIA_EUR_MINOR,
+  cryptoRate, cryptoFranchigiaMinor, effectiveRate, pensionDeductionLimitMinor, irpefBrackets,
+} from '@/lib/tax/rates'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -14,6 +17,65 @@ describe('constants', () => {
 
   test('CRYPTO_FRANCHIGIA_EUR_MINOR is €2,000 in minor units', () => {
     expect(CRYPTO_FRANCHIGIA_EUR_MINOR).toBe(200_000)
+  })
+})
+
+// ── Resolver per anno fiscale ─────────────────────────────────────────────────
+
+describe('cryptoRate — aliquota cripto per anno', () => {
+  test('26% fino al 2025', () => {
+    expect(cryptoRate(2024)).toBeCloseTo(0.26)
+    expect(cryptoRate(2025)).toBeCloseTo(0.26)
+  })
+  test('33% dal 2026', () => {
+    expect(cryptoRate(2026)).toBeCloseTo(0.33)
+    expect(cryptoRate(2030)).toBeCloseTo(0.33)
+  })
+})
+
+describe('cryptoFranchigiaMinor — franchigia cripto per anno', () => {
+  test('€2.000 fino al 2024', () => {
+    expect(cryptoFranchigiaMinor(2023)).toBe(200_000)
+    expect(cryptoFranchigiaMinor(2024)).toBe(200_000)
+  })
+  test('abolita (0) dal 2025', () => {
+    expect(cryptoFranchigiaMinor(2025)).toBe(0)
+    expect(cryptoFranchigiaMinor(2026)).toBe(0)
+  })
+})
+
+describe('effectiveRate — aliquota effettiva year-aware', () => {
+  test('cripto usa cryptoRate(year)', () => {
+    expect(effectiveRate('crypto', '0', 2025)).toBeCloseTo(0.26)
+    expect(effectiveRate('crypto', '0', 2026)).toBeCloseTo(0.33)
+  })
+  test('altri cluster usano syntheticRate (invariante per anno)', () => {
+    expect(effectiveRate('etf', '50', 2026)).toBeCloseTo(0.1925)
+    expect(effectiveRate('stock', '0', 2026)).toBeCloseTo(0.26)
+    expect(effectiveRate('bond', '100', 2030)).toBeCloseTo(0.125)
+  })
+})
+
+describe('pensionDeductionLimitMinor — massimale previdenza per anno', () => {
+  test('€5.164,57 fino al 2025', () => {
+    expect(pensionDeductionLimitMinor(2025)).toBe(516_457)
+  })
+  test('€5.300 dal 2026', () => {
+    expect(pensionDeductionLimitMinor(2026)).toBe(530_000)
+  })
+})
+
+describe('irpefBrackets — scaglioni IRPEF per anno', () => {
+  test('2025: 2° scaglione al 35%', () => {
+    expect(irpefBrackets(2025)[1].rate).toBe(0.35)
+  })
+  test('2026: 2° scaglione al 33%', () => {
+    expect(irpefBrackets(2026)[1].rate).toBe(0.33)
+  })
+  test('1° e 3° scaglione invariati (23% / 43%)', () => {
+    const b = irpefBrackets(2026)
+    expect(b[0].rate).toBe(0.23)
+    expect(b[2].rate).toBe(0.43)
   })
 })
 

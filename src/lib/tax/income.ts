@@ -4,7 +4,7 @@
 import { dec } from '@/lib/money'
 import type { UserProfile } from '@/lib/userSettings'
 import {
-  IRPEF_BRACKETS,
+  irpefBrackets,
   FORFETTARIO_RATE_STD,
   FORFETTARIO_RATE_STARTUP,
   ADDIZIONALI_STIMATE_RATE,
@@ -64,6 +64,7 @@ export function ageFromBirthDate(birthDate: string | null | undefined): number |
  */
 export function computeIrpefBrackets(
   taxableMinor: number,
+  bracketsDef: { upToMinor: number; rate: number }[] = irpefBrackets(new Date().getFullYear()),
 ): { brackets: IrpefBracketResult[]; totalMinor: number } {
   if (taxableMinor <= 0) return { brackets: [], totalMinor: 0 }
 
@@ -71,7 +72,7 @@ export function computeIrpefBrackets(
   let remaining = dec(taxableMinor.toString())
   let prevUpTo  = dec('0')
 
-  for (const { upToMinor, rate } of IRPEF_BRACKETS) {
+  for (const { upToMinor, rate } of bracketsDef) {
     if (remaining.lte(0)) break
     const bracketWidth = upToMinor === Infinity
       ? remaining
@@ -106,7 +107,10 @@ export function computeIrpefBrackets(
  * - Contributi INPS esclusi dalla stima (dipendono dal regime previdenziale).
  * - Residenza estera: il regime IRPEF italiano potrebbe non applicarsi (CFC, convenzioni, ecc.).
  */
-export function estimateIncomeTax(p: UserProfile): IncomeTaxEstimate {
+export function estimateIncomeTax(
+  p: UserProfile,
+  year: number = new Date().getFullYear(),
+): IncomeTaxEstimate {
   const NOT_APPLICABLE: IncomeTaxEstimate = {
     applicable: false, taxableMinor: 0, irpefMinor: 0,
     substituteMinor: 0, addizionaliMinor: 0, totalMinor: 0,
@@ -164,7 +168,7 @@ export function estimateIncomeTax(p: UserProfile): IncomeTaxEstimate {
 
   // ── IRPEF a scaglioni (dipendente, pensionato, autonomo ordinario) ──────────
   const taxableMinor        = grossMinor   // no riduzione forfettaria
-  const { brackets, totalMinor: irpefGross } = computeIrpefBrackets(taxableMinor)
+  const { brackets, totalMinor: irpefGross } = computeIrpefBrackets(taxableMinor, irpefBrackets(year))
   const addizionali         = Math.round(dec(taxableMinor.toString()).mul(ADDIZIONALI_STIMATE_RATE).toNumber())
   const total               = irpefGross + addizionali
   const effRate             = grossMinor > 0 ? total / grossMinor : 0

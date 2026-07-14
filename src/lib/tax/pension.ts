@@ -5,11 +5,11 @@
 // risparmio IRPEF generato e quello ancora disponibile.
 import { sqlite } from '@/db'
 import { getUserProfile } from '@/lib/userSettings'
-import { MAX_PENSION_DEDUCTION_EUR_MINOR } from './rates'
+import { pensionDeductionLimitMinor } from './rates'
 
 export interface PensionTaxStatus {
   contributionsCurrentYearMinor: number
-  maxDeductionLimitMinor:        number   // sempre MAX_PENSION_DEDUCTION_EUR_MINOR
+  maxDeductionLimitMinor:        number   // massimale per l'anno (€5.164,57 ≤2025, €5.300 ≥2026)
   remainingDeductibleSpaceMinor: number
   currentTaxRefundRealizedMinor: number
   potentialTaxRefundRemainingMinor: number
@@ -34,7 +34,7 @@ export function getPensionTaxStatus(userId: number, year: string): PensionTaxSta
   `).get(userId, `${year}-01-01`, `${year}-12-31`) as { total: number }
 
   const contrib = row.total
-  const max     = MAX_PENSION_DEDUCTION_EUR_MINOR
+  const max     = pensionDeductionLimitMinor(parseInt(year, 10))
 
   const remainingDeductibleSpaceMinor    = Math.max(0, max - contrib)
   const effectiveDeductible              = Math.min(contrib, max)

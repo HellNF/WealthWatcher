@@ -6,7 +6,7 @@ import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
 import { convertToEur } from '@/lib/fx/convert'
 import { listInstruments } from '@/lib/instruments'
-import { syntheticRate, incomeType } from './rates'
+import { effectiveRate } from './rates'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,6 +37,7 @@ export interface LatentTaxStats {
 export async function latentTaxStats(userId: number): Promise<LatentTaxStats> {
   const portfolios = listPortfolios(userId)
   const today      = new Date().toISOString().slice(0, 10)
+  const yearNum    = new Date().getFullYear()
 
   // Build instrument lookup for whitelist_percentage
   const allInstruments = listInstruments()
@@ -73,10 +74,11 @@ export async function latentTaxStats(userId: number): Promise<LatentTaxStats> {
 
       const instr = instrMap.get(pos.instrumentId)
       const whitelistPct = instr?.whitelist_percentage ?? '0'
-      const rate = syntheticRate(whitelistPct)
+      // Aliquota year-aware: cripto 26%/33% per anno, altrimenti sintetica ETF.
+      // ETF in guadagno = reddito di capitale, comunque tassato ad α_etf (l'asimmetria
+      // riguarda la compensabilità, non se l'imposta si applica).
+      const rate = effectiveRate(instr?.cluster ?? '', whitelistPct, yearNum)
 
-      // incomeType check: ETF gains are reddito di capitale, still taxed at alpha_etf
-      // (the asymmetry is about offset eligibility, not about whether tax applies)
       const taxOnGain = Math.round(gainEur * rate)
       latentTaxMinor += taxOnGain
     }

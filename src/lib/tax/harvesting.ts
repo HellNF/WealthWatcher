@@ -14,7 +14,7 @@ import { getPortfolioPositions } from '@/lib/positions'
 import { listInstruments } from '@/lib/instruments'
 import { convertToEur } from '@/lib/fx/convert'
 import { computeFiscalWallet } from './wallet'
-import { syntheticRate, incomeType } from './rates'
+import { effectiveRate, incomeType } from './rates'
 
 // ── Tipi pubblici ─────────────────────────────────────────────────────────────
 
@@ -86,9 +86,10 @@ export async function generateHarvestingRecommendations(
     ticker:        string
     remainingQty:  string
     gainEurMinor:  number   // firmato: negativo = perdita
-    rate:          number   // syntheticRate per quell'asset
+    rate:          number   // aliquota effettiva per quell'asset (year-aware per le cripto)
     cluster:       string
   }
+  const yearNum = parseInt(currentYear, 10)
 
   const entries: Entry[] = []
 
@@ -118,7 +119,7 @@ export async function generateHarvestingRecommendations(
         ticker:        pos.symbol,
         remainingQty:  pos.remainingQty,
         gainEurMinor,
-        rate:          syntheticRate(instr.whitelist_percentage),
+        rate:          effectiveRate(instr.cluster, instr.whitelist_percentage, yearNum),
         cluster:       instr.cluster,
       })
     }

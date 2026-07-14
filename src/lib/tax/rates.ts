@@ -5,14 +5,58 @@ import { dec, Decimal } from '@/lib/money'
 
 // ── Aliquote base (Art. 67–68 TUIR) ──────────────────────────────────────────
 
-/** Standard rate: stocks, ETC, crypto, corporate bonds, generic ETF */
+/** Standard rate: stocks, ETC, corporate bonds, generic ETF (and crypto fino al 2025). */
 export const RATE_STANDARD = 0.26
 
 /** Agevolata rate: White List government bonds (BTP, EU bonds, etc.) */
 export const RATE_WHITELIST = 0.125
 
-/** Crypto annual exemption threshold: gains must exceed this to be taxable (€2,000 in EUR minor). */
+/**
+ * Crypto annual exemption threshold — valore storico €2.000 (Art. 67 c. 1 lett. c-sexies TUIR,
+ * L. 197/2022). Abolita dal 1° gennaio 2025 (L. 207/2024): usa `cryptoFranchigiaMinor(year)`
+ * per il valore corretto per anno fiscale.
+ * @deprecated per anni ≥ 2025; preferisci `cryptoFranchigiaMinor(year)`.
+ */
 export const CRYPTO_FRANCHIGIA_EUR_MINOR = 200_000 // €2,000.00
+
+// ── Aliquota cripto e franchigia per anno fiscale ─────────────────────────────
+
+/**
+ * Aliquota sull'imposta sostitutiva delle plusvalenze cripto per anno fiscale.
+ *  - fino al 2025: 26% (Art. 67 c. 1 lett. c-sexies TUIR)
+ *  - dal 2026:     33% (L. Bilancio 2026)
+ *
+ * Nota: l'eccezione al 26% per gli "e-money token" in euro (MiCAR, Reg. UE 2023/1114) NON è
+ * modellata — il motore non distingue il sottotipo di criptoattività. Documentato nella fonte.
+ */
+export function cryptoRate(year: number): number {
+  return year >= 2026 ? 0.33 : 0.26
+}
+
+/**
+ * Franchigia annua sulle plusvalenze cripto per anno fiscale, in EUR minor.
+ *  - fino al 2024: €2.000 (sotto soglia → esenti)
+ *  - dal 2025:     abolita (0) — ogni plusvalenza è tassabile
+ */
+export function cryptoFranchigiaMinor(year: number): number {
+  return year <= 2024 ? 200_000 : 0
+}
+
+/**
+ * Aliquota effettiva applicabile a un evento, risolvendo la regola cripto per anno.
+ *  - cluster 'crypto' → `cryptoRate(year)`
+ *  - ogni altro cluster → `syntheticRate(whitelistPct)` (invariante per anno)
+ *
+ * Punto unico dove convergono aliquota sintetica ETF e aliquota cripto year-aware.
+ */
+export function effectiveRate(
+  cluster: string,
+  whitelistPctStr: string | null | undefined,
+  year: number,
+): number {
+  if (cluster === 'crypto') return cryptoRate(year)
+  return syntheticRate(whitelistPctStr)
+}
 
 // ── Aliquota sintetica per ETF misti ─────────────────────────────────────────
 
@@ -141,18 +185,47 @@ export function isForeign(country: string | null | undefined): boolean {
 
 /**
  * Soglia massima di deducibilità IRPEF per i contributi a fondi pensione integrativi.
- * €5.164,57 annui (invariata dal 2007).
+ * €5.164,57 annui (invariata dal 2007 al 2025). Aggiornata a €5.300 dal 2026:
+ * usa `pensionDeductionLimitMinor(year)` per il valore corretto per anno.
+ * @deprecated per anni ≥ 2026; preferisci `pensionDeductionLimitMinor(year)`.
  */
 export const MAX_PENSION_DEDUCTION_EUR_MINOR = 516_457 // €5.164,57
 
-// ── IRPEF 2025 (riforma 3 aliquote — Legge di Bilancio 2025) ─────────────────
+/**
+ * Massimale di deducibilità dei contributi a fondi pensione, per anno fiscale (EUR minor).
+ *  - fino al 2025: €5.164,57 (Art. 10 c. 1 lett. e-bis TUIR)
+ *  - dal 2026:     €5.300,00 (L. Bilancio 2026)
+ */
+export function pensionDeductionLimitMinor(year: number): number {
+  return year >= 2026 ? 530_000 : 516_457
+}
 
-/** Scaglioni IRPEF 2025. `upToMinor = Infinity` per l'ultimo scaglione aperto. */
+// ── IRPEF (riforma 3 aliquote) ───────────────────────────────────────────────
+
+/**
+ * Scaglioni IRPEF 2025 (riforma 3 aliquote — Legge di Bilancio 2025).
+ * `upToMinor = Infinity` per l'ultimo scaglione aperto.
+ * @deprecated per anni ≥ 2026 (2° scaglione al 33%); preferisci `irpefBrackets(year)`.
+ */
 export const IRPEF_BRACKETS: { upToMinor: number; rate: number }[] = [
   { upToMinor: 2_800_000, rate: 0.23 },   // 0–28.000 → 23%
   { upToMinor: 5_000_000, rate: 0.35 },   // 28.001–50.000 → 35%
   { upToMinor: Infinity,  rate: 0.43 },   // oltre 50.000 → 43%
 ]
+
+/**
+ * Scaglioni IRPEF per anno fiscale.
+ *  - fino al 2025: 23% / 35% / 43%
+ *  - dal 2026:     23% / 33% / 43% (il 2° scaglione 28.001–50.000 scende dal 35% al 33%)
+ */
+export function irpefBrackets(year: number): { upToMinor: number; rate: number }[] {
+  const secondRate = year >= 2026 ? 0.33 : 0.35
+  return [
+    { upToMinor: 2_800_000, rate: 0.23 },
+    { upToMinor: 5_000_000, rate: secondRate },
+    { upToMinor: Infinity,  rate: 0.43 },
+  ]
+}
 
 /** Imposta sostitutiva regime forfettario — aliquota ordinaria. */
 export const FORFETTARIO_RATE_STD    = 0.15

@@ -4,7 +4,7 @@
 // Pure function: reads investment_txns and instruments, no mutations.
 import { dec, toMinor, Decimal } from '@/lib/money'
 import { sqlite } from '@/db'
-import { syntheticRate, incomeType, CRYPTO_FRANCHIGIA_EUR_MINOR } from '@/lib/tax/rates'
+import { effectiveRate, incomeType, cryptoFranchigiaMinor } from '@/lib/tax/rates'
 import { computeFiscalWallet, simulateOffset, cryptoRealizedGainForYear } from '@/lib/tax/wallet'
 import type { IncomeType } from '@/lib/tax/rates'
 
@@ -131,6 +131,9 @@ export function simulateSaleFifo(
   // Simulate the sell consuming lots FIFO
   const simLots: SaleLotResult[] = []
   let remaining = dec(String(qtyToSell))
+  // Anno corrente: la simulazione è "come se vendessi oggi" (aliquota cripto year-aware).
+  const yearNum = new Date().getFullYear()
+  const rate    = effectiveRate(instr.cluster, instr.whitelist_percentage, yearNum)
 
   for (const lot of available) {
     if (remaining.lte(1e-10)) break
@@ -142,20 +145,19 @@ export function simulateSaleFifo(
     const proceeds     = Math.round(qtyNum * sellPricePerUnit * 100)
     const grossGain    = proceeds - costConsumed
     // Per-lot tax is computed without compensation (shown as raw); compensation applied at total level
-    const lotRate      = syntheticRate(instr.whitelist_percentage)
     simLots.push({
       purchaseDate:   lot.purchaseDate,
       qtyConsumed:    qtyNum,
       costPerUnit,
       grossGainMinor: grossGain,
-      taxDueMinor:    grossGain > 0 ? Math.round(grossGain * lotRate) : 0,
+      taxDueMinor:    grossGain > 0 ? Math.round(grossGain * rate) : 0,
       taxCreditMinor: grossGain < 0 ? Math.abs(grossGain) : 0,
     })
     remaining = remaining.minus(consumed)
   }
 
   const totalGrossGainMinor = simLots.reduce((s, l) => s + l.grossGainMinor, 0)
-  const appliedRate         = syntheticRate(instr.whitelist_percentage)
+  const appliedRate         = rate
   const type                = incomeType(instr.cluster, totalGrossGainMinor)
   const today               = new Date().toISOString().slice(0, 10)
 
@@ -179,7 +181,8 @@ export function simulateSaleFifo(
         const year     = today.slice(0, 4)
         const priorYearGain = cryptoRealizedGainForYear(userId, year)
         cryptoAnnualGain    = priorYearGain + totalGrossGainMinor
-        if (cryptoAnnualGain <= CRYPTO_FRANCHIGIA_EUR_MINOR) {
+        const franchigia    = cryptoFranchigiaMinor(yearNum)
+        if (franchigia > 0 && cryptoAnnualGain <= franchigia) {
           cryptoExempt     = true
           totalTaxDueMinor = 0
         } else {

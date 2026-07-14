@@ -12,7 +12,12 @@ import {
   FORFETTARIO_RATE_STD,
   FORFETTARIO_RATE_STARTUP,
   ADDIZIONALI_STIMATE_RATE,
+  irpefBrackets,
 } from '@/lib/tax/rates'
+
+// Scaglioni pinnati per anno, così i test non dipendono dall'anno di sistema.
+const B2025 = irpefBrackets(2025)
+const B2026 = irpefBrackets(2026)
 
 // ── Profilo base riutilizzato nei test ────────────────────────────────────────
 
@@ -62,24 +67,32 @@ describe('computeIrpefBrackets', () => {
     expect(totalMinor).toBe(Math.round(2_800_000 * 0.23))  // €6.440
   })
 
-  test('reddito €30.000 → due scaglioni (23% su 28k + 35% su 2k)', () => {
-    const { brackets, totalMinor } = computeIrpefBrackets(3_000_000)
+  test('2025 · reddito €30.000 → due scaglioni (23% su 28k + 35% su 2k)', () => {
+    const { brackets, totalMinor } = computeIrpefBrackets(3_000_000, B2025)
     expect(brackets).toHaveLength(2)
     const expected = Math.round(2_800_000 * 0.23 + 200_000 * 0.35)
     expect(totalMinor).toBe(expected)
   })
 
-  test('reddito esattamente al limite 2° scaglione (€50.000 → 23%+35%)', () => {
-    const { brackets, totalMinor } = computeIrpefBrackets(5_000_000)
+  test('2025 · reddito esattamente al limite 2° scaglione (€50.000 → 23%+35%)', () => {
+    const { brackets, totalMinor } = computeIrpefBrackets(5_000_000, B2025)
     expect(brackets).toHaveLength(2)
     const expected = Math.round(2_800_000 * 0.23 + 2_200_000 * 0.35)
     expect(totalMinor).toBe(expected)
   })
 
-  test('reddito €70.000 → tre scaglioni (23%+35%+43%)', () => {
-    const { brackets, totalMinor } = computeIrpefBrackets(7_000_000)
+  test('2025 · reddito €70.000 → tre scaglioni (23%+35%+43%)', () => {
+    const { brackets, totalMinor } = computeIrpefBrackets(7_000_000, B2025)
     expect(brackets).toHaveLength(3)
     const expected = Math.round(2_800_000 * 0.23 + 2_200_000 * 0.35 + 2_000_000 * 0.43)
+    expect(totalMinor).toBe(expected)
+  })
+
+  test('2026 · il 2° scaglione scende al 33% (€30.000)', () => {
+    const { brackets, totalMinor } = computeIrpefBrackets(3_000_000, B2026)
+    expect(brackets).toHaveLength(2)
+    expect(brackets[1].rate).toBe(0.33)
+    const expected = Math.round(2_800_000 * 0.23 + 200_000 * 0.33)
     expect(totalMinor).toBe(expected)
   })
 })
