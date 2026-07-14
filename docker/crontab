@@ -1,0 +1,13 @@
+# docker/crontab — crontab di root per busybox crond, eseguito dentro il
+# container principale (nessuna dipendenza dall'host). Orari in UTC (TZ non
+# impostata nell'immagine): regolare se serve allinearli all'ora italiana.
+#
+# Ordine pensato apposta: bank-sync prima (movimenti freschi), poi snapshot
+# con refresh prezzi (patrimonio aggiornato), poi market-refresh (indipendente
+# dal patrimonio dell'utente, girerebbe comunque bene in qualunque orario).
+#
+# I job scrivono su stdout/stderr, catturati dai log del container
+# (`docker compose logs`).
+0 4 * * * cd /app && npm run bank-sync >> /proc/1/fd/1 2>> /proc/1/fd/2
+30 4 * * * cd /app && REFRESH_PRICES=1 npm run snapshot >> /proc/1/fd/1 2>> /proc/1/fd/2
+0 5 * * * cd /app && npm run market-refresh >> /proc/1/fd/1 2>> /proc/1/fd/2
