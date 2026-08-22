@@ -30,6 +30,7 @@ const BASE: UserProfile = {
   annualGrossIncomeMinor: null,
   forfettarioCoefficient: null,
   forfettarioStartup:     false,
+  irpefMarginalRate:      null,
 }
 
 // ── ageFromBirthDate ──────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ function txn(date: string, amountMinor: number, catId: number | null, catName: s
     id: nextId++,
     booked_date: date,
     amount_minor: amountMinor,
+    bank_account_id: 1,
     category_id: catId,
     category_name: catName,
     category_kind: catId !== null ? 'expense' : null,

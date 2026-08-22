@@ -5,8 +5,12 @@ import { mapTransactions, summarizeMapping } from '@/lib/banking/sync'
 import type { EbTransaction } from '@/lib/banking/types'
 import { sqlite } from '@/db'
 
-function categoryName(id: number | null): string | null {
-  if (id === null) return null
+// InsertableTransaction.category_id è opzionale nel tipo (per l'import manuale,
+// che può ometterlo), ma mapTransactions lo valorizza sempre esplicitamente
+// (number oppure null) — mai omesso. Il parametro accetta comunque undefined
+// per rispettare il tipo di ritorno di mapTransactions.
+function categoryName(id: number | null | undefined): string | null {
+  if (id === null || id === undefined) return null
   const row = sqlite.prepare('SELECT name FROM categories WHERE id = ?').get(id) as { name: string } | undefined
   return row?.name ?? null
 }
