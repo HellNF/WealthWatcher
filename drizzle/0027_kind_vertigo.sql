@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` ADD `btc_sub_code` text;
