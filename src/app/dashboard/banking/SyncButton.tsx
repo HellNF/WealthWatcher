@@ -7,7 +7,14 @@ import { Button, Badge } from '@/components/ui'
 import { RefreshCw, Unlink } from 'lucide-react'
 import type { AspspOption } from './ConnectBankButton'
 
-type Result = { insertedCount: number; duplicateCount: number; error?: string } | null
+type Result = {
+  insertedCount:  number
+  duplicateCount: number
+  categorized?:   number
+  uncategorized?: number
+  unmappedMccs?:  string[]
+  error?:         string
+} | null
 
 export default function SyncButton({
   institutionId,
@@ -81,9 +88,22 @@ export default function SyncButton({
         <p className="w-full text-xs text-[--danger]">{result.error}</p>
       )}
       {result && !result.error && (
-        <p className="w-full text-xs text-[--muted]">
-          {result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati
-        </p>
+        <div className="w-full space-y-0.5">
+          <p className="text-xs text-[--muted]">
+            {result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati
+          </p>
+          {result.categorized !== undefined && (
+            <p className="text-xs text-[--muted]">
+              {result.categorized} categorizzati automaticamente
+              {result.uncategorized ? ` · ${result.uncategorized} senza categoria` : ''}
+            </p>
+          )}
+          {result.unmappedMccs && result.unmappedMccs.length > 0 && (
+            <p className="text-xs text-[--faint]">
+              Codici MCC non mappati: {result.unmappedMccs.join(', ')}
+            </p>
+          )}
+        </div>
       )}
     </div>
   )

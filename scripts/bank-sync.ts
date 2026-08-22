@@ -42,6 +42,13 @@ async function main() {
           console.log(`  Conto #${acc.accountId}: ⚠ ${acc.error}`)
         } else {
           console.log(`  Conto #${acc.accountId}: ${acc.insertedCount} inseriti, ${acc.duplicateCount} duplicati`)
+          if (acc.diagnostics) {
+            const d = acc.diagnostics
+            console.log(`    categorizzazione: ${d.categorized}/${d.total} categorizzati, ${d.withMcc} con MCC`)
+            if (d.unmappedMccs.length > 0) {
+              console.log(`    MCC non mappati: ${d.unmappedMccs.join(', ')}`)
+            }
+          }
         }
       }
     } catch (err) {

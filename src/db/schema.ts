@@ -244,6 +244,11 @@ export const transactions = sqliteTable(
     // — così la ricategorizzazione bulk (src/lib/categorization.ts) può
     // riapplicarlo allo storico senza dover ri-sincronizzare dalla banca.
     mcc:              text('mcc'),
+    // Sotto-codice ISO 20022 (bank_transaction_code.sub_code) fornito
+    // dall'ASPSP per le transazioni senza carta (bonifici, stipendi, SDD,
+    // prelievi), dove l'MCC non arriva mai. Stesso principio di mcc: persistito
+    // per permettere alla ricategorizzazione bulk di riapplicarlo senza ri-sync.
+    btc_sub_code:     text('btc_sub_code'),
     created_at:       integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [

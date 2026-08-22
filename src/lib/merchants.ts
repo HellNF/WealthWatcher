@@ -95,11 +95,83 @@ const MCC_CATEGORY_MAP: Record<string, string> = {
   '7832': 'Intrattenimento', '7922': 'Intrattenimento', '7929': 'Intrattenimento',
   '7996': 'Intrattenimento', '7997': 'Intrattenimento', '7998': 'Intrattenimento',
   '7999': 'Intrattenimento', '5815': 'Intrattenimento',
+  // Viaggi (hotel, agenzie viaggio)
+  '7011': 'Viaggi', '4722': 'Viaggi',
+  // Casa e ferramenta
+  '5200': 'Casa', '5211': 'Casa', '5231': 'Casa', '5251': 'Casa', '5261': 'Casa',
+  '5712': 'Casa', '5713': 'Casa', '5714': 'Casa', '5718': 'Casa', '5719': 'Casa',
+  '5722': 'Casa',
+  // Cura personale
+  '7230': 'Cura personale', '7297': 'Cura personale', '7298': 'Cura personale',
+  '5977': 'Cura personale',
+  // Assicurazioni
+  '6300': 'Assicurazioni', '5960': 'Assicurazioni',
+  // Contante e trasferimenti
+  '6011': 'Trasferimento', '4829': 'Trasferimento', '6012': 'Trasferimento',
+  '6051': 'Trasferimento',
+  // Pubblica amministrazione e tasse
+  '9211': 'Tasse', '9222': 'Tasse', '9223': 'Tasse', '9311': 'Tasse', '9399': 'Tasse',
+  '9402': 'Tasse',
+  // E-commerce e servizi digitali
+  '5816': 'Shopping', '5817': 'Shopping', '5818': 'Shopping',
+  '7372': 'Abbonamenti', '7392': 'Abbonamenti', '7399': 'Abbonamenti',
+  // Libri e cartoleria
+  '5942': 'Istruzione', '5943': 'Istruzione', '5192': 'Istruzione',
+  // Animali
+  '0742': 'Shopping', '5995': 'Shopping',
+  // Palestre e sport
+  '7941': 'Intrattenimento',
 }
+
+// Alcuni MCC coprono un intervallo contiguo di codici (es. tutte le compagnie
+// aeree, tutti gli autonoleggi, tutte le catene alberghiere) e non hanno senso
+// elencati uno per uno: consultato solo se il lookup esatto non trova nulla.
+const MCC_RANGE_MAP: { from: number; to: number; category: string }[] = [
+  { from: 3000, to: 3299, category: 'Viaggi' },     // compagnie aeree
+  { from: 3351, to: 3500, category: 'Trasporti' },  // autonoleggi
+  { from: 3501, to: 3999, category: 'Viaggi' },     // catene alberghiere
+]
 
 export function resolveMccCategory(mcc: string | undefined | null): number | null {
   if (!mcc) return null
-  const myName = MCC_CATEGORY_MAP[mcc.trim()]
+  const clean = mcc.trim()
+  let myName = MCC_CATEGORY_MAP[clean]
+  if (!myName) {
+    const numeric = Number(clean)
+    const range = Number.isFinite(numeric)
+      ? MCC_RANGE_MAP.find((r) => numeric >= r.from && numeric <= r.to)
+      : undefined
+    myName = range?.category ?? ''
+  }
+  if (!myName) return null
+  const row = db.select({ id: categories.id }).from(categories).where(eq(categories.name, myName)).get()
+  return row?.id ?? null
+}
+
+// ── Bank Transaction Code (ISO 20022) → WealthWatcher category fallback ──────
+// Ultimo anello della catena, per le transazioni SENZA carta (bonifici,
+// stipendi, SDD, prelievi) su cui l'MCC non arriva mai. Mappiamo solo i
+// sotto-codici semanticamente inequivocabili: molti ASPSP popolano questo
+// campo con valori proprietari, e un bonifico generico (ESCT/ICDT) o un
+// addebito SEPA (ESDD) possono essere qualunque cosa — una categoria
+// sbagliata è peggio di nessuna categoria, quindi quei codici non vengono
+// mappati e restano a carico di regole utente/alias.
+const BANK_TRANSACTION_SUBCODE_MAP: Record<string, string> = {
+  SALA: 'Stipendio',      // accredito stipendio
+  PENS: 'Previdenza',     // pensione / previdenza
+  TAXS: 'Tasse',          // pagamento tributi
+  INTR: 'Entrate',        // interessi
+  DIVD: 'Entrate',        // dividendi
+  CWDL: 'Trasferimento',  // prelievo contante
+  BONU: 'Entrate',        // bonus / premio
+}
+
+export function resolveBankTransactionCategory(
+  code:    string | undefined | null,
+  subCode: string | undefined | null,
+): number | null {
+  if (!subCode) return null
+  const myName = BANK_TRANSACTION_SUBCODE_MAP[subCode.trim().toUpperCase()]
   if (!myName) return null
   const row = db.select({ id: categories.id }).from(categories).where(eq(categories.name, myName)).get()
   return row?.id ?? null

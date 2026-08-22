@@ -96,6 +96,11 @@ export async function startConnectAction(
 export interface SyncActionResult {
   insertedCount:  number
   duplicateCount: number
+  // Presenti solo quando il sync è arrivato a mappare i movimenti (assenti sui
+  // rifiuti precoci: rate limit, connessione non attiva/scaduta, ecc.).
+  categorized?:   number
+  uncategorized?: number
+  unmappedMccs?:  string[]
   error?:         string
 }
 
@@ -133,9 +138,15 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
     return { insertedCount: 0, duplicateCount: 0, error: 'Chiave Enable Banking mancante: reimpostala nelle impostazioni.' }
   }
 
+  const diagnostics = result.accounts.map((a) => a.diagnostics).filter((d) => d !== undefined)
+  const unmappedMccs = [...new Set(diagnostics.flatMap((d) => d.unmappedMccs))]
+
   return {
     insertedCount:  result.accounts.reduce((s, a) => s + a.insertedCount, 0),
     duplicateCount: result.accounts.reduce((s, a) => s + a.duplicateCount, 0),
+    categorized:    diagnostics.reduce((s, d) => s + d.categorized, 0),
+    uncategorized:  diagnostics.reduce((s, d) => s + d.uncategorized, 0),
+    unmappedMccs,
     error:          result.accounts.find((a) => a.error)?.error,
   }
 }

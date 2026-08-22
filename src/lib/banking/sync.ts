@@ -11,7 +11,10 @@
 // leggere saldi/movimenti.
 import { createHash } from 'crypto'
 import { dec, toMinor } from '@/lib/money'
-import { normalizeDescription, resolveCategoryRule, resolveMerchant, resolveMccCategory } from '@/lib/merchants'
+import {
+  normalizeDescription, resolveCategoryRule, resolveMerchant,
+  resolveMccCategory, resolveBankTransactionCategory,
+} from '@/lib/merchants'
 import { insertBatch, type InsertableTransaction } from '@/lib/transactions'
 import { setAccountBalanceAnchor } from '@/lib/accounts'
 import { getEnableBankingKey } from '@/lib/userSettings'
@@ -71,10 +74,12 @@ export function mapTransactions(
 
     const normalized = normalizeDescription(`${descriptionRaw} ${counterpartyRaw}`)
     const merchant    = resolveMerchant(normalized)
-    // Priorità: regola utente → alias merchant → MCC fornito dall'ASPSP (se presente).
+    // Priorità: regola utente → alias merchant → MCC (transazioni carta) →
+    // bank_transaction_code (transazioni senza carta, dove l'MCC non arriva mai).
     const categoryId  = resolveCategoryRule(normalized, ownerId, absMinor)
       ?? merchant?.categoryId
       ?? resolveMccCategory(t.merchant_category_code)
+      ?? resolveBankTransactionCategory(t.bank_transaction_code?.code, t.bank_transaction_code?.sub_code)
       ?? null
 
     const externalId = t.entry_reference ?? t.transaction_id ?? null
@@ -102,13 +107,54 @@ export function mapTransactions(
       dedup_hash:       dedupHash,
       merchant_id:      merchant?.merchantId ?? null,
       category_id:      categoryId,
-      // Persistiamo l'MCC grezzo (oltre alla categoria derivata) così la
-      // ricategorizzazione bulk può riapplicarlo senza ri-sincronizzare.
+      // Persistiamo MCC e bank_transaction_code grezzi (oltre alla categoria
+      // derivata) così la ricategorizzazione bulk può riapplicarli senza
+      // ri-sincronizzare.
       mcc:              t.merchant_category_code?.trim() || null,
+      btc_sub_code:     t.bank_transaction_code?.sub_code?.trim() || null,
     })
   }
 
   return mapped
+}
+
+// ── Diagnostica post-mapping ────────────────────────────────────────────────
+
+export interface MappingDiagnostics {
+  total:         number
+  withMcc:       number
+  categorized:   number
+  uncategorized: number
+  unmappedMccs:  string[]   // codici MCC arrivati ma non presenti in MCC_CATEGORY_MAP
+}
+
+/**
+ * Riassume l'esito della catena di categorizzazione su un batch già mappato,
+ * per dare all'utente un riscontro numerico dopo il sync invece di doverlo
+ * dedurre. Nota: opera sulle righe mappate, che includono i duplicati poi
+ * scartati da insertBatch (INSERT OR IGNORE) — con SYNC_OVERLAP_DAYS i numeri
+ * sono quindi leggermente superiori ai movimenti realmente nuovi.
+ */
+export function summarizeMapping(rows: InsertableTransaction[]): MappingDiagnostics {
+  const unmapped = new Set<string>()
+  let withMcc = 0
+  let categorized = 0
+
+  for (const row of rows) {
+    if (row.mcc) {
+      withMcc++
+      if (resolveMccCategory(row.mcc) === null) unmapped.add(row.mcc)
+    }
+    if (row.category_id !== null && row.category_id !== undefined) categorized++
+  }
+
+  return {
+    total:         rows.length,
+    withMcc,
+    categorized,
+    uncategorized: rows.length - categorized,
+    unmappedMccs:  [...unmapped],
+  }
 }
 
 // ── Sync di un conto ───────────────────────────────────────────────────────
@@ -118,6 +164,7 @@ export interface AccountSyncResult {
   insertedCount:  number
   duplicateCount: number
   balanceUpdated: boolean
+  diagnostics?:   MappingDiagnostics
   error?:         string
 }
 
@@ -150,6 +197,7 @@ async function syncAccount(
   }
 
   const rows = mapTransactions(ownerId, account.id, transactions)
+  const diagnostics = summarizeMapping(rows)
   const result = insertBatch({
     ownerId,
     bankAccountId: account.id,
@@ -163,6 +211,7 @@ async function syncAccount(
     insertedCount:  result.insertedCount,
     duplicateCount: result.duplicateCount,
     balanceUpdated,
+    diagnostics,
   }
 }
 

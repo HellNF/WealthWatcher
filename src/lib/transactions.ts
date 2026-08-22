@@ -34,6 +34,7 @@ export interface InsertableTransaction {
   merchant_id?:     number | null
   category_id?:     number | null
   mcc?:             string | null
+  btc_sub_code?:    string | null
 }
 
 /**
@@ -136,8 +137,8 @@ export function insertBatch(params: {
       INSERT OR IGNORE INTO transactions
         (owner_id, bank_account_id, booked_date, value_date, amount_minor, currency,
          description_raw, counterparty_raw, external_id, dedup_hash, import_batch_id,
-         merchant_id, category_id, mcc)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         merchant_id, category_id, mcc, btc_sub_code)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `)
 
     for (const row of params.rows) {
@@ -145,7 +146,7 @@ export function insertBatch(params: {
         row.owner_id, row.bank_account_id, row.booked_date, row.value_date ?? null,
         row.amount_minor, row.currency, row.description_raw, row.counterparty_raw ?? null,
         row.external_id ?? null, row.dedup_hash, batchId,
-        row.merchant_id ?? null, row.category_id ?? null, row.mcc ?? null,
+        row.merchant_id ?? null, row.category_id ?? null, row.mcc ?? null, row.btc_sub_code ?? null,
       )
       if (result.changes > 0) insertedCount++
       else duplicateCount++

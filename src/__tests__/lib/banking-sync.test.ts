@@ -1,7 +1,7 @@
 // src/__tests__/lib/banking-sync.test.ts — Mapping EbTransaction →
 // InsertableTransaction: segno dell'importo, dedup idempotente su
 // entry_reference, fallback a occorrenza in-batch quando assente.
-import { mapTransactions } from '@/lib/banking/sync'
+import { mapTransactions, summarizeMapping } from '@/lib/banking/sync'
 import type { EbTransaction } from '@/lib/banking/types'
 import { sqlite } from '@/db'
 
@@ -158,5 +158,90 @@ describe('mapTransactions — categorizzazione', () => {
     const mapped = mapTransactions(userId, 42, [row])
     expect(mapped[0].category_id).toBeNull()
     expect(mapped[0].mcc).toBeNull()
+  })
+
+  test('bank_transaction_code usato come fallback quando l\'MCC manca (bonifico/stipendio)', () => {
+    const row: EbTransaction = {
+      entry_reference: 'btc-ref-1',
+      booking_date:    '2026-07-01',
+      transaction_amount: { amount: '1500.00', currency: 'EUR' },
+      credit_debit_indicator: 'CRDT',
+      remittance_information: ['ACCREDITO STIPENDIO LUGLIO'],
+      bank_transaction_code: { code: 'PMNT', sub_code: 'SALA', description: 'Salary payment' },
+    }
+    const mapped = mapTransactions(userId, 42, [row])
+    expect(categoryName(mapped[0].category_id)).toBe('Stipendio')
+    // Il sub_code grezzo viene persistito, non solo consumato per derivare la categoria.
+    expect(mapped[0].btc_sub_code).toBe('SALA')
+  })
+
+  test('MCC ha priorità su bank_transaction_code quando entrambi sono presenti', () => {
+    const row: EbTransaction = {
+      entry_reference: 'btc-ref-2',
+      booking_date:    '2026-07-01',
+      transaction_amount: { amount: '35.00', currency: 'EUR' },
+      credit_debit_indicator: 'DBIT',
+      remittance_information: ['POS ACQUISTO SCONOSCIUTO XYZ'],
+      merchant_category_code: '5812', // ristoranti
+      bank_transaction_code: { code: 'PMNT', sub_code: 'SALA', description: 'Salary payment' },
+    }
+    const mapped = mapTransactions(userId, 42, [row])
+    expect(categoryName(mapped[0].category_id)).toBe('Ristorante & Bar')
+  })
+
+  test('bank_transaction_code non semantico (bonifico/SDD generico) → category_id null', () => {
+    const row: EbTransaction = {
+      entry_reference: 'btc-ref-3',
+      booking_date:    '2026-07-01',
+      transaction_amount: { amount: '200.00', currency: 'EUR' },
+      credit_debit_indicator: 'DBIT',
+      remittance_information: ['BONIFICO SEPA A TERZI'],
+      bank_transaction_code: { code: 'PMNT', sub_code: 'ESCT', description: 'SEPA credit transfer' },
+    }
+    const mapped = mapTransactions(userId, 42, [row])
+    expect(mapped[0].category_id).toBeNull()
+    expect(mapped[0].btc_sub_code).toBe('ESCT')
+  })
+})
+
+// ── Diagnostica post-mapping ─────────────────────────────────────────────────
+describe('summarizeMapping', () => {
+  let userId: number
+
+  beforeAll(() => {
+    sqlite.prepare(`INSERT INTO users (email, name, role) VALUES ('banking-diag-test@example.com', 'Test', 'member')`).run()
+    const u = sqlite.prepare(`SELECT id FROM users WHERE email = 'banking-diag-test@example.com'`).get() as { id: number }
+    userId = u.id
+  })
+
+  afterAll(() => {
+    sqlite.prepare(`DELETE FROM users WHERE id = ?`).run(userId)
+  })
+
+  test('conta totale, con MCC, categorizzate e MCC non mappati', () => {
+    const rows: EbTransaction[] = [
+      {
+        entry_reference: 'diag-1', booking_date: '2026-07-01',
+        transaction_amount: { amount: '10.00', currency: 'EUR' }, credit_debit_indicator: 'DBIT',
+        remittance_information: ['POS'], merchant_category_code: '5812', // mappato → Ristorante & Bar
+      },
+      {
+        entry_reference: 'diag-2', booking_date: '2026-07-01',
+        transaction_amount: { amount: '10.00', currency: 'EUR' }, credit_debit_indicator: 'DBIT',
+        remittance_information: ['POS'], merchant_category_code: '9999', // non mappato
+      },
+      {
+        entry_reference: 'diag-3', booking_date: '2026-07-01',
+        transaction_amount: { amount: '10.00', currency: 'EUR' }, credit_debit_indicator: 'DBIT',
+        remittance_information: ['MOVIMENTO GENERICO'], // nessun MCC
+      },
+    ]
+    const mapped = mapTransactions(userId, 42, rows)
+    const diag = summarizeMapping(mapped)
+    expect(diag.total).toBe(3)
+    expect(diag.withMcc).toBe(2)
+    expect(diag.categorized).toBe(1)
+    expect(diag.uncategorized).toBe(2)
+    expect(diag.unmappedMccs).toEqual(['9999'])
   })
 })

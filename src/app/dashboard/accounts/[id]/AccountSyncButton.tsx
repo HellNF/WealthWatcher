@@ -6,13 +6,13 @@
 // Banking può coprire più conti), ma il risultato mostrato riguarda solo
 // l'importo di questo conto.
 import { useState, useTransition } from 'react'
-import { syncConnectionAction } from '@/app/dashboard/banking/actions'
+import { syncConnectionAction, type SyncActionResult } from '@/app/dashboard/banking/actions'
 import { Button } from '@/components/ui'
 import { RefreshCw } from 'lucide-react'
 
 export default function AccountSyncButton({ connectionId }: { connectionId: number }) {
   const [isPending, startTransition] = useTransition()
-  const [result, setResult] = useState<{ insertedCount: number; duplicateCount: number; error?: string } | null>(null)
+  const [result, setResult] = useState<SyncActionResult | null>(null)
 
   function handleSync() {
     setResult(null)
@@ -38,6 +38,7 @@ export default function AccountSyncButton({ connectionId }: { connectionId: numb
       {result && !result.error && (
         <span className="text-sm text-[--muted]">
           {result.insertedCount} nuovi movimenti · {result.duplicateCount} già presenti
+          {result.categorized !== undefined && ` · ${result.categorized} categorizzati automaticamente`}
         </span>
       )}
     </div>

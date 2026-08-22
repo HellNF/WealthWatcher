@@ -1,6 +1,9 @@
 // src/lib/categorization.ts — Bulk re-categorisation of existing transactions.
 import { sqlite } from '@/db'
-import { normalizeDescription, resolveCategoryRule, resolveMerchant, resolveMccCategory } from './merchants'
+import {
+  normalizeDescription, resolveCategoryRule, resolveMerchant,
+  resolveMccCategory, resolveBankTransactionCategory,
+} from './merchants'
 
 interface TxnStub {
   id:               number
@@ -8,16 +11,19 @@ interface TxnStub {
   counterparty_raw: string | null
   amount_minor:     number
   mcc:              string | null
+  btc_sub_code:     string | null
 }
 
 /**
- * Re-apply category rules + merchant-alias matching + MCC fallback to all
- * existing transactions for a user (optionally scoped to one bank account).
+ * Re-apply category rules + merchant-alias matching + MCC/bank_transaction_code
+ * fallback to all existing transactions for a user (optionally scoped to one
+ * bank account).
  *
  * Priority applied: user's category_rules → merchant alias default_category →
- * MCC ISO 18245 (persisted at Open Banking sync). Same chain as sync.ts, so
- * the bulk button reproduces exactly what a fresh sync would assign.
- * Transactions with no match are left with their current category.
+ * MCC ISO 18245 → bank_transaction_code (persisted at Open Banking sync).
+ * Same chain as sync.ts, so the bulk button reproduces exactly what a fresh
+ * sync would assign. Transactions with no match are left with their current
+ * category.
  *
  * Returns how many rows were updated.
  */
@@ -31,7 +37,7 @@ export function recategorizeAll(
 
   const txns = sqlite
     .prepare(
-      `SELECT id, description_raw, counterparty_raw, amount_minor, mcc
+      `SELECT id, description_raw, counterparty_raw, amount_minor, mcc, btc_sub_code
        FROM transactions
        WHERE owner_id = ? ${accountFilter}`,
     )
@@ -51,9 +57,14 @@ export function recategorizeAll(
       const ruleCategory = resolveCategoryRule(normalized, ownerId, Math.abs(txn.amount_minor))
       const merchant     = resolveMerchant(normalized)
 
-      // Only update when we have something to assign. MCC is the lowest-priority
-      // fallback, mirroring the sync chain (regola utente → alias → MCC).
-      const newCategory = ruleCategory ?? merchant?.categoryId ?? resolveMccCategory(txn.mcc) ?? null
+      // Only update when we have something to assign. MCC/bank_transaction_code
+      // are the lowest-priority fallback, mirroring the sync chain
+      // (regola utente → alias → MCC → bank_transaction_code).
+      const newCategory = ruleCategory
+        ?? merchant?.categoryId
+        ?? resolveMccCategory(txn.mcc)
+        ?? resolveBankTransactionCategory(undefined, txn.btc_sub_code)
+        ?? null
       const newMerchant = merchant?.merchantId ?? null
 
       if (newCategory !== null || newMerchant !== null) {
