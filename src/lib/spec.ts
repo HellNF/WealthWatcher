@@ -1,7 +1,7 @@
 // src/lib/spec.ts
 import fs from 'fs'
 import path from 'path'
-import { Marked } from 'marked'
+import { Marked, type Token } from 'marked'
 
 export interface Heading {
   level: number
@@ -29,7 +29,7 @@ export function readSpec(): { html: string; headings: Heading[] } {
   const localMarked = new Marked()
 
   localMarked.use({
-    walkTokens(token: { type: string; depth: number; text: string }) {
+    walkTokens(token: Token) {
       if (token.type === 'heading' && token.depth <= 3) {
         headings.push({
           level: token.depth,
