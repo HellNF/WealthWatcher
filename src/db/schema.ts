@@ -458,6 +458,33 @@ export const userSettings = sqliteTable('user_settings', {
   eb_key_set_at:        integer('eb_key_set_at'),       // unix epoch quando salvata
 })
 
+// ── api_tokens ────────────────────────────────────────────────────────────────
+// Token per accesso M2M in sola lettura (es. widget customapi di Homepage,
+// gethomepage.dev). Il token in chiaro NON è mai persistito: solo il suo hash
+// SHA-256, così un dump del DB non permette di riusarlo (diverso dal pattern
+// openai_api_key_enc/eb_private_key_enc, che sono cifrati perché vanno
+// riletti in chiaro per essere inviati a un servizio terzo — qui invece basta
+// verificare un match, mai recuperare il valore). `prefix` è solo per
+// riconoscere il token in UI ("ww_9f3a…"), non è un segreto.
+export const apiTokens = sqliteTable(
+  'api_tokens',
+  {
+    id:            integer('id').primaryKey({ autoIncrement: true }),
+    owner_id:      integer('owner_id')
+                     .notNull()
+                     .references(() => users.id, { onDelete: 'cascade' }),
+    name:          text('name').notNull(),
+    token_hash:    text('token_hash').notNull().unique(),
+    prefix:        text('prefix').notNull(),
+    created_at:    integer('created_at').notNull().default(sql`(unixepoch())`),
+    last_used_at:  integer('last_used_at'),
+    revoked_at:    integer('revoked_at'),
+  },
+  (t) => [
+    index('idx_api_tokens_owner').on(t.owner_id),
+  ],
+)
+
 // ── kid_documents ─────────────────────────────────────────────────────────────
 // Audit log: every KID PDF upload. Extraction stored as JSON; status set to
 // 'confirmed' only after the user reviews and confirms the extracted fields.
@@ -695,3 +722,4 @@ export type Budget              = InferSelectModel<typeof budgets>
 export type CategoryRule        = InferSelectModel<typeof categoryRules>
 export type CalendarEvent       = InferSelectModel<typeof calendarEvents>
 export type MarketIndicator     = InferSelectModel<typeof marketIndicators>
+export type ApiToken            = InferSelectModel<typeof apiTokens>

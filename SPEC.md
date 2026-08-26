@@ -144,6 +144,27 @@ Il `counterparty` grezzo è sporco (lo stesso merchant compare con stringhe dive
 4. **Ultime transazioni** — feed spese recenti
 5. **Grafici andamento** — trend storico di net worth e portafogli (da `ValuationSnapshot`)
 
+### 9.1 Accesso API (Homepage / M2M)
+
+Suite di endpoint JSON in sola lettura sotto `/api/homepage/v1/*`, pensata per
+il widget `customapi` di [Homepage](https://gethomepage.dev/) (dashboard
+self-hosted per il monitoring di server e servizi) e riusabile da qualunque
+client capace di chiamare un'API JSON.
+
+- **Auth:** token per-utente (`api_tokens`, hash SHA-256, mai persistito in
+  chiaro), via header `X-API-Key` o `Authorization: Bearer`. Fallback sulla
+  sessione browser per debug. Gestione (creazione/revoca) da Impostazioni.
+- **Dato esposto:** patrimonio netto, capitale investito, incremento (da
+  ultima rilevazione e su 1m/3m/6m/1y/tutto), P&L, rischio, conti, portafogli,
+  cashflow/risparmio, obiettivi, scadenze, allocazione per classe di asset.
+  Sempre in EUR, mai in minor units (float a 2 decimali, per compatibilità col
+  formatter di Homepage).
+- **Freschezza:** legge l'ultimo `ValuationSnapshot`, non ricalcola ad ogni
+  chiamata — evita di martellare i provider di prezzi/cambi ad ogni poll del
+  widget.
+- Vedi `docs/homepage-integration.md` per la guida completa e lo
+  `services.yaml` di esempio.
+
 ## 10. Piattaforma e Architettura
 
 - Web app self-hosted su Proxmox HomeLab, Next.js + SQLite.
