@@ -10,6 +10,7 @@ import {
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
 import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
 import { recategorizeAll } from '@/lib/categorization'
+import { createApiToken, revokeApiToken, TooManyTokensError } from '@/lib/apiTokens'
 
 type ActionState = { error?: string; success?: string } | undefined
 
@@ -177,6 +178,36 @@ export async function saveFiscalProfileAction(
   revalidatePath('/dashboard/settings', 'page')
   revalidatePath('/dashboard/tasse', 'page')
   return { success: 'Profilo fiscale salvato.' }
+}
+
+// ── Token API (Homepage / accesso M2M) ───────────────────────────────────────
+
+export type ApiTokenState = { error?: string; success?: string; token?: string } | undefined
+
+const tokenNameSchema = z.string().trim().min(1, 'Dai un nome al token').max(100)
+
+export async function createApiTokenAction(
+  _prev: ApiTokenState,
+  formData: FormData,
+): Promise<ApiTokenState> {
+  const user = await requireUser()
+  const parse = tokenNameSchema.safeParse(formData.get('name'))
+  if (!parse.success) return { error: parse.error.issues[0].message }
+
+  try {
+    const { token } = createApiToken(user.id, parse.data)
+    revalidatePath('/dashboard/settings', 'page')
+    return { success: 'Token creato — copialo ora, non sarà più mostrato.', token }
+  } catch (e) {
+    if (e instanceof TooManyTokensError) return { error: e.message }
+    throw e
+  }
+}
+
+export async function revokeApiTokenAction(id: number): Promise<void> {
+  const user = await requireUser()
+  revokeApiToken(user.id, id)
+  revalidatePath('/dashboard/settings', 'page')
 }
 
 export async function recategorizeAllAction(): Promise<ActionState> {

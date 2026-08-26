@@ -234,3 +234,33 @@ export function listSnapshots(userId: number, fromDate?: string): ValuationSnaps
     .orderBy(valuationSnapshots.date)
     .all() as ValuationSnapshot[]
 }
+
+export interface SnapshotDelta {
+  absMinor: number        // latest - prev, minor units, con segno
+  pct:      number | null // percentuale con segno, null se prev = 0
+  days:     number        // giorni fra i due snapshot (il penultimo non è necessariamente ieri)
+  fromDate: string
+  toDate:   string
+}
+
+/**
+ * Variazione fra l'ultimo snapshot e il penultimo. Estratta dal calcolo che
+ * prima viveva inline in dashboard/page.tsx, così esiste un'unica definizione
+ * di "incremento dall'ultima rilevazione" — usata sia dalla dashboard sia
+ * dagli endpoint Homepage. Stessa formula di changePct in analytics.ts
+ * (divisione per |prev|, non per prev, per restare corretta anche se il
+ * patrimonio di partenza fosse negativo).
+ */
+export function snapshotDelta(snapshots: ValuationSnapshot[]): SnapshotDelta | null {
+  const latest = snapshots.at(-1)
+  const prev   = snapshots.at(-2)
+  if (!latest || !prev) return null
+
+  const absMinor = latest.net_worth_eur_minor - prev.net_worth_eur_minor
+  const pct = prev.net_worth_eur_minor !== 0
+    ? Math.round((absMinor / Math.abs(prev.net_worth_eur_minor)) * 10_000) / 100
+    : null
+  const days = Math.round((Date.parse(latest.date) - Date.parse(prev.date)) / 86_400_000)
+
+  return { absMinor, pct, days, fromDate: prev.date, toDate: latest.date }
+}

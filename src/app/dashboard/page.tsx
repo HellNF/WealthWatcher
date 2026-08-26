@@ -12,7 +12,7 @@ import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
 import NetWorthChart from './NetWorthChart'
 import RefreshNetWorthButton from './RefreshNetWorthButton'
-import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
+import { ensureTodaySnapshot, listSnapshots, snapshotDelta } from '@/lib/valuation'
 import { AddSection } from '@/components/dashboard/AddSection'
 import {
   Card,
@@ -65,11 +65,9 @@ export default async function DashboardPage() {
 
   const snapshots = listSnapshots(user.id)
   const latest  = snapshots.at(-1) ?? null
-  const prev    = snapshots.at(-2) ?? null
 
-  const delta = latest && prev
-    ? latest.net_worth_eur_minor - prev.net_worth_eur_minor
-    : null
+  const deltaInfo = snapshotDelta(snapshots)
+  const delta = deltaInfo?.absMinor ?? null
 
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
@@ -241,8 +239,8 @@ export default async function DashboardPage() {
                       <Badge variant={delta > 0 ? 'gain' : 'loss'} className="mb-1">
                         {delta > 0 ? '+' : '−'}
                         {formatEurCompact(Math.abs(delta))}
-                        {prev && prev.net_worth_eur_minor !== 0 && (
-                          <> ({delta > 0 ? '+' : '−'}{(Math.abs(delta) / prev.net_worth_eur_minor * 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</>
+                        {deltaInfo?.pct !== null && deltaInfo?.pct !== undefined && (
+                          <> ({delta > 0 ? '+' : '−'}{Math.abs(deltaInfo.pct).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</>
                         )}
                       </Badge>
                     )

@@ -7,11 +7,13 @@ import {
 import { listAllowedEmails } from '@/lib/users'
 import { listCategoryRules } from '@/lib/merchants'
 import { listAllCategories } from '@/lib/transactions'
+import { listApiTokens } from '@/lib/apiTokens'
 import OpenAiKeyForm from './OpenAiKeyForm'
 import EnableBankingKeyForm from './EnableBankingKeyForm'
 import AllowlistManager from './AllowlistManager'
 import CategoryRulesManager from './CategoryRulesManager'
 import FiscalProfileForm from './FiscalProfileForm'
+import ApiTokensManager from './ApiTokensManager'
 import { Breadcrumb, Card, CardHeader, CardTitle, CardDescription } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
@@ -40,6 +42,7 @@ export default async function SettingsPage() {
   const rules      = listCategoryRules(user.id)
   const categories = listAllCategories()
   const profile    = getUserProfile(user.id)
+  const apiTokens  = listApiTokens(user.id)
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
@@ -107,6 +110,20 @@ export default async function SettingsPage() {
           privacyUrl={ebPrivacyUrl}
           termsUrl={ebTermsUrl}
         />
+      </Card>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <div>
+            <CardTitle>Accesso API · Homepage</CardTitle>
+            <CardDescription>
+              Token in sola lettura per mostrare il tuo patrimonio nella dashboard
+              self-hosted <span className="text-[--ink]">Homepage</span> (gethomepage.dev)
+              o in qualunque altro strumento che sappia chiamare un&apos;API JSON.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <ApiTokensManager tokens={apiTokens} />
       </Card>
 
       {isAdmin && (
