@@ -38,7 +38,7 @@ export default function SaleSimulatorSection({ portfolios }: Props) {
 
   if (!selectedPortfolio || selectedPortfolio.instruments.length === 0) {
     return (
-      <p className="text-sm text-[--muted]">
+      <p className="text-sm text-(--muted)">
         Nessuna posizione aperta disponibile per la simulazione.
       </p>
     )

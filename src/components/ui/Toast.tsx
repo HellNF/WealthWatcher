@@ -70,15 +70,15 @@ const icons: Record<ToastVariant, React.ElementType> = {
 }
 
 const itemStyles: Record<ToastVariant, string> = {
-  success: 'border-l-2 border-l-[--brand]',
-  error:   'border-l-2 border-l-[--danger]',
-  info:    'border-l-2 border-l-[--info]',
+  success: 'border-(--brand)/40',
+  error:   'border-(--danger)/50',
+  info:    'border-(--info)/40',
 }
 
 const iconStyles: Record<ToastVariant, string> = {
-  success: 'text-[--brand]',
-  error:   'text-[--danger]',
-  info:    'text-[--info]',
+  success: 'text-(--brand)',
+  error:   'text-(--danger)',
+  info:    'text-(--info)',
 }
 
 const AUTO_DISMISS_MS = 4000
@@ -119,7 +119,7 @@ function ToastItem({
     <div
       className={cn(
         'pointer-events-auto flex items-start gap-3 rounded-xl px-4 py-3',
-        'bg-[--surface] border border-[--border] shadow-[--shadow-md]',
+        'bg-(--surface) border border-(--border) shadow-(--shadow-md)',
         leaving
           ? 'transition-all duration-[180ms] [transition-timing-function:var(--ease-spring)] opacity-0 translate-x-2 scale-[0.98]'
           : 'transition-all duration-300 [transition-timing-function:var(--ease-spring)]',
@@ -134,10 +134,10 @@ function ToastItem({
       role="alert"
     >
       <Icon className={cn('size-4 shrink-0 mt-0.5', iconStyles[toast.variant])} />
-      <p className="text-sm text-[--ink] flex-1 leading-snug">{toast.message}</p>
+      <p className="text-sm text-(--ink) flex-1 leading-snug">{toast.message}</p>
       <button
         onClick={dismiss}
-        className="text-[--faint] hover:text-[--muted] active:scale-90 transition-all duration-150 shrink-0 -mr-1"
+        className="text-(--faint) hover:text-(--muted) active:scale-90 transition-all duration-150 shrink-0 -mr-1"
         aria-label="Chiudi notifica"
       >
         <X className="size-3.5" />

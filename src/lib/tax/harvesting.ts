@@ -48,7 +48,7 @@ const MATERIALITY_MINOR = 1_000
 
 function fmtEur(minor: number): string {
   return (Math.abs(minor) / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: 2,
+    style: 'currency', currency: 'EUR', useGrouping: 'always', minimumFractionDigits: 2,
   })
 }
 

@@ -21,10 +21,11 @@ export const INSIGHT_META: Record<InsightSeverity, {
   badge: BadgeVariant
   label: string
 }> = {
-  critical:    { tile: 'bg-[--danger-subtle] text-[--danger]',        badge: 'danger',  label: 'Critico'     },
-  warn:        { tile: 'bg-[--warning-subtle] text-[--warning-text]',  badge: 'warning', label: 'Attenzione'  },
-  opportunity: { tile: 'bg-[--brand-subtle] text-[--brand-text]',      badge: 'gain',    label: 'Opportunità' },
-  info:        { tile: 'bg-[--surface-2] text-[--muted]',              badge: 'neutral', label: 'Info'        },
+  // Solo "critico" ha un fondo colorato: è l'unico caso che deve interrompere la lettura.
+  critical:    { tile: 'bg-(--danger-subtle) text-(--danger-text)', badge: 'danger',  label: 'Critico'     },
+  warn:        { tile: 'bg-(--surface-2) text-(--warning-text)',    badge: 'warning', label: 'Attenzione'  },
+  opportunity: { tile: 'bg-(--surface-2) text-(--brand-text)',      badge: 'gain',    label: 'Opportunità' },
+  info:        { tile: 'bg-(--surface-2) text-(--muted)',           badge: 'neutral', label: 'Info'        },
 }
 
 interface InsightCardProps {
@@ -44,23 +45,25 @@ export function InsightCard({ insight, linkLabel = 'Approfondisci', className }:
           <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-lg', meta.tile)}>
             <Icon className="size-4" strokeWidth={1.75} aria-hidden />
           </span>
-          <h3 className="text-sm font-semibold text-[--ink] text-wrap-balance">{insight.title}</h3>
+          <h3 className="text-sm font-semibold text-(--ink) text-wrap-balance">{insight.title}</h3>
         </div>
-        <Badge variant={meta.badge} className="shrink-0">{meta.label}</Badge>
+        {insight.severity === 'critical'
+          ? <Badge variant="danger" className="shrink-0">{meta.label}</Badge>
+          : <span className="shrink-0 text-xs text-(--muted)">{meta.label}</span>}
       </div>
 
-      <p className="text-sm text-[--muted] leading-relaxed">{insight.body}</p>
+      <p className="text-sm text-(--muted) leading-relaxed">{insight.body}</p>
 
       <div className="mt-auto flex items-center justify-between gap-3 pt-1">
         {insight.impactLabel ? (
-          <p className="text-xs font-medium font-mono tabular-nums text-[--ink] bg-[--surface-2] rounded-md px-2 py-1 w-fit">
+          <p className="text-xs font-medium font-mono tabular-nums text-(--ink) bg-(--surface-2) rounded-md px-2 py-1 w-fit">
             {insight.impactLabel}
           </p>
         ) : <span />}
         {insight.href && (
           <Link
             href={insight.href}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[--brand-text] hover:gap-1.5 transition-all shrink-0"
+            className="inline-flex items-center gap-1 text-xs font-medium text-(--brand-text) hover:gap-1.5 transition-all shrink-0"
           >
             {linkLabel}
             <ArrowRight className="size-3.5" strokeWidth={2} aria-hidden />

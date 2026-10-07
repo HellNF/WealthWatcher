@@ -5,7 +5,7 @@ import { ProgressBar, EmptyState } from '@/components/ui'
 import type { BudgetWidgetData, WidgetSize } from './types'
 
 function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 
 const MONTHS_IT = [
@@ -52,20 +52,20 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
       {/* Mese + totale */}
       <div className="flex items-end justify-between gap-2">
         <div>
-          <p className="text-[10px] font-medium text-[--faint] uppercase tracking-wider mb-0.5">
+          <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">
             {monthLabel(month)}
           </p>
-          <p className="text-sm font-mono tabular-nums text-[--ink]">
+          <p className="text-sm font-mono tabular-nums text-(--ink)">
             <span className="font-semibold">{fmtEur(total.spentMinor)}</span>
             {hasLimit && (
-              <span className="text-[--muted] font-normal"> / {fmtEur(total.limitMinor!)}</span>
+              <span className="text-(--muted) font-normal"> / {fmtEur(total.limitMinor!)}</span>
             )}
           </p>
         </div>
         {dailyRemaining !== null && (
           <div className="text-right">
-            <p className="text-[10px] text-[--faint] mb-0.5">Al giorno ({daysRemainingInMonth}gg)</p>
-            <p className={`text-sm font-mono tabular-nums font-semibold ${dailyRemaining < 0 ? 'text-[--danger]' : 'text-[--ink]'}`}>
+            <p className="text-[10px] text-(--faint) mb-0.5">Al giorno ({daysRemainingInMonth}gg)</p>
+            <p className={`text-sm font-mono tabular-nums font-semibold ${dailyRemaining < 0 ? 'text-(--danger)' : 'text-(--ink)'}`}>
               {fmtEur(Math.max(0, dailyRemaining))}
             </p>
           </div>
@@ -88,11 +88,11 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
                     className="size-2 rounded-full shrink-0"
                     style={{ background: cat.color ?? 'var(--muted)' }}
                   />
-                  <span className="text-xs text-[--ink] truncate">
+                  <span className="text-xs text-(--ink) truncate">
                     {cat.name ?? 'Senza categoria'}
                   </span>
                 </div>
-                <span className="text-xs font-mono tabular-nums text-[--muted] shrink-0">
+                <span className="text-xs font-mono tabular-nums text-(--muted) shrink-0">
                   {fmtEur(cat.spentMinor)} / {fmtEur(cat.limitMinor)}
                 </span>
               </div>

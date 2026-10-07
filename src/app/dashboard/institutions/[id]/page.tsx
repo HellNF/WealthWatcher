@@ -4,7 +4,7 @@ import { getInstitutionForUser } from '@/lib/institutions'
 import { listAccounts, getAccountPreview, estimateInterest } from '@/lib/accounts'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioValuationEur } from '@/lib/portfolioValuation'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import { formatDateIt } from '@/lib/formatDate'
 import { getEnableBankingKey } from '@/lib/userSettings'
 import { getAspsps } from '@/lib/banking/client'
@@ -16,8 +16,10 @@ import { deleteInstitutionAction } from './actions'
 import ConnectBankButton from '@/app/dashboard/banking/ConnectBankButton'
 import SyncButton from '@/app/dashboard/banking/SyncButton'
 import {
-  Breadcrumb, Card, EmptyState, Badge, ConfirmDelete,
+  Card, EmptyState, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
 } from '@/components/ui'
+import { AddSection } from '@/components/dashboard/AddSection'
+import { getInstitutionValueEur } from '@/lib/institutionValuation'
 import Link from 'next/link'
 import { ChevronRight, CreditCard, TrendingUp, AlertCircle, Settings } from 'lucide-react'
 
@@ -80,99 +82,164 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
     portfolios.map((p) => getPortfolioValuationEur(user.id, p.id, today)),
   )
 
-  return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-      <Breadcrumb items={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: institution.name },
-      ]} />
+  const instValue = await getInstitutionValueEur(user.id, id, today)
+  const portfoliosEurMinor = portfolioVals.reduce((sum, v) => sum + (v.marketValueEurMinor ?? 0), 0)
+  const accountsEurMinor   = Math.max(0, instValue.valueEurMinor - portfoliosEurMinor)
+  const KEY = 'text-2xl sm:text-3xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)'
+  const ROW = 'group flex items-center gap-3.5 px-4 sm:px-5 py-3.5 hover:bg-(--surface-2) active:bg-(--surface-2) transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)'
+  const TILE = 'size-9 rounded-xl bg-(--surface-2) ring-1 ring-(--border) flex items-center justify-center shrink-0'
+  const CHEVRON = 'size-4 text-(--faint) shrink-0 transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5'
 
-      {/* ── Testata + gestione istituzione ─────────────────────────────────── */}
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl font-semibold text-[--ink]">{institution.name}</h1>
-              <Badge variant="neutral">{KIND_LABEL[institution.kind] ?? institution.kind}</Badge>
-            </div>
-            <p className="text-sm text-[--muted]">
-              {accounts.length} {accounts.length === 1 ? 'conto' : 'conti'} · {portfolios.length}{' '}
-              {portfolios.length === 1 ? 'portafoglio' : 'portafogli'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
+  return (
+    <>
+    <StickyBar watchId="inst-value">
+      <span className="text-sm font-medium text-(--ink) truncate">{institution.name}</span>
+      <span className="text-sm text-(--muted)">
+        Valore <span className="font-mono tabular-nums font-semibold text-(--ink)">{formatMoney(instValue.valueEurMinor, 'EUR')}</span>
+      </span>
+    </StickyBar>
+    <main className={`${PAGE_SHELL} space-y-8`}>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: institution.name }]}
+        title={institution.name}
+        meta={<Badge variant="neutral">{KIND_LABEL[institution.kind] ?? institution.kind}</Badge>}
+        actions={
+          <>
             <EditInstitutionForm institutionId={id} name={institution.name} kind={institution.kind} country={institution.country ?? null} />
             <ConfirmDelete
               action={deleteInstitutionAction.bind(null, id)}
               label="Elimina istituzione"
               confirmText="Eliminare istituzione, conti, portafogli e movimenti collegati?"
             />
-          </div>
+          </>
+        }
+      />
+
+      {/* ── Hero: quanto ho presso questa istituzione ─────────────────────── */}
+      <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
+        <div className="space-y-4 min-w-0">
+          <Eyebrow>Valore complessivo</Eyebrow>
+          <p id="inst-value" className="text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
+            {formatMoney(instValue.valueEurMinor, 'EUR')}
+          </p>
+          <p className="text-sm text-(--muted)">
+            {accounts.length} {accounts.length === 1 ? 'conto' : 'conti'} e {portfolios.length}{' '}
+            {portfolios.length === 1 ? 'portafoglio' : 'portafogli'}
+            {instValue.stale && <span className="text-(--warning-text)"> · valore parziale: manca qualche prezzo o cambio</span>}
+          </p>
         </div>
-      </Card>
+        <dl className="grid grid-cols-2 gap-x-10 gap-y-6 border-t border-(--border) pt-5 xl:border-t-0 xl:pt-0 xl:border-l xl:pl-14">
+          <div className="space-y-1.5">
+            <dt className="text-xs font-medium text-(--muted)">Sui conti</dt>
+            <dd className={KEY}>{formatMoney(accountsEurMinor, 'EUR')}</dd>
+          </div>
+          <div className="space-y-1.5">
+            <dt className="text-xs font-medium text-(--muted)">Investito in portafogli</dt>
+            <dd className={KEY}>{formatMoney(portfoliosEurMinor, 'EUR')}</dd>
+          </div>
+        </dl>
+      </HeroShell>
 
-      {/* ── Conti bancari ─────────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold text-[--ink]">Conti bancari</h2>
-
-        <Card>
-          <AddAccountForm institutionId={id} />
-        </Card>
-
-        {accounts.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={CreditCard}
-              title="Nessun conto"
-              description="Aggiungi un conto corrente per iniziare a importare i movimenti bancari."
-            />
-          </Card>
-        ) : (
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {accountPreviews.map(({ acc, preview, interest }) => {
-              const last = fmtShort(preview.lastDate)
-              const meta = [
-                acc.currency,
-                `${preview.txCount} ${preview.txCount === 1 ? 'movimento' : 'movimenti'}`,
-                last ? `ultimo ${last}` : null,
-              ].filter(Boolean).join(' · ')
-              return (
-                <Link
-                  key={acc.id}
-                  href={`/dashboard/accounts/${acc.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
-                >
-                  <div className="size-10 rounded-xl bg-[--info-subtle] flex items-center justify-center shrink-0">
-                    <CreditCard className="size-5 text-[--info-text]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[--ink] truncate">{acc.name}</p>
-                    <p className="text-xs text-[--muted] truncate">{meta}</p>
-                  </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
-                    <span className="font-mono tabular-nums text-sm font-medium text-[--ink]">
-                      {fromMinor(preview.balanceMinor, acc.currency)}
+      {/* ── Conti + portafogli affiancati ──────────────────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-8 xl:items-start">
+        <AddSection
+          title="Conti bancari"
+          icon={<CreditCard className="size-4 text-(--muted)" strokeWidth={1.75} />}
+          addLabel="Aggiungi conto"
+          form={<Card><AddAccountForm institutionId={id} /></Card>}
+        >
+          {accounts.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={CreditCard}
+                title="Nessun conto"
+                description="Aggiungi un conto corrente per iniziare a importare i movimenti bancari."
+              />
+            </Card>
+          ) : (
+            <Card noPadding className="overflow-hidden divide-y divide-(--border)">
+              {accountPreviews.map(({ acc, preview, interest }) => {
+                const last = fmtShort(preview.lastDate)
+                const meta = [
+                  acc.currency,
+                  `${preview.txCount} ${preview.txCount === 1 ? 'movimento' : 'movimenti'}`,
+                  last ? `ultimo ${last}` : null,
+                ].filter(Boolean).join(' · ')
+                return (
+                  <Link key={acc.id} href={`/dashboard/accounts/${acc.id}`} className={ROW}>
+                    <span className={TILE} aria-hidden><CreditCard className="size-4 text-(--muted)" strokeWidth={1.75} /></span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-medium text-(--ink) truncate">{acc.name}</span>
+                      <span className="block text-xs text-(--muted) truncate">{meta}</span>
                     </span>
-                    {interest && (
-                      <span className="text-xs text-[--brand-text]">
-                        {interest.ratePercent}% · {fromMinor(interest.grossAnnualMinor, acc.currency)}/anno
+                    <span className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                      <span className="font-mono tabular-nums text-sm font-medium text-(--ink)">
+                        {formatMoney(preview.balanceMinor, acc.currency)}
                       </span>
-                    )}
-                  </div>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
-                </Link>
-              )
-            })}
-          </Card>
-        )}
-      </section>
+                      {interest && (
+                        <span className="text-xs text-(--muted) font-mono tabular-nums">
+                          {interest.ratePercent}% · {formatMoney(interest.grossAnnualMinor, acc.currency)}/anno
+                        </span>
+                      )}
+                    </span>
+                    <ChevronRight className={CHEVRON} aria-hidden />
+                  </Link>
+                )
+              })}
+            </Card>
+          )}
+        </AddSection>
+
+        <AddSection
+          title="Portafogli d'investimento"
+          icon={<TrendingUp className="size-4 text-(--muted)" strokeWidth={1.75} />}
+          addLabel="Aggiungi portafoglio"
+          form={<Card><AddPortfolioForm institutionId={id} /></Card>}
+        >
+          {portfolios.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={TrendingUp}
+                title="Nessun portafoglio"
+                description="Aggiungi un portafoglio per tracciare ETF, azioni e altri strumenti finanziari."
+              />
+            </Card>
+          ) : (
+            <Card noPadding className="overflow-hidden divide-y divide-(--border)">
+              {portfolios.map((p, i) => {
+                const val = portfolioVals[i]
+                return (
+                  <Link key={p.id} href={`/dashboard/portfolios/${p.id}`} className={ROW}>
+                    <span className={TILE} aria-hidden><TrendingUp className="size-4 text-(--muted)" strokeWidth={1.75} /></span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-medium text-(--ink) truncate">{p.name}</span>
+                      <span className="block text-xs text-(--muted)">{p.currency}</span>
+                    </span>
+                    <span className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                      <span className="font-mono tabular-nums text-sm font-medium text-(--ink)">
+                        {val.marketValueEurMinor !== null ? formatMoney(val.marketValueEurMinor, 'EUR') : '—'}
+                      </span>
+                      {val.plPct !== null && (
+                        <span className={`text-xs font-mono tabular-nums ${val.plPct > 0 ? 'text-(--brand-text)' : val.plPct < 0 ? 'text-(--danger-text)' : 'text-(--muted)'}`}>
+                          {val.plPct >= 0 ? '+' : ''}{val.plPct.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                        </span>
+                      )}
+                    </span>
+                    <ChevronRight className={CHEVRON} aria-hidden />
+                  </Link>
+                )
+              })}
+            </Card>
+          )}
+        </AddSection>
+      </div>
 
       {/* ── Open Banking (Enable Banking) ──────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-base font-semibold text-[--ink]">Open Banking</h2>
+        <h2 className="text-base font-semibold text-(--ink)">Open Banking</h2>
 
         {sp.bankingError && (
-          <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+          <div className="flex items-start gap-3 rounded-xl border border-(--danger)/30 bg-(--danger-subtle) px-4 py-3 text-sm text-(--danger-text)" role="alert">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
             Collegamento con la banca non riuscito o annullato. Riprova.
           </div>
@@ -181,10 +248,10 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
         {!ebCreds ? (
           <Card>
             <div className="flex items-start gap-3">
-              <Settings className="size-4 shrink-0 mt-0.5 text-[--muted]" />
-              <p className="text-sm text-[--muted]">
+              <Settings className="size-4 shrink-0 mt-0.5 text-(--muted)" />
+              <p className="text-sm text-(--muted) max-w-[75ch]">
                 Configura la tua chiave Enable Banking nelle{' '}
-                <Link href="/dashboard/settings" className="text-[--brand-text] hover:underline">
+                <Link href="/dashboard/settings" className="text-(--brand-text) hover:underline">
                   impostazioni
                 </Link>{' '}
                 per collegare questa banca e importare saldi e movimenti automaticamente.
@@ -192,7 +259,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
             </div>
           </Card>
         ) : aspsps === null ? (
-          <div className="flex items-start gap-3 rounded-xl border border-[--warning]/30 bg-[--warning-subtle] px-4 py-3 text-sm text-[--warning-text]">
+          <div className="flex items-start gap-3 rounded-xl border border-(--warning)/30 bg-(--warning-subtle) px-4 py-3 text-sm text-(--warning-text)">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
             Impossibile recuperare l&apos;elenco delle banche disponibili da Enable Banking al momento.
           </div>
@@ -217,59 +284,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
           </Card>
         )}
       </section>
-
-      {/* ── Portafogli investimenti ────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold text-[--ink]">Portafogli investimenti</h2>
-
-        <Card>
-          <AddPortfolioForm institutionId={id} />
-        </Card>
-
-        {portfolios.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={TrendingUp}
-              title="Nessun portafoglio"
-              description="Aggiungi un portafoglio per tracciare ETF, azioni e altri strumenti finanziari."
-            />
-          </Card>
-        ) : (
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {portfolios.map((p, i) => {
-              const val = portfolioVals[i]
-              return (
-                <Link
-                  key={p.id}
-                  href={`/dashboard/portfolios/${p.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-100 group"
-                >
-                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0">
-                    <TrendingUp className="size-4 text-[--brand-text]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[--ink] truncate">{p.name}</p>
-                    <p className="text-xs text-[--muted]">{p.currency}</p>
-                  </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
-                    <span className="font-mono tabular-nums text-sm text-[--ink]">
-                      {val.marketValueEurMinor !== null
-                        ? fromMinor(val.marketValueEurMinor, 'EUR')
-                        : '—'}
-                    </span>
-                    {val.plPct !== null && (
-                      <Badge variant={val.plPct >= 0 ? 'gain' : 'loss'}>
-                        {val.plPct >= 0 ? '+' : ''}{val.plPct.toFixed(1)}%
-                      </Badge>
-                    )}
-                  </div>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] transition-colors shrink-0" />
-                </Link>
-              )
-            })}
-          </Card>
-        )}
-      </section>
     </main>
+    </>
   )
 }

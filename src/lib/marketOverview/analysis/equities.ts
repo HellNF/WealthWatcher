@@ -7,11 +7,13 @@ import { getMarketMetrics, getQuoteValue } from '@/lib/prices/yahoo'
 import { fetchTrendMetrics } from './seriesMetrics'
 import {
   synthesize, driverPE, driverDrawdown, driverTrendVsMA, driverMomentum,
-  driverVix, driverFromSubMarket,
+  driverVix, driverFromSubMarket, driverCape, driverExcessYield,
 } from './scoring'
 import type { SectorAnalysis } from './types'
+import type { EquityEvidence } from '../evidence'
 
 const SRC = 'Yahoo Finance'
+const SRC_SHILLER = 'Robert Shiller (Yale)'
 
 interface SubSpec {
   key:        string
@@ -19,12 +21,13 @@ interface SubSpec {
   symbol:     string   // indice per prezzo/trend
   pePeer:     string   // ETF da cui leggere il P/E (gli indici non lo espongono)
   us:         boolean  // applica il VIX
+  shiller?:   boolean  // applica CAPE ed Excess CAPE Yield (calcolati sull'S&P)
   weight:     number   // peso nella sintesi di settore
   signalCode?: string  // grafico di supporto già in cache (se presente)
 }
 
 const SUBS: SubSpec[] = [
-  { key: 'equities.us',      title: 'USA (S&P 500)',          symbol: '^GSPC',     pePeer: 'SPY', us: true,  weight: 2,   signalCode: 'equities.sp500' },
+  { key: 'equities.us',      title: 'USA (S&P 500)',          symbol: '^GSPC',     pePeer: 'SPY', us: true,  weight: 2,   signalCode: 'equities.sp500', shiller: true },
   { key: 'equities.us_tech', title: 'USA Tech (Nasdaq 100)',  symbol: '^NDX',      pePeer: 'QQQ', us: true,  weight: 1.5 },
   { key: 'equities.europe',  title: 'Europa (Euro Stoxx 50)', symbol: '^STOXX50E', pePeer: 'FEZ', us: false, weight: 1.5, signalCode: 'equities.stoxx' },
   { key: 'equities.em',      title: 'Mercati emergenti',      symbol: 'EEM',       pePeer: 'EEM', us: false, weight: 1 },
@@ -38,7 +41,7 @@ const LEARN = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-async function analyzeSub(spec: SubSpec, vix: number | null): Promise<SectorAnalysis> {
+async function analyzeSub(spec: SubSpec, vix: number | null, evidence: EquityEvidence | null): Promise<SectorAnalysis> {
   const tm = await fetchTrendMetrics(spec.symbol)
   const metrics = await getMarketMetrics(spec.pePeer)
 
@@ -47,19 +50,25 @@ async function analyzeSub(spec: SubSpec, vix: number | null): Promise<SectorAnal
     driverDrawdown({ label: 'Distanza dai max 52w', source: SRC, weight: 1, ...(spec.signalCode ? { signalCode: spec.signalCode } : {}) }, tm.drawdownPct),
     driverTrendVsMA({ label: 'Trend vs media 200gg', source: SRC, weight: 1 }, tm.pctFromMA200),
     driverMomentum({ label: 'Momentum 12m', source: SRC, weight: 0.5 }, tm.momentumPct, '12m'),
-    driverVix({ label: 'Volatilità (VIX)', source: SRC, weight: 1 }, spec.us ? vix : null),
+    // Il VIX misura la borsa USA: altrove non è un dato mancante, è fuori tema.
+    ...(spec.us ? [driverVix({ label: 'Volatilità (VIX)', source: SRC, weight: 1 }, vix)] : []),
+    // La valutazione di lungo periodo ha più peso del P/E di un singolo anno.
+    ...(spec.shiller ? [
+      driverCape({ label: 'Valutazione di lungo periodo (CAPE)', source: SRC_SHILLER, weight: 2, signalCode: 'equities.cape' }, evidence?.cape ?? null, evidence?.capePct30y ?? null, '30 anni'),
+      driverExcessYield({ label: 'Premio delle azioni sui bond', source: SRC_SHILLER, weight: 1.5 }, evidence?.ecy ?? null, evidence?.ecyPct30y ?? null, '30 anni'),
+    ] : []),
   ]
 
   return synthesize({ key: spec.key, title: spec.title, drivers, asOf: Math.floor(Date.now() / 1000) })
 }
 
-export async function analyzeEquities(): Promise<SectorAnalysis> {
+export async function analyzeEquities(evidence: EquityEvidence | null = null): Promise<SectorAnalysis> {
   const vix = await getQuoteValue('^VIX')
 
   // Sequenziale con piccola pausa: molte chiamate Yahoo ravvicinate rischiano il throttle.
   const subMarkets: SectorAnalysis[] = []
   for (const spec of SUBS) {
-    subMarkets.push(await analyzeSub(spec, vix))
+    subMarkets.push(await analyzeSub(spec, vix, evidence))
     await sleep(400)
   }
 

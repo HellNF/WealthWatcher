@@ -16,7 +16,7 @@ type State = { error?: string; success?: string } | undefined
 
 function UrlBlock({ value }: { value: string }) {
   return (
-    <code className="block mt-1 px-2.5 py-1.5 rounded-md bg-[--surface-2] text-[--ink] text-xs break-all select-all">
+    <code className="block mt-1 px-2.5 py-1.5 rounded-md bg-(--surface-2) text-(--ink) text-xs break-all select-all">
       {value}
     </code>
   )
@@ -33,27 +33,27 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
   return (
     <div className="space-y-5">
       {/* Istruzioni di registrazione */}
-      <div className="space-y-2.5 text-sm text-[--muted] leading-relaxed">
+      <div className="space-y-2.5 text-sm text-(--muted) leading-relaxed">
         <p>
           Il piano gratuito di Enable Banking richiede un&apos;app registrata per ogni account:
           questi passaggi vanno fatti una sola volta, con la tua email.
         </p>
-        <ol className="list-decimal list-inside space-y-2 marker:text-[--faint]">
+        <ol className="list-decimal list-inside space-y-2 marker:text-(--faint)">
           <li>
             Crea un account su{' '}
-            <a href="https://enablebanking.com" target="_blank" rel="noopener noreferrer" className="text-[--brand-text] hover:underline">
+            <a href="https://enablebanking.com" target="_blank" rel="noopener noreferrer" className="text-(--brand-text) hover:underline">
               enablebanking.com
             </a>.
           </li>
           <li>
             Nel Control Panel, apri{' '}
-            <a href="https://enablebanking.com/cp/applications" target="_blank" rel="noopener noreferrer" className="text-[--brand-text] hover:underline">
+            <a href="https://enablebanking.com/cp/applications" target="_blank" rel="noopener noreferrer" className="text-(--brand-text) hover:underline">
               API applications
             </a>{' '}
             e scegli &quot;Register new application&quot;.
           </li>
           <li>
-            Scegli l&apos;ambiente <strong className="text-[--ink]">Production</strong> (non serve un
+            Scegli l&apos;ambiente <strong className="text-(--ink)">Production</strong> (non serve un
             contratto/verifica aziendale se colleghi solo i tuoi conti — vedi passo 6) e lascia
             l&apos;opzione predefinita per la creazione della chiave privata.
           </li>
@@ -80,7 +80,7 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
             (la tua chiave privata) e mostra l&apos;App ID nella pagina.
           </li>
           <li>
-            <strong className="text-[--ink]">Prima di tornare qui</strong>: nel Control Panel vai su
+            <strong className="text-(--ink)">Prima di tornare qui</strong>: nel Control Panel vai su
             &quot;Link account&quot; e collega/autorizza i tuoi conti bancari personali. È questo
             passaggio — non un &quot;Activate&quot; — ad abilitare l&apos;uso in Production limitato ai
             tuoi conti, senza contratto aziendale.
@@ -95,10 +95,10 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
         <span
           className={[
             'size-2 rounded-full shrink-0',
-            hasKey ? 'bg-[--brand]' : 'bg-[--faint]',
+            hasKey ? 'bg-(--brand)' : 'bg-(--faint)',
           ].join(' ')}
         />
-        <span className="text-[--muted]">
+        <span className="text-(--muted)">
           {hasKey
             ? `Chiave impostata${setAtLabel ? ` il ${setAtLabel}` : ''}`
             : 'Nessuna chiave impostata'}
@@ -131,8 +131,8 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
         </Button>
       </form>
 
-      {saveState?.error   && <p className="text-xs text-[--danger]" role="alert">{saveState.error}</p>}
-      {saveState?.success && <p className="text-xs text-[--brand]">{saveState.success}</p>}
+      {saveState?.error   && <p className="text-xs text-(--danger)" role="alert">{saveState.error}</p>}
+      {saveState?.success && <p className="text-xs text-(--brand)">{saveState.success}</p>}
 
       {/* Rimozione */}
       {hasKey && (
@@ -146,12 +146,12 @@ export default function EnableBankingKeyForm({ hasKey, setAt, redirectUrl, priva
           >
             Rimuovi chiave
           </Button>
-          {removeState?.error   && <p className="text-xs text-[--danger] mt-1" role="alert">{removeState.error}</p>}
-          {removeState?.success && <p className="text-xs text-[--brand] mt-1">{removeState.success}</p>}
+          {removeState?.error   && <p className="text-xs text-(--danger) mt-1" role="alert">{removeState.error}</p>}
+          {removeState?.success && <p className="text-xs text-(--brand) mt-1">{removeState.success}</p>}
         </form>
       )}
 
-      <p className="text-xs text-[--faint] leading-relaxed max-w-prose">
+      <p className="text-xs text-(--faint) leading-relaxed max-w-prose">
         La chiave privata è cifrata (AES-256-GCM) nel database e viene usata solo per firmare le
         richieste verso Enable Banking quando colleghi una tua banca. Ogni utente registra e usa
         la propria app: nessuna chiave è condivisa fra account.

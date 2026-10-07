@@ -33,8 +33,8 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
     <div className="space-y-3">
       <div className="flex items-start gap-4 flex-wrap">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-[--ink]">Storico prezzi</p>
-          <p className="text-xs text-[--muted]">
+          <p className="text-sm font-medium text-(--ink)">Storico prezzi</p>
+          <p className="text-xs text-(--muted)">
             Scarica i prezzi giornalieri storici da Yahoo Finance per tutti gli strumenti
             del portafoglio, a partire dalla prima operazione registrata. Necessario per
             il calcolo del DCA Counterfactual nelle statistiche.
@@ -43,7 +43,7 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
         <button
           onClick={handleClick}
           disabled={isPending}
-          className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-[--border] bg-[--surface-1] px-3 py-2 text-sm font-medium text-[--ink] hover:bg-[--surface-2] disabled:opacity-50 transition-colors"
+          className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-(--border) bg-(--surface-1) px-3 py-2 text-sm font-medium text-(--ink) hover:bg-(--surface-2) disabled:opacity-50 transition-colors"
         >
           {isPending
             ? <Loader2 className="size-4 animate-spin" strokeWidth={1.75} />
@@ -53,7 +53,7 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
       </div>
 
       {globalError && (
-        <div className="flex items-center gap-2 text-sm text-[--danger]">
+        <div className="flex items-center gap-2 text-sm text-(--danger)">
           <AlertCircle className="size-4 shrink-0" strokeWidth={1.75} />
           {globalError}
         </div>
@@ -61,7 +61,7 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
 
       {results && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-[--brand-text]">
+          <div className="flex items-center gap-2 text-sm text-(--brand-text)">
             <CheckCircle className="size-4 shrink-0" strokeWidth={1.75} />
             {totalInserted > 0
               ? `${totalInserted} prezzi storici inseriti`
@@ -69,10 +69,10 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
           </div>
           <div className="pl-6 space-y-0.5">
             {results.map((r, i) => (
-              <p key={i} className="text-xs text-[--muted]">
+              <p key={i} className="text-xs text-(--muted)">
                 <span className="font-mono">{r.symbol}</span>
                 {r.error
-                  ? <span className="text-[--danger]"> — {r.error}</span>
+                  ? <span className="text-(--danger)"> — {r.error}</span>
                   : <span> — {r.inserted} righe inserite</span>}
               </p>
             ))}

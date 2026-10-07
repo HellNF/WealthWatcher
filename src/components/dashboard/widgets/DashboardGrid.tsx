@@ -32,8 +32,8 @@ const WIDGET_META: Record<WidgetId, { title: string; href?: string }> = {
 // SM e MD hanno la stessa altezza fissa (320px) così rimangono allineati
 // quando affiancati nella stessa riga. LG ha altezza libera (tutta la riga).
 const ITEM_CLASS: Record<WidgetSize, string> = {
-  sm: 'col-span-6 md:col-span-2 md:h-96',
-  md: 'col-span-6 md:col-span-3 md:h-96',
+  sm: 'col-span-6 md:col-span-2 md:h-[22rem]',
+  md: 'col-span-6 md:col-span-3 md:h-[22rem]',
   lg: 'col-span-6',
 }
 
@@ -54,6 +54,7 @@ function DraggableWidget({ id, isEditing, size, onHide, onResize, data }: Dragga
 
   return (
     <Reorder.Item
+      as="div"
       value={id}
       dragControls={controls}
       dragListener={false}
@@ -133,12 +134,12 @@ export default function DashboardGrid({ data, initialLayout }: Props) {
 
       {/* Intestazione */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-[--ink]">Panoramica</h2>
+        <h2 className="text-base font-semibold text-(--ink)">Panoramica</h2>
         {isEditing ? (
           <button
             onClick={exitEditMode}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[--brand] text-white hover:opacity-90 disabled:opacity-60 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-(--brand) text-white hover:opacity-90 disabled:opacity-60 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           >
             <Check className="size-3" strokeWidth={2.5} />
             {isPending ? 'Salvataggio…' : 'Fine'}
@@ -146,7 +147,7 @@ export default function DashboardGrid({ data, initialLayout }: Props) {
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[--border] bg-[--surface] text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-(--border) bg-(--surface) text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,color,background-color] duration-150 ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           >
             <Settings2 className="size-3.5" strokeWidth={1.75} />
             Personalizza
@@ -185,15 +186,15 @@ export default function DashboardGrid({ data, initialLayout }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4, transition: { duration: 0.12 } }}
             transition={{ duration: 0.18 }}
-            className="rounded-2xl border border-dashed border-[--border] p-4"
+            className="rounded-2xl border border-dashed border-(--border) p-4"
           >
-            <p className="text-xs font-medium text-[--muted] mb-3">Widget nascosti</p>
+            <p className="text-xs font-medium text-(--muted) mb-3">Widget nascosti</p>
             <div className="flex flex-wrap gap-2">
               {ALL_WIDGET_IDS.filter(id => hidden.has(id)).map(id => (
                 <button
                   key={id}
                   onClick={() => showWidget(id)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[--border] bg-[--surface] text-[--muted] hover:text-[--brand-text] hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-(--border) bg-(--surface) text-(--muted) hover:text-(--brand-text) hover:border-(--brand) hover:bg-(--brand-subtle) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
                 >
                   <Plus className="size-3" strokeWidth={2} />
                   {WIDGET_META[id].title}

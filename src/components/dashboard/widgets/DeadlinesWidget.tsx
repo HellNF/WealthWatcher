@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/ui'
 import type { DeadlinesWidgetData, WidgetSize } from './types'
 
 function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 
 function fmtDate(iso: string): string {
@@ -70,7 +70,7 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
   }
 
   return (
-    <div className="divide-y divide-[--border] -mx-4 sm:-mx-5">
+    <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
       {visible.map((ev, i) => {
         const days   = daysUntil(ev.date)
         const urgent = days <= 3
@@ -81,17 +81,17 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
             <span className="size-2 rounded-full shrink-0" style={{ background: dot }} />
 
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-[--ink] truncate leading-snug">{ev.label}</p>
-              <p className="text-[10px] text-[--faint] mt-0.5">
+              <p className="text-xs text-(--ink) truncate leading-snug">{ev.label}</p>
+              <p className="text-[10px] text-(--faint) mt-0.5">
                 {SOURCE_LABEL[ev.source] ?? ev.source}
               </p>
             </div>
 
             <div className="text-right shrink-0">
               {ev.amountMinor > 0 && (
-                <p className="text-xs font-mono tabular-nums text-[--ink]">{fmtEur(ev.amountMinor)}</p>
+                <p className="text-xs font-mono tabular-nums text-(--ink)">{fmtEur(ev.amountMinor)}</p>
               )}
-              <p className={`text-[10px] tabular-nums mt-0.5 ${urgent ? 'text-[--danger] font-semibold' : 'text-[--muted]'}`}>
+              <p className={`text-[10px] tabular-nums mt-0.5 ${urgent ? 'text-(--danger) font-semibold' : 'text-(--muted)'}`}>
                 {days === 0 ? 'Oggi' : days === 1 ? 'Domani' : `${fmtDate(ev.date)} · ${days}gg`}
               </p>
             </div>
@@ -99,7 +99,7 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
         )
       })}
       {upcoming.length > limit && (
-        <p className="px-4 sm:px-5 py-2.5 text-xs text-[--faint]">
+        <p className="px-4 sm:px-5 py-2.5 text-xs text-(--faint)">
           +{upcoming.length - limit} altre scadenze
         </p>
       )}

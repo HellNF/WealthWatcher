@@ -15,6 +15,8 @@ interface Props {
   value:  number
   unit:   string
   level:  SignalLevel | null
+  /** Decimali sui tick dell'asse Y (default 0; serve per serie come il cambio). */
+  decimals?: number
 }
 
 function shortLabel(t: string): string {
@@ -29,7 +31,7 @@ function fmtVal(v: number, unit: string): string {
   return unit ? `${n} ${unit}` : n
 }
 
-export default function MarketChart({ series, value, unit, level }: Props) {
+export default function MarketChart({ series, value, unit, level, decimals = 0 }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
 
@@ -65,7 +67,7 @@ export default function MarketChart({ series, value, unit, level }: Props) {
         <YAxis
           tick={{ fill: colors.axis, fontSize: 10 }} tickLine={false} axisLine={false}
           width={40} domain={['auto', 'auto']}
-          tickFormatter={(v) => v.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+          tickFormatter={(v) => v.toLocaleString('it-IT', { maximumFractionDigits: decimals })}
         />
         <Tooltip
           cursor={{ stroke: colors.grid, strokeWidth: 1 }}

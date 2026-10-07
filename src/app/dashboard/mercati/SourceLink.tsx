@@ -19,10 +19,10 @@ export default function SourceLink({ source, estimated }: Props) {
       href={s.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group inline-flex items-center gap-1.5 text-[--faint] hover:text-[--brand-text] transition-colors"
+      className="group inline-flex items-center gap-1.5 text-(--muted) hover:text-(--brand-text) transition-colors"
     >
       {s.official && (
-        <span className="size-1.5 rounded-full bg-[--brand] shrink-0" title="Fonte istituzionale" aria-hidden />
+        <span className="size-1.5 rounded-full bg-(--brand) shrink-0" title="Fonte istituzionale" aria-hidden />
       )}
       <span className="underline decoration-dotted underline-offset-2">Fonte: {s.label}</span>
       {estimated && <span>· stima</span>}

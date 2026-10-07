@@ -57,7 +57,7 @@ export default function ProfileForm({ profile }: Props) {
 
       {/* ── Anagrafica ─────────────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-[--ink]">Dati anagrafici</h3>
+        <h3 className="text-sm font-semibold text-(--ink)">Dati anagrafici</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nome visualizzato" htmlFor="display-name">
             <Input
@@ -82,8 +82,8 @@ export default function ProfileForm({ profile }: Props) {
 
       {/* ── Residenza fiscale ──────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-[--ink]">Residenza fiscale</h3>
-        <p className="text-xs text-[--muted]">
+        <h3 className="text-sm font-semibold text-(--ink)">Residenza fiscale</h3>
+        <p className="text-xs text-(--muted)">
           La residenza fiscale determina quale regime di tassazione si applica.
           Per i residenti in Italia si usa il regime IRPEF + capital gain italiano.
         </p>
@@ -102,7 +102,7 @@ export default function ProfileForm({ profile }: Props) {
 
       {/* ── Lavoro e reddito ───────────────────────────────────────────────── */}
       <section className="space-y-4">
-        <h3 className="text-sm font-semibold text-[--ink]">Lavoro e reddito</h3>
+        <h3 className="text-sm font-semibold text-(--ink)">Lavoro e reddito</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Tipo di impiego" htmlFor="employment-type">
             <Select
@@ -146,8 +146,8 @@ export default function ProfileForm({ profile }: Props) {
 
         {/* Campi specifici per regime forfettario */}
         {isForfettario && (
-          <div className="rounded-xl border border-[--border] bg-[--surface-2] p-4 space-y-4">
-            <p className="text-xs font-medium text-[--ink]">Parametri regime forfettario</p>
+          <div className="rounded-xl border border-(--border) bg-(--surface-2) p-4 space-y-4">
+            <p className="text-xs font-medium text-(--ink)">Parametri regime forfettario</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field
                 label="Coefficiente di redditività (%)"
@@ -174,15 +174,15 @@ export default function ProfileForm({ profile }: Props) {
                     name="forfettario_startup"
                     type="checkbox"
                     defaultChecked={profile.forfettarioStartup}
-                    className="h-4 w-4 rounded border-[--border] accent-[--brand]"
+                    className="h-4 w-4 rounded border-(--border) accent-(--brand)"
                   />
-                  <label htmlFor="forfettario-startup" className="text-sm text-[--muted]">
+                  <label htmlFor="forfettario-startup" className="text-sm text-(--muted)">
                     Attività avviata da meno di 5 anni
                   </label>
                 </div>
               </Field>
             </div>
-            <p className="text-xs text-[--faint]">
+            <p className="text-xs text-(--faint)">
               Il coefficiente varia per categoria ATECO: es. 78% commercio, 67% artigianato, 86%
               professionisti. Verifica il tuo valore nelle istruzioni del modello Redditi PF.
             </p>
@@ -191,13 +191,13 @@ export default function ProfileForm({ profile }: Props) {
       </section>
 
       {/* ── Feedback e salva ───────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 flex-wrap pt-2 border-t border-[--border]">
+      <div className="flex items-center gap-4 flex-wrap pt-2 border-t border-(--border)">
         <Button type="submit" loading={pending}>Salva profilo</Button>
         {state?.success && (
-          <p className="text-xs text-[--brand-text]" role="status">{state.success}</p>
+          <p className="text-xs text-(--brand-text)" role="status">{state.success}</p>
         )}
         {state?.error && (
-          <p className="text-xs text-[--danger]" role="alert">{state.error}</p>
+          <p className="text-xs text-(--danger)" role="alert">{state.error}</p>
         )}
       </div>
     </form>

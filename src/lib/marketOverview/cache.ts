@@ -4,6 +4,7 @@
 import { sqlite } from '@/db'
 import type { MarketSignal } from './signals'
 import type { SectorAnalysis } from './analysis/types'
+import { mergeStancePoint, type StanceHistory } from './stanceHistory'
 
 /** Segnale letto dalla cache, arricchito con l'istante di ultimo refresh. */
 export interface CachedSignal extends MarketSignal {
@@ -16,7 +17,7 @@ export interface CachedSignal extends MarketSignal {
  * valore buono in cache piuttosto che cancellarlo — la UI mostrerà la data
  * "aggiornato al…" così l'utente vede se un dato è vecchio.
  */
-export function writeSignals(signals: (MarketSignal | null)[]): number {
+export function writeSignals(signals: (Omit<MarketSignal, 'series'> | null)[]): number {
   const stmt = sqlite.prepare(
     `INSERT INTO market_indicators (code, payload, updated_at)
      VALUES (?, ?, unixepoch())
@@ -48,7 +49,7 @@ export function readSignals(codes?: string[]): CachedSignal[] {
         )
         .all(...codes)
     : sqlite
-        .prepare("SELECT code, payload, updated_at FROM market_indicators WHERE code NOT LIKE 'analysis.%' ORDER BY code")
+        .prepare("SELECT code, payload, updated_at FROM market_indicators WHERE code NOT LIKE 'analysis.%' AND code NOT LIKE 'blob.%' ORDER BY code")
         .all()) as { code: string; payload: string; updated_at: number }[]
 
   const out: CachedSignal[] = []
@@ -103,4 +104,64 @@ export function readAnalyses(): CachedAnalysis[] {
     }
   }
   return out
+}
+
+// ── Blob generici ─────────────────────────────────────────────────────────────
+// Strutture che non sono né MarketSignal né SectorAnalysis (tabella andamenti,
+// quadro macro, evidenze storiche, storico delle stance) vivono sotto codici
+// `blob.<nome>` nella stessa tabella: stesso principio "schema applicativo".
+
+export function writeBlob(name: string, value: unknown): void {
+  sqlite
+    .prepare(
+      `INSERT INTO market_indicators (code, payload, updated_at)
+       VALUES (?, ?, unixepoch())
+       ON CONFLICT(code) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at`,
+    )
+    .run(`blob.${name}`, JSON.stringify(value))
+}
+
+export function readBlob<T>(name: string): { value: T; cachedAt: number } | null {
+  const row = sqlite
+    .prepare('SELECT payload, updated_at FROM market_indicators WHERE code = ?')
+    .get(`blob.${name}`) as { payload: string; updated_at: number } | undefined
+  if (!row) return null
+  try {
+    return { value: JSON.parse(row.payload) as T, cachedAt: row.updated_at }
+  } catch {
+    console.warn(`[market] blob corrotto "${name}", ignorato`)
+    return null
+  }
+}
+
+// ── Storico delle stance ──────────────────────────────────────────────────────
+// Persistenza dello storico (logica pura in stanceHistory.ts).
+
+const isoDay = (epoch: number) => new Date(epoch * 1000).toISOString().slice(0, 10)
+
+/**
+ * Aggiunge allo storico le analisi appena calcolate. Al primo avvio lo storico è
+ * vuoto: vi si riversano prima le analisi già in cache (con la LORO data), così
+ * il confronto "rispetto all'ultima rilevazione" funziona da subito.
+ */
+export function appendStanceHistory(fresh: SectorAnalysis[], previous: CachedAnalysis[]): StanceHistory {
+  const history: StanceHistory = readBlob<StanceHistory>('history')?.value ?? {}
+  const flat = (list: SectorAnalysis[]) => list.flatMap((a) => [a, ...(a.subMarkets ?? [])])
+
+  for (const prev of previous) {
+    for (const a of flat([prev])) {
+      if (history[a.key]?.length) continue
+      history[a.key] = [{ d: isoDay(prev.cachedAt), score: a.score, stance: a.stance }]
+    }
+  }
+  const today = isoDay(Math.floor(Date.now() / 1000))
+  for (const a of flat(fresh)) {
+    history[a.key] = mergeStancePoint(history[a.key] ?? [], { d: today, score: a.score, stance: a.stance })
+  }
+  writeBlob('history', history)
+  return history
+}
+
+export function readStanceHistory(): StanceHistory {
+  return readBlob<StanceHistory>('history')?.value ?? {}
 }

@@ -34,7 +34,7 @@ export default function EditTxnForm({ txn, portfolioId, onCancel, onSaved }: Pro
   const isDividFee  = txn.type === 'dividend' || txn.type === 'fee'
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end p-3 bg-[--surface-2] rounded-xl">
+    <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end p-3 bg-(--surface-2) rounded-xl">
       <input type="hidden" name="currency" value={txn.currency} />
 
       <Field label="Tipo" htmlFor={`et-type-${txn.id}`} className="w-32">
@@ -121,7 +121,7 @@ export default function EditTxnForm({ txn, portfolioId, onCancel, onSaved }: Pro
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>Annulla</Button>
       </div>
 
-      {error && <p className="w-full text-xs text-[--danger]">{error}</p>}
+      {error && <p className="w-full text-xs text-(--danger)">{error}</p>}
     </form>
   )
 }

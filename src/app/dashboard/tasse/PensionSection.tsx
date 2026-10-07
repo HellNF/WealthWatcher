@@ -35,27 +35,27 @@ export default function PensionSection({ year, incomeTax, pension }: Props) {
           </div>
 
           {incomeTax.brackets.length > 0 && (
-            <div className="pt-3 border-t border-[--border] space-y-1">
-              <p className="text-xs text-[--muted] mb-1">Scaglioni IRPEF applicati</p>
+            <div className="pt-3 border-t border-(--border) space-y-1">
+              <p className="text-xs text-(--muted) mb-1">Scaglioni IRPEF applicati</p>
               {incomeTax.brackets.map((b, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
-                  <span className="text-[--muted] font-mono tabular-nums">{fmtPct(b.rate)}</span>
-                  <span className="text-[--faint]">su {fmtEurDec(b.taxedMinor)}</span>
-                  <span className="text-[--ink] font-medium font-mono tabular-nums">{fmtEurDec(b.taxMinor)}</span>
+                  <span className="text-(--muted) font-mono tabular-nums">{fmtPct(b.rate)}</span>
+                  <span className="text-(--faint)">su {fmtEurDec(b.taxedMinor)}</span>
+                  <span className="text-(--ink) font-medium font-mono tabular-nums">{fmtEurDec(b.taxMinor)}</span>
                 </div>
               ))}
             </div>
           )}
 
           {incomeTax.note && (
-            <div className="flex items-start gap-2 rounded-lg bg-[--warning]/10 border border-[--warning]/30 px-3 py-2">
-              <AlertTriangle className="size-3.5 text-[--warning] shrink-0 mt-0.5" />
-              <p className="text-xs text-[--muted]">{incomeTax.note}</p>
+            <div className="flex items-start gap-2 rounded-lg bg-(--warning)/10 border border-(--warning)/30 px-3 py-2">
+              <AlertTriangle className="size-3.5 text-(--warning) shrink-0 mt-0.5" />
+              <p className="text-xs text-(--muted)">{incomeTax.note}</p>
             </div>
           )}
-          <p className="text-xs text-[--faint]">
+          <p className="text-xs text-(--faint)">
             Stima distinta dal carico su investimenti. Non include contributi INPS.{' '}
-            <Link href="/dashboard/profilo" className="text-[--brand-text] hover:underline">Modifica profilo →</Link>
+            <Link href="/dashboard/profilo" className="text-(--brand-text) hover:underline">Modifica profilo →</Link>
           </p>
         </Card>
       )}
@@ -85,7 +85,7 @@ export default function PensionSection({ year, incomeTax, pension }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-[--muted]">
+            <div className="flex justify-between text-xs text-(--muted)">
               <span>Utilizzo massimale deducibile</span>
               <span className="tabular-nums font-medium">{pension.progressBarPercentage}%</span>
             </div>

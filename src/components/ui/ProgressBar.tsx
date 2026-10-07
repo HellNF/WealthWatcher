@@ -12,7 +12,7 @@ interface ProgressBarProps {
 export function ProgressBar({ value, max, color, className }: ProgressBarProps) {
   const pct = max > 0 ? Math.min(100, Math.max(0, Math.round((value / max) * 100))) : 0
   return (
-    <div className={`h-2 bg-[--surface-2] rounded-full overflow-hidden ${className ?? ''}`}>
+    <div className={`h-2 bg-(--surface-2) rounded-full overflow-hidden ${className ?? ''}`}>
       <div
         className="h-full rounded-full transition-all duration-500"
         style={{ width: `${pct}%`, background: color ?? 'var(--brand)' }}

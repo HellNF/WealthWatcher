@@ -15,7 +15,7 @@ const DAY_MS = 86_400_000
 
 function eur(minor: number, decimals = 0): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR',
+    style: 'currency', currency: 'EUR', useGrouping: 'always',
     minimumFractionDigits: decimals, maximumFractionDigits: decimals,
   })
 }

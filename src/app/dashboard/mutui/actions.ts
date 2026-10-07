@@ -14,8 +14,11 @@ const mortgageSchema = z.object({
   initial_capital:     z.string().transform(v => {
     const n = parseFloat(dec(v)); if (!isFinite(n) || n <= 0) throw new Error('Importo non valido'); return n
   }),
+  // Inserito in percentuale ("3,5"), salvato in decimale ("0.035") come il resto del modello
   annual_interest_rate: z.string().transform(v => {
-    const n = parseFloat(dec(v)); if (!isFinite(n) || n < 0 || n > 1) throw new Error('Inserisci il tasso in decimale (es. 0.035 per 3,5%)'); return n
+    const n = parseFloat(dec(v).replace('%', '').trim())
+    if (!isFinite(n) || n < 0 || n > 30) throw new Error('Inserisci il tasso annuo in percentuale, ad esempio 3,5')
+    return Number((n / 100).toFixed(8))
   }),
   duration_months:     z.string().transform(v => {
     const n = parseInt(v, 10); if (!Number.isInteger(n) || n <= 0) throw new Error('Durata non valida'); return n

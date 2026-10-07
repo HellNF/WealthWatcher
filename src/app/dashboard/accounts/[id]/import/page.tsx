@@ -58,7 +58,7 @@ export default async function ImportPage({ params }: Props) {
 
   if (!parserKey) {
     return (
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         {crumbs}
         <Card>
           <EmptyState
@@ -77,14 +77,14 @@ export default async function ImportPage({ params }: Props) {
   }
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       {crumbs}
 
       <div>
-        <h1 className="text-lg font-semibold text-[--ink]">
+        <h1 className="text-3xl font-extrabold font-display tracking-[-0.02em] text-(--ink) [text-wrap:balance]">
           Importa movimenti{provider ? ` — ${provider.name}` : ''}
         </h1>
-        <p className="text-sm text-[--muted] mt-1">
+        <p className="text-sm text-(--muted) mt-1.5 max-w-[65ch]">
           {HINTS[parserKey] ?? 'Carica l’estratto conto in formato Excel (.xlsx).'}
         </p>
       </div>

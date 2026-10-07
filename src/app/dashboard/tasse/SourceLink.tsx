@@ -18,11 +18,11 @@ export default function SourceLink({ topic, source }: SourceLinkProps) {
       href={s.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group inline-flex items-center gap-1.5 text-xs text-[--faint] hover:text-[--brand-text] transition-colors"
+      className="group inline-flex items-center gap-1.5 text-xs text-(--faint) hover:text-(--brand-text) transition-colors"
     >
       {s.official && (
         <span
-          className="size-1.5 rounded-full bg-[--brand] shrink-0"
+          className="size-1.5 rounded-full bg-(--brand) shrink-0"
           title="Fonte istituzionale"
           aria-hidden
         />

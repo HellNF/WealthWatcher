@@ -36,10 +36,10 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[--bg] px-4 overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center bg-(--bg) px-4 overflow-hidden">
       {/* glow ambientale, fisso e non interattivo */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-[--brand]/[0.07] blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-(--brand)/[0.07] blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-sm space-y-6">
@@ -48,18 +48,18 @@ export default async function LoginPage({
         <div className="flex flex-col items-center gap-3">
           <BrandMark size="lg" />
           <div className="text-center">
-            <p className="text-base font-semibold text-[--ink]">WealthWatcher</p>
-            <p className="text-sm text-[--muted]">Il tuo patrimonio, sotto controllo</p>
+            <p className="text-base font-semibold text-(--ink)">WealthWatcher</p>
+            <p className="text-sm text-(--muted)">Il tuo patrimonio, sotto controllo</p>
           </div>
         </div>
 
         {/* Card — doppio bordo per profondità "hardware" */}
-        <div className="rounded-[1.75rem] bg-[--surface-2]/60 ring-1 ring-[--border] p-1.5">
-        <div className="rounded-3xl border border-[--border] bg-[--surface] shadow-[var(--shadow-lg),var(--highlight)] p-6 space-y-4">
+        <div className="rounded-[1.75rem] bg-(--surface-2)/60 ring-1 ring-(--border) p-1.5">
+        <div className="rounded-3xl border border-(--border) bg-(--surface) shadow-[var(--shadow-lg),var(--highlight)] p-6 space-y-4">
 
           {error === 'denied' && (
-            <div className="rounded-lg border border-[--danger]/30 bg-[--danger-subtle] px-3 py-2.5">
-              <p className="text-sm text-[--danger]">
+            <div className="rounded-lg border border-(--danger)/30 bg-(--danger-subtle) px-3 py-2.5">
+              <p className="text-sm text-(--danger)">
                 Accesso negato: verifica che l&apos;email sia nella whitelist (e, per Google, verificata dal provider).
               </p>
             </div>
@@ -75,20 +75,20 @@ export default async function LoginPage({
                   type="email"
                   required
                   placeholder="La tua email"
-                  className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+                  className="w-full h-10 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
                 />
                 <button
                   type="submit"
-                  className="w-full h-10 rounded-lg bg-[--brand] text-[--brand-fg] text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-[--brand-hover] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+                  className="w-full h-10 rounded-lg bg-(--brand) text-(--brand-fg) text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-(--brand-hover) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
                 >
                   Accedi
                 </button>
               </form>
 
               <div className="relative flex items-center gap-3">
-                <div className="flex-1 border-t border-[--border]" />
-                <span className="text-xs text-[--faint]">oppure</span>
-                <div className="flex-1 border-t border-[--border]" />
+                <div className="flex-1 border-t border-(--border)" />
+                <span className="text-xs text-(--faint)">oppure</span>
+                <div className="flex-1 border-t border-(--border)" />
               </div>
             </>
           )}
@@ -96,7 +96,7 @@ export default async function LoginPage({
           <form action={googleSignIn}>
             <button
               type="submit"
-              className="w-full h-10 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] text-sm font-medium hover:bg-[--surface] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]"
+              className="w-full h-10 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) text-sm font-medium hover:bg-(--surface) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
             >
               Continua con Google
             </button>
@@ -104,7 +104,7 @@ export default async function LoginPage({
         </div>
         </div>
 
-        <p className="text-center text-xs text-[--faint]">
+        <p className="text-center text-xs text-(--faint)">
           Accesso riservato agli utenti in whitelist.
         </p>
       </div>

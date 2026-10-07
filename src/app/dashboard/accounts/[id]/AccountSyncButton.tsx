@@ -34,9 +34,9 @@ export default function AccountSyncButton({ connectionId }: { connectionId: numb
         <RefreshCw className="size-4" />
         Sincronizza (Open Banking)
       </Button>
-      {result?.error && <span className="text-sm text-[--danger]">{result.error}</span>}
+      {result?.error && <span className="text-sm text-(--danger)">{result.error}</span>}
       {result && !result.error && (
-        <span className="text-sm text-[--muted]">
+        <span className="text-sm text-(--muted)">
           {result.insertedCount} nuovi movimenti · {result.duplicateCount} già presenti
           {result.categorized !== undefined && ` · ${result.categorized} categorizzati automaticamente`}
         </span>

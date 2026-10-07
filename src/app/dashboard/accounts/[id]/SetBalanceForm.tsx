@@ -49,11 +49,11 @@ export default function SetBalanceForm({
           {anchorDate ? 'Rettifica saldo' : 'Imposta saldo reale'}
         </Button>
         {anchorDate ? (
-          <span className="text-xs text-[--muted]">
+          <span className="text-xs text-(--muted)">
             Saldo di riferimento al {fmtDate(anchorDate)} · i movimenti successivi lo aggiornano
           </span>
         ) : (
-          <span className="text-xs text-[--muted]">
+          <span className="text-xs text-(--muted)">
             Il saldo è la somma dei movimenti importati. Imposta il saldo reale per allinearlo.
           </span>
         )}
@@ -62,7 +62,7 @@ export default function SetBalanceForm({
             type="button"
             onClick={() => startClear(() => clearBalanceAction(accountId))}
             disabled={clearing}
-            className="text-xs text-[--faint] hover:text-[--danger] transition-colors disabled:opacity-50"
+            className="text-xs text-(--muted) underline underline-offset-2 hover:text-(--ink) transition-colors duration-150 disabled:opacity-50"
           >
             Rimuovi
           </button>
@@ -95,11 +95,11 @@ export default function SetBalanceForm({
           </Button>
         </div>
       </div>
-      <p className="text-xs text-[--muted]">
+      <p className="text-xs text-(--muted)">
         Inserisci il totale che vedi in banca a quella data. Da lì in poi il saldo mostrato si
         aggiorna sommando i movimenti con data successiva.
       </p>
-      {state?.error && <p className="text-xs text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-xs text-(--danger-text)" role="alert">{state.error}</p>}
     </form>
   )
 }

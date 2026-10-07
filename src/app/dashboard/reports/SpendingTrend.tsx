@@ -17,7 +17,7 @@ interface Props {
 
 function fmt(minor: number, currency: string) {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency, maximumFractionDigits: 0,
+    style: 'currency', useGrouping: 'always', currency, maximumFractionDigits: 0,
   })
 }
 
@@ -26,11 +26,11 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
   const isDark = resolvedTheme === 'dark'
 
   const colors = isDark
-    ? { outflow: '#f87171', inflow: '#34d399', grid: 'oklch(0.26 0.01 160)', axis: 'oklch(0.42 0.01 160)', tooltipBg: '#1a2421', tooltipBorder: 'oklch(0.26 0.01 160)' }
-    : { outflow: '#dc2626', inflow: '#059669', grid: 'oklch(0.88 0.005 160)', axis: 'oklch(0.55 0.01 160)', tooltipBg: '#fff', tooltipBorder: 'oklch(0.88 0.005 160)' }
+    ? { outflow: 'oklch(0.82 0.01 160)', inflow: '#34d399', grid: 'oklch(0.28 0.01 160)', axis: 'oklch(0.72 0.01 160)', tooltipBg: '#1a2421', tooltipBorder: 'oklch(0.26 0.01 160)' }
+    : { outflow: 'oklch(0.40 0.01 160)', inflow: '#059669', grid: 'oklch(0.90 0.005 160)', axis: 'oklch(0.45 0.01 160)', tooltipBg: '#fff', tooltipBorder: 'oklch(0.88 0.005 160)' }
 
   if (data.length === 0) {
-    return <p className="text-sm text-[--faint] py-8 text-center">Nessun dato disponibile.</p>
+    return <p className="text-sm text-(--faint) py-8 text-center">Nessun dato disponibile.</p>
   }
 
   const visible = data.filter((d) => !d.isFuture)
@@ -48,24 +48,26 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
   const tickInterval = Math.max(1, Math.round(data.length / 7))
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={2}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
         <XAxis
           dataKey="day"
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}
           interval={tickInterval - 1}
         />
         <YAxis
           tickFormatter={(v) => fmt(v, currency)}
-          tick={{ fill: colors.axis, fontSize: 10 }}
+          tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}
-          width={72}
+          width={64}
         />
         <Tooltip
+          cursor={{ fill: colors.grid, opacity: 0.5 }}
+          isAnimationActive={false}
           formatter={(value, name) => [
             fmt(Number(value), currency),
             name === 'uscite' ? 'Uscite' : 'Entrate',
@@ -95,7 +97,7 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
             <Cell
               key={d.day}
               fill={colors.outflow}
-              opacity={d.isMax ? 1 : 0.6}
+              opacity={d.isMax ? 1 : 0.5}
             />
           ))}
         </Bar>

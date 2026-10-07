@@ -2,7 +2,7 @@
 import { useTransition } from 'react'
 import { RefreshCw, TrendingUp } from 'lucide-react'
 import { refreshPricesAction } from './actions'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import { formatDateTimeIt } from '@/lib/formatDate'
 import type { Position } from '@/lib/investments/fifo'
 import {
@@ -17,11 +17,11 @@ function fmtDate(epoch: number | null): string {
 }
 
 function PlCell({ minor, pct }: { minor: number | null; pct: string | null }) {
-  if (minor === null) return <span className="text-[--faint] text-xs">—</span>
+  if (minor === null) return <span className="text-(--faint) text-xs">—</span>
   const positive = minor >= 0
   return (
     <Badge variant={positive ? 'gain' : 'loss'}>
-      {positive ? '+' : ''}{fromMinor(minor, 'EUR')}
+      {positive ? '+' : ''}{formatMoney(minor, 'EUR')}
       {pct && <span className="ml-1 opacity-75">({positive ? '+' : ''}{pct}%)</span>}
     </Badge>
   )
@@ -69,7 +69,7 @@ export default function PositionsTable({
 
       {/* ── Desktop: tabella ─────────────────────────────────────────────── */}
       <div className="hidden sm:block">
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -88,18 +88,18 @@ export default function PositionsTable({
                 return (
                   <Tr key={pos.symbol}>
                     <Td>
-                      <p className="font-medium text-[--ink]">{pos.name}</p>
-                      <p className="text-xs text-[--muted]">{pos.symbol} · {pos.currency}</p>
+                      <p className="font-medium text-(--ink)">{pos.name}</p>
+                      <p className="text-xs text-(--muted)">{pos.symbol} · {pos.currency}</p>
                     </Td>
                     <Td numeric>
-                      <span className="text-[--ink]">
+                      <span className="text-(--ink)">
                         {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
                           maximumFractionDigits: 8,
                         })}
                       </span>
                     </Td>
                     <Td numeric>
-                      <span className="text-[--muted] text-xs">
+                      <span className="text-(--muted) text-xs">
                         {avgCost.toLocaleString('it-IT', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 4,
@@ -109,21 +109,21 @@ export default function PositionsTable({
                     <Td numeric>
                       {pos.lastPrice ? (
                         <div className="text-right">
-                          <span className="text-[--ink]">
+                          <span className="text-(--ink)">
                             {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
                               minimumFractionDigits: 2,
                             })}
                           </span>
-                          <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
+                          <p className="text-[10px] text-(--faint)">{fmtDate(pos.lastPriceAt)}</p>
                         </div>
                       ) : (
                         <Badge variant="warning">stale</Badge>
                       )}
                     </Td>
                     <Td numeric>
-                      <span className="text-[--ink]">
+                      <span className="text-(--ink)">
                         {pos.marketValueMinor !== null
-                          ? fromMinor(pos.marketValueMinor, pos.currency)
+                          ? formatMoney(pos.marketValueMinor, pos.currency)
                           : '—'}
                       </span>
                     </Td>
@@ -150,10 +150,10 @@ export default function PositionsTable({
                 subtitle={`${pos.symbol} · ${pos.currency}`}
                 badge={!pos.lastPrice ? <Badge variant="warning">stale</Badge> : undefined}
               />
-              <div className="divide-y divide-[--border]">
+              <div className="divide-y divide-(--border)">
                 <DataRow label="Valore">
                   {pos.marketValueMinor !== null
-                    ? fromMinor(pos.marketValueMinor, pos.currency)
+                    ? formatMoney(pos.marketValueMinor, pos.currency)
                     : '—'}
                 </DataRow>
                 <DataRow label="P/L non real.">
@@ -165,7 +165,7 @@ export default function PositionsTable({
                   })}
                 </DataRow>
                 <DataRow label="P.M. carico">
-                  <span className="text-[--muted]">
+                  <span className="text-(--muted)">
                     {avgCost.toLocaleString('it-IT', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 4,
@@ -179,7 +179,7 @@ export default function PositionsTable({
                         minimumFractionDigits: 2,
                       })}
                       {pos.lastPriceAt && (
-                        <span className="text-[--faint] ml-1">· {fmtDate(pos.lastPriceAt)}</span>
+                        <span className="text-(--faint) ml-1">· {fmtDate(pos.lastPriceAt)}</span>
                       )}
                     </span>
                   </DataRow>

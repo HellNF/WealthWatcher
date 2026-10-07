@@ -7,7 +7,7 @@ import {
   type PreviewResult,
   type CommitResult,
 } from './actions'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import {
   Button, Badge,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
@@ -88,7 +88,7 @@ export default function ImportForm({
         <Card>
           <form onSubmit={handlePreview} className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1 space-y-1.5">
-              <label className="text-sm font-medium text-[--ink]">
+              <label className="text-sm font-medium text-(--ink)">
                 {fileLabel}
               </label>
               <div className="relative">
@@ -98,11 +98,11 @@ export default function ImportForm({
                   accept={fileAccept}
                   required
                   onChange={() => setStep({ kind: 'pick' })}
-                  className="w-full text-sm text-[--muted]
+                  className="w-full text-sm text-(--muted)
                     file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                     file:text-sm file:font-medium file:cursor-pointer
-                    file:bg-[--surface-2] file:text-[--ink]
-                    hover:file:bg-[--border]
+                    file:bg-(--surface-2) file:text-(--ink)
+                    hover:file:bg-(--border)
                     transition-colors"
                 />
               </div>
@@ -121,7 +121,7 @@ export default function ImportForm({
 
         {/* Error */}
         {preview?.error && (
-          <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+          <div className="flex items-start gap-3 rounded-xl border border-(--danger)/30 bg-(--danger-subtle) px-4 py-3 text-sm text-(--danger-text)">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
             {preview.error}
           </div>
@@ -137,11 +137,11 @@ export default function ImportForm({
               {preview.suspectCount > 0 && (
                 <Badge variant="warning">{preview.suspectCount} sospetti</Badge>
               )}
-              <span className="text-xs text-[--faint] ml-1">{preview.filename}</span>
+              <span className="text-xs text-(--faint) ml-1">{preview.filename}</span>
             </div>
 
             {/* Preview table */}
-            <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+            <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
               <Table>
                 <TableHead>
                   <Tr>
@@ -163,19 +163,19 @@ export default function ImportForm({
                           {STATUS_LABEL[row.status]}
                         </Badge>
                       </Td>
-                      <Td className="text-[--muted] text-xs tabular-nums">
+                      <Td className="text-(--muted) text-xs tabular-nums">
                         {formatDate(row.bookedDate)}
                       </Td>
                       <Td className="max-w-xs">
-                        <span className="truncate block text-[--ink]">
+                        <span className="truncate block text-(--ink)">
                           {row.descriptionRaw}
                         </span>
                       </Td>
-                      <Td className="text-[--muted] text-xs">{row.categoryName ?? '—'}</Td>
+                      <Td className="text-(--muted) text-xs">{row.categoryName ?? '—'}</Td>
                       <Td numeric>
                         <Badge variant={row.amountMinor < 0 ? 'loss' : 'gain'}>
                           {row.amountMinor >= 0 ? '+' : ''}
-                          {fromMinor(row.amountMinor, row.currency)} {row.currency}
+                          {formatMoney(row.amountMinor, row.currency)}
                         </Badge>
                       </Td>
                     </Tr>
@@ -194,7 +194,7 @@ export default function ImportForm({
                 Importa {preview.newCount} movimenti
               </Button>
             ) : (
-              <p className="text-sm text-[--muted]">
+              <p className="text-sm text-(--muted)">
                 Nessun movimento nuovo da importare.
               </p>
             )}
@@ -210,16 +210,16 @@ export default function ImportForm({
   return (
     <div className="space-y-4">
       {result.error ? (
-        <div className="flex items-start gap-3 rounded-xl border border-[--danger]/30 bg-[--danger-subtle] px-4 py-3 text-sm text-[--danger-text]">
+        <div className="flex items-start gap-3 rounded-xl border border-(--danger)/30 bg-(--danger-subtle) px-4 py-3 text-sm text-(--danger-text)">
           <AlertCircle className="size-4 shrink-0 mt-0.5" />
           {result.error}
         </div>
       ) : (
-        <div className="flex items-start gap-3 rounded-xl border border-[--brand]/30 bg-[--brand-subtle] px-4 py-3 text-sm text-[--brand-text]">
+        <div className="flex items-start gap-3 rounded-xl border border-(--brand)/30 bg-(--brand-subtle) px-4 py-3 text-sm text-(--brand-text)">
           <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Importazione completata</p>
-            <p className="text-[--muted] mt-0.5">
+            <p className="text-(--muted) mt-0.5">
               {result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati
             </p>
           </div>
@@ -229,7 +229,7 @@ export default function ImportForm({
       <div className="flex gap-3">
         <Link
           href={`/dashboard/accounts/${accountId}`}
-          className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-all duration-150"
+          className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) transition-all duration-150"
         >
           Torna al conto
         </Link>

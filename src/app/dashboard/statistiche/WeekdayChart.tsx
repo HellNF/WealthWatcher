@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -25,7 +25,7 @@ export default function WeekdayChart({ data }: Props) {
 
   if (data.length === 0) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         Importa movimenti per vedere i pattern per giorno della settimana.
       </p>
     )
@@ -34,17 +34,17 @@ export default function WeekdayChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.42 0.01 160)',
-        bar:     '#34d399',
-        barDim:  '#34d39955',
+        axis:    'oklch(0.72 0.01 160)',
+        bar:     'oklch(0.90 0.01 160)',
+        barDim:  'oklch(0.42 0.01 160)',
         tooltipBg:     '#1a2421',
         tooltipBorder: 'oklch(0.26 0.01 160)',
       }
     : {
         grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.65 0.008 160)',
-        bar:     '#059669',
-        barDim:  '#05966940',
+        axis:    'oklch(0.45 0.01 160)',
+        bar:     'oklch(0.28 0.01 160)',
+        barDim:  'oklch(0.80 0.005 160)',
         tooltipBg:     '#ffffff',
         tooltipBorder: 'oklch(0.88 0.005 160)',
       }

@@ -12,10 +12,10 @@ export function Card({ className, children, noPadding, hoverable, ...props }: Ca
   return (
     <div
       className={cn(
-        'rounded-2xl border border-[--border] bg-[--surface]',
+        'rounded-2xl border border-(--border) bg-(--surface)',
         'shadow-[var(--shadow-sm),var(--highlight)]',
         'transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:var(--ease-spring)]',
-        hoverable && 'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md),var(--highlight)] hover:border-[--border]',
+        hoverable && 'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md),var(--highlight)] hover:border-(--border)',
         !noPadding && 'p-4 sm:p-5',
         className,
       )}
@@ -49,7 +49,7 @@ interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
 export function CardTitle({ className, children, as: Tag = 'h2', ...props }: CardTitleProps) {
   return (
     <Tag
-      className={cn('text-base font-semibold text-[--ink] text-wrap-balance', className)}
+      className={cn('text-base font-semibold text-(--ink) text-wrap-balance', className)}
       {...props}
     >
       {children}
@@ -64,7 +64,7 @@ interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement
 export function CardDescription({ className, children, ...props }: CardDescriptionProps) {
   return (
     <p
-      className={cn('text-sm text-[--muted] mt-0.5', className)}
+      className={cn('text-sm text-(--muted) mt-0.5', className)}
       {...props}
     >
       {children}

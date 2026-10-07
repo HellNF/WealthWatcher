@@ -54,25 +54,25 @@ export default function AgendaView({ events, today }: Props) {
   })).filter(g => g.items.length > 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {grouped.map(g => {
         const net = bucketNet(g.items)
         return (
           <section key={g.key}>
             <div className="flex items-baseline justify-between gap-3 px-1 pb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[--muted]">
+              <h3 className="text-sm font-semibold text-(--ink)">
                 {g.label}
-                <span className="ml-2 text-[--faint] font-normal normal-case tracking-normal">
+                <span className="ml-2 text-xs text-(--muted) font-normal">
                   {g.items.length} {g.items.length === 1 ? 'evento' : 'eventi'}
                 </span>
               </h3>
               {net !== 0 && (
-                <span className={`text-xs font-mono tabular-nums ${net >= 0 ? 'text-[--brand-text]' : 'text-[--muted]'}`}>
+                <span className={`text-xs font-mono tabular-nums ${net >= 0 ? 'text-(--brand-text)' : 'text-(--muted)'}`}>
                   {net >= 0 ? '+' : '−'}{fmtEur(Math.abs(net))}
                 </span>
               )}
             </div>
-            <div className="rounded-2xl border border-[--border] bg-[--surface] divide-y divide-[--border] overflow-hidden">
+            <div className="rounded-2xl border border-(--border) bg-(--surface) divide-y divide-(--border) overflow-hidden">
               {g.items.map((e, i) => (
                 <EventRow key={`${e.source}-${e.date}-${e.id ?? i}`} event={e} today={today} />
               ))}

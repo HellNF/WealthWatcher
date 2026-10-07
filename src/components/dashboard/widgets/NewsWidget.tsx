@@ -32,14 +32,14 @@ export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetS
   }
 
   return (
-    <div className="divide-y divide-[--border] -mx-4 sm:-mx-5">
+    <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
       {visible.map((a) => (
         <a
           key={a.uuid}
           href={a.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-start gap-3 px-4 sm:px-5 py-3 hover:bg-[--surface-2] transition-colors duration-100 group"
+          className="flex items-start gap-3 px-4 sm:px-5 py-3 hover:bg-(--surface-2) transition-colors duration-100 group"
         >
           {/* Thumbnail — nascosto in sm */}
           {size !== 'sm' && (
@@ -48,28 +48,28 @@ export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetS
               <img
                 src={a.thumbnailUrl}
                 alt=""
-                className="size-10 rounded-lg object-cover shrink-0 bg-[--surface-2]"
+                className="size-10 rounded-lg object-cover shrink-0 bg-(--surface-2)"
               />
             ) : (
-              <div className="size-10 rounded-lg bg-[--surface-2] flex items-center justify-center shrink-0">
-                <Newspaper className="size-4 text-[--faint]" strokeWidth={1.5} />
+              <div className="size-10 rounded-lg bg-(--surface-2) flex items-center justify-center shrink-0">
+                <Newspaper className="size-4 text-(--faint)" strokeWidth={1.5} />
               </div>
             )
           )}
 
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[--ink] leading-snug line-clamp-2 group-hover:text-[--brand-text] transition-colors">
+            <p className="text-xs font-medium text-(--ink) leading-snug line-clamp-2 group-hover:text-(--brand-text) transition-colors">
               {a.title}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[10px] text-[--faint] truncate">{a.publisher}</span>
-              <span className="text-[--faint] text-[10px]">·</span>
-              <span className="text-[10px] text-[--faint] shrink-0">{timeAgo(a.publishedAt)}</span>
+              <span className="text-[10px] text-(--faint) truncate">{a.publisher}</span>
+              <span className="text-(--faint) text-[10px]">·</span>
+              <span className="text-[10px] text-(--faint) shrink-0">{timeAgo(a.publishedAt)}</span>
             </div>
           </div>
 
           <ExternalLink
-            className="size-3 text-[--faint] shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="size-3 text-(--faint) shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
             strokeWidth={1.75}
           />
         </a>

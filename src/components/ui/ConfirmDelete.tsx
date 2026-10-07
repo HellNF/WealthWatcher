@@ -26,7 +26,13 @@ export function ConfirmDelete({
 
   if (!confirming) {
     return (
-      <Button variant="danger" size="sm" onClick={() => setConfirming(true)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={label ? undefined : 'Elimina'}
+        className="hover:text-(--danger-text) hover:bg-(--danger-subtle)"
+        onClick={() => setConfirming(true)}
+      >
         <Trash2 className="size-3.5" />
         {label}
       </Button>
@@ -35,7 +41,7 @@ export function ConfirmDelete({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs text-[--muted]">{confirmText}</span>
+      <span className="text-xs text-(--muted)">{confirmText}</span>
       <Button
         variant="danger"
         size="sm"

@@ -15,12 +15,8 @@ export function StanceMeter({ stance, showLabel = true }: { stance: Stance; show
           return (
             <span
               key={s}
-              className="h-2 flex-1 rounded-full transition-colors"
-              style={{
-                background: isActive ? meta.color : 'var(--surface-2)',
-                outline: isActive ? `2px solid ${meta.color}` : 'none',
-                outlineOffset: 2,
-              }}
+              className="flex-1 rounded-full transition-colors"
+              style={{ height: isActive ? 8 : 4, background: isActive ? meta.color : 'var(--border)' }}
               title={meta.label}
             />
           )

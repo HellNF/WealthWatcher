@@ -15,10 +15,10 @@ export default function SectionHeading({ icon: Icon, title, source, actions }: S
   return (
     <div className="flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[--brand-subtle] text-[--brand-text]">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-(--surface-2) text-(--muted)">
           <Icon className="size-4" strokeWidth={1.75} aria-hidden />
         </span>
-        <h2 className="text-base font-semibold text-[--ink]">{title}</h2>
+        <h2 className="text-base font-semibold text-(--ink)">{title}</h2>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         {actions}

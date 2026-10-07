@@ -31,7 +31,7 @@ export default function AddAccountForm({ institutionId }: { institutionId: numbe
         Aggiungi conto
       </Button>
       {state?.error && (
-        <p className="text-sm text-[--danger]">{state.error}</p>
+        <p className="text-sm text-(--danger)">{state.error}</p>
       )}
     </form>
   )

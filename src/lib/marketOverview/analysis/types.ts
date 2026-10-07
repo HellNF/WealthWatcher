@@ -28,6 +28,8 @@ export interface Driver {
   source:  string
   /** code del MarketSignal di supporto (per linkare il grafico). */
   signalCode?: string
+  /** Cosa misura l'indicatore e come leggerlo, in linguaggio non tecnico. */
+  explain?: string
 }
 
 export interface LearnMore {
