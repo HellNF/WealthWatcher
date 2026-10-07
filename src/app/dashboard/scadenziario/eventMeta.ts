@@ -21,13 +21,13 @@ export const SOURCE_META: Record<DeadlineSource, SourceMeta> = {
   bollo:            { label: 'Bollo',        dot: 'var(--muted)',   icon: Stamp,        badge: 'neutral' },
   ivafe:            { label: 'IVAFE',        dot: 'var(--muted)',   icon: Landmark,     badge: 'neutral' },
   credito_fiscale:  { label: 'Credito',      dot: 'var(--warning)', icon: PiggyBank,    badge: 'warning' },
-  rata_mutuo:       { label: 'Mutuo',        dot: 'var(--info)',    icon: Home,         badge: 'info' },
-  ricorrente:       { label: 'Ricorrente',   dot: 'var(--danger)',  icon: Repeat,       badge: 'neutral' },
-  custom:           { label: 'Personale',    dot: 'var(--brand)',   icon: CalendarPlus, badge: 'success' },
-  dividendo_atteso: { label: 'Dividendo',    dot: 'var(--brand)',   icon: TrendingUp,   badge: 'gain' },
-  stipendio_atteso: { label: 'Stipendio',    dot: 'var(--brand)',   icon: Wallet,       badge: 'gain' },
-  interessi_conto:  { label: 'Interessi',    dot: 'var(--brand)',   icon: Percent,      badge: 'gain' },
-  obiettivo:        { label: 'Obiettivo',    dot: 'var(--info)',    icon: Target,       badge: 'info' },
+  rata_mutuo:       { label: 'Mutuo',        dot: 'var(--muted)',    icon: Home,         badge: 'neutral' },
+  ricorrente:       { label: 'Ricorrente',   dot: 'var(--muted)',  icon: Repeat,       badge: 'neutral' },
+  custom:           { label: 'Personale',    dot: 'var(--muted)',   icon: CalendarPlus, badge: 'neutral' },
+  dividendo_atteso: { label: 'Dividendo',    dot: 'var(--muted)',   icon: TrendingUp,   badge: 'neutral' },
+  stipendio_atteso: { label: 'Stipendio',    dot: 'var(--muted)',   icon: Wallet,       badge: 'neutral' },
+  interessi_conto:  { label: 'Interessi',    dot: 'var(--muted)',   icon: Percent,      badge: 'neutral' },
+  obiettivo:        { label: 'Obiettivo',    dot: 'var(--muted)',    icon: Target,       badge: 'neutral' },
   consenso_banca:   { label: 'Open Banking', dot: 'var(--warning)', icon: Link2,        badge: 'warning' },
   harvesting:       { label: 'Harvesting',   dot: 'var(--warning)', icon: Scissors,     badge: 'warning' },
   franchigia_crypto:{ label: 'Crypto',       dot: 'var(--warning)', icon: Bitcoin,      badge: 'warning' },
@@ -41,7 +41,7 @@ export function metaFor(source: DeadlineSource): SourceMeta {
 
 export function fmtEur(minor: number, maximumFractionDigits = 0): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', maximumFractionDigits,
+    style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits,
   })
 }
 

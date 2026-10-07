@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -30,7 +30,7 @@ export default function MonthBridgeChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:  'oklch(0.26 0.01 160)',
-        axis:  'oklch(0.42 0.01 160)',
+        axis:  'oklch(0.72 0.01 160)',
         over:  '#f87171',
         under: '#34d399',
         zero:  'oklch(0.42 0.01 160)',
@@ -39,7 +39,7 @@ export default function MonthBridgeChart({ data }: Props) {
       }
     : {
         grid:  'oklch(0.88 0.005 160)',
-        axis:  'oklch(0.65 0.008 160)',
+        axis:  'oklch(0.45 0.01 160)',
         over:  '#dc2626',
         under: '#059669',
         zero:  'oklch(0.65 0.008 160)',
@@ -59,7 +59,7 @@ export default function MonthBridgeChart({ data }: Props) {
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         Nessuno scostamento rilevante dal tuo mese tipico.
       </p>
     )

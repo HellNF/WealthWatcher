@@ -5,7 +5,7 @@ import { ProgressBar, EmptyState } from '@/components/ui'
 import type { GoalsWidgetData, WidgetSize } from './types'
 
 function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 
 const GOALS_VISIBLE: Record<WidgetSize, number> = { sm: 0, md: 4, lg: 8 }
@@ -30,17 +30,17 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
     <div className="space-y-4">
       {/* KPI row — sempre visibile */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-[--surface-2] px-3 py-2.5">
-          <p className="text-[10px] font-medium text-[--faint] uppercase tracking-wider mb-0.5">Liquidità libera</p>
-          <p className="text-sm font-semibold font-mono tabular-nums text-[--ink]">
+        <div className="rounded-xl bg-(--surface-2) px-3 py-2.5">
+          <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">Liquidità libera</p>
+          <p className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
             {fmtEur(summary.freeOperatingCashMinor)}
           </p>
         </div>
-        <div className="rounded-xl bg-[--surface-2] px-3 py-2.5">
-          <p className="text-[10px] font-medium text-[--faint] uppercase tracking-wider mb-0.5">Completati</p>
-          <p className="text-sm font-semibold font-mono tabular-nums text-[--ink]">
+        <div className="rounded-xl bg-(--surface-2) px-3 py-2.5">
+          <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">Completati</p>
+          <p className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
             {completedCount}
-            <span className="text-[--muted] font-normal">/{goals.length}</span>
+            <span className="text-(--muted) font-normal">/{goals.length}</span>
           </p>
         </div>
       </div>
@@ -55,9 +55,9 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="size-2 rounded-full shrink-0" style={{ background: g.color }} />
-                    <span className="text-xs text-[--ink] truncate">{g.name}</span>
+                    <span className="text-xs text-(--ink) truncate">{g.name}</span>
                   </div>
-                  <span className="text-xs font-mono tabular-nums text-[--muted] shrink-0">
+                  <span className="text-xs font-mono tabular-nums text-(--muted) shrink-0">
                     {pct.toFixed(0)}%
                   </span>
                 </div>
@@ -66,7 +66,7 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
             )
           })}
           {goals.length > limit && (
-            <p className="text-xs text-[--faint] text-center">+{goals.length - limit} altri obiettivi</p>
+            <p className="text-xs text-(--faint) text-center">+{goals.length - limit} altri obiettivi</p>
           )}
         </div>
       )}

@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { deleteTxnAction } from './actions'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import type { InvestmentTxn } from '@/db/schema'
 import {
   Badge,
@@ -34,7 +34,7 @@ function DeleteBtn({ portfolioId, txnId }: { portfolioId: number; txnId: number 
       onClick={() => startTransition(() => deleteTxnAction(portfolioId, txnId))}
       disabled={isPending}
       aria-label="Elimina operazione"
-      className="text-[--faint] hover:text-[--danger] disabled:opacity-40 transition-colors duration-100 p-1"
+      className="text-(--faint) hover:text-(--danger) disabled:opacity-40 transition-colors duration-100 p-1"
     >
       {isPending ? <span className="text-xs">…</span> : <X className="size-3.5" />}
     </button>
@@ -58,7 +58,7 @@ export default function TxnList({
     <>
       {/* ── Desktop: tabella ───────────────────────────────────────────────── */}
       <div className="hidden sm:block">
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -74,34 +74,34 @@ export default function TxnList({
             <TableBody>
               {reversed.map((txn) => (
                 <Fragment key={txn.id}>
-                  <Tr className={editingId === txn.id ? 'bg-[--surface-2]' : undefined}>
-                    <Td className="text-[--muted] text-xs tabular-nums whitespace-nowrap">
+                  <Tr className={editingId === txn.id ? 'bg-(--surface-2)' : undefined}>
+                    <Td className="text-(--muted) text-xs tabular-nums whitespace-nowrap">
                       {txn.trade_date}
                     </Td>
                     <Td>
-                      <span className="font-medium text-[--ink]">{txn.symbol}</span>
-                      <span className="text-[--faint] ml-1.5 text-xs">{txn.instrument_name}</span>
+                      <span className="font-medium text-(--ink)">{txn.symbol}</span>
+                      <span className="text-(--faint) ml-1.5 text-xs">{txn.instrument_name}</span>
                     </Td>
                     <Td>
                       <Badge variant={TYPE_VARIANT[txn.type] ?? 'neutral'}>
                         {TYPE_LABEL[txn.type]}
                       </Badge>
                     </Td>
-                    <Td numeric className="text-[--muted] text-xs">{txn.quantity ?? '—'}</Td>
-                    <Td numeric className="text-[--muted] text-xs">
+                    <Td numeric className="text-(--muted) text-xs">{txn.quantity ?? '—'}</Td>
+                    <Td numeric className="text-(--muted) text-xs">
                       {txn.unit_price ?? (txn.amount_minor !== null
-                        ? fromMinor(txn.amount_minor, txn.currency)
+                        ? formatMoney(txn.amount_minor, txn.currency)
                         : '—')}
                     </Td>
-                    <Td numeric className="text-[--faint] text-xs">
-                      {txn.fee_minor > 0 ? fromMinor(txn.fee_minor, txn.currency) : '—'}
+                    <Td numeric className="text-(--faint) text-xs">
+                      {txn.fee_minor > 0 ? formatMoney(txn.fee_minor, txn.currency) : '—'}
                     </Td>
                     <Td className="pr-2">
                       <div className="flex items-center justify-end gap-0.5">
                         <button
                           onClick={() => setEditingId(editingId === txn.id ? null : txn.id)}
                           aria-label="Modifica operazione"
-                          className="text-[--faint] hover:text-[--brand-text] transition-colors duration-100 p-1"
+                          className="text-(--faint) hover:text-(--brand-text) transition-colors duration-100 p-1"
                         >
                           <Pencil className="size-3.5" />
                         </button>
@@ -146,7 +146,7 @@ export default function TxnList({
                     <button
                       onClick={() => setEditingId(editingId === txn.id ? null : txn.id)}
                       aria-label="Modifica operazione"
-                      className="text-[--faint] hover:text-[--brand-text] transition-colors duration-100 p-1"
+                      className="text-(--faint) hover:text-(--brand-text) transition-colors duration-100 p-1"
                     >
                       <Pencil className="size-3.5" />
                     </button>
@@ -154,7 +154,7 @@ export default function TxnList({
                   </div>
                 }
               />
-              <div className="divide-y divide-[--border]">
+              <div className="divide-y divide-(--border)">
                 <DataRow label="Data">
                   <span className="tabular-nums">{txn.trade_date}</span>
                 </DataRow>
@@ -163,14 +163,14 @@ export default function TxnList({
                     {txn.quantity ?? '—'}
                     {' × '}
                     {txn.unit_price ?? (txn.amount_minor !== null
-                      ? fromMinor(txn.amount_minor, txn.currency)
+                      ? formatMoney(txn.amount_minor, txn.currency)
                       : '—')}
                   </span>
                 </DataRow>
                 {txn.fee_minor > 0 && (
                   <DataRow label="Commissioni">
-                    <span className="tabular-nums text-[--faint]">
-                      {fromMinor(txn.fee_minor, txn.currency)}
+                    <span className="tabular-nums text-(--faint)">
+                      {formatMoney(txn.fee_minor, txn.currency)}
                     </span>
                   </DataRow>
                 )}

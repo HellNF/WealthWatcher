@@ -51,7 +51,7 @@ export default function AddPortfolioForm({ institutionId }: { institutionId: num
         Portafoglio
       </Button>
       {state?.error && (
-        <p className="text-sm text-[--danger] w-full">{state.error}</p>
+        <p className="text-sm text-(--danger) w-full">{state.error}</p>
       )}
     </form>
   )

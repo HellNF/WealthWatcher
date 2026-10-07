@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { CalendarDays, ListChecks, Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { DeadlineEvent } from '@/lib/calendar'
@@ -18,14 +19,16 @@ interface Props {
 export default function ScadenziarioView({ events, today }: Props) {
   const [view, setView] = useState<ViewMode>('agenda')
   const [formDate, setFormDate] = useState<string | null>(null)
+  const reduceMotion = useReducedMotion()
 
   function openForm(date: string) { setFormDate(date) }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       {/* Toolbar: toggle vista + aggiungi */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[--surface-2] border border-[--border]">
+        <LayoutGroup id="scadenziario-view">
+        <div role="radiogroup" aria-label="Vista" className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-(--surface-2)">
           {([
             { key: 'agenda',   label: 'Agenda',     icon: ListChecks },
             { key: 'calendar', label: 'Calendario', icon: CalendarDays },
@@ -33,22 +36,33 @@ export default function ScadenziarioView({ events, today }: Props) {
             <button
               key={key}
               onClick={() => setView(key)}
-              aria-pressed={view === key}
+              role="radio"
+              aria-checked={view === key}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]',
-                view === key ? 'bg-[--surface] text-[--ink] shadow-[var(--shadow-sm)]' : 'text-[--muted] hover:text-[--ink]',
+                'relative inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md cursor-pointer select-none',
+                'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
+                view === key ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}
             >
-              <Icon className="size-3.5" strokeWidth={1.75} /> {label}
+              {view === key && (
+                <motion.span
+                  layoutId="scadenziario-view-pill"
+                  className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
+                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
+                />
+              )}
+              <Icon className="relative size-4" strokeWidth={1.75} /> <span className="relative">{label}</span>
             </button>
           ))}
         </div>
+        </LayoutGroup>
 
         <button
           onClick={() => openForm(today)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[--border] text-[--ink] hover:bg-[--surface-2] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)"
         >
-          <Plus className="size-3.5" strokeWidth={2} /> Aggiungi evento
+          <Plus className="size-4" strokeWidth={1.75} /> Aggiungi evento
         </button>
       </div>
 

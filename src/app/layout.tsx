@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Bricolage_Grotesque } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import { THEME_SCRIPT } from '@/lib/security/csp'
@@ -8,6 +8,8 @@ import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+// Display: solo titoli di pagina e cifre delle hero — carattere pieno, riconoscibile
+const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bricolage', axes: ['opsz', 'wdth'] })
 
 export const metadata: Metadata = {
   title: 'WealthWatcher',
@@ -23,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="it"
       suppressHydrationWarning
-      className={`${geist.variable} ${geistMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${display.variable}`}
     >
       <head>
         {/* suppressHydrationWarning: falso positivo noto — dopo l'inserimento
@@ -36,7 +38,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             rilegga (e trovi vuoto) l'attributo per il confronto di hydration. */}
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased bg-[--bg] text-[--ink] min-h-screen">
+      <body className="font-sans antialiased bg-(--bg) text-(--ink) min-h-screen">
         <ThemeProvider>
           <ToastProvider>
             {children}

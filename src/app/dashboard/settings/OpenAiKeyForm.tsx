@@ -23,10 +23,10 @@ export default function OpenAiKeyForm({ hasKey, setAt }: Props) {
         <span
           className={[
             'size-2 rounded-full shrink-0',
-            hasKey ? 'bg-[--brand]' : 'bg-[--faint]',
+            hasKey ? 'bg-(--brand)' : 'bg-(--faint)',
           ].join(' ')}
         />
-        <span className="text-[--muted]">
+        <span className="text-(--muted)">
           {hasKey
             ? `Chiave impostata${setAtLabel ? ` il ${setAtLabel}` : ''}`
             : 'Nessuna chiave impostata'}
@@ -48,8 +48,8 @@ export default function OpenAiKeyForm({ hasKey, setAt }: Props) {
         </Button>
       </form>
 
-      {saveState?.error   && <p className="text-xs text-[--danger]" role="alert">{saveState.error}</p>}
-      {saveState?.success && <p className="text-xs text-[--brand]">{saveState.success}</p>}
+      {saveState?.error   && <p className="text-xs text-(--danger)" role="alert">{saveState.error}</p>}
+      {saveState?.success && <p className="text-xs text-(--brand)">{saveState.success}</p>}
 
       {/* Rimozione */}
       {hasKey && (
@@ -63,12 +63,12 @@ export default function OpenAiKeyForm({ hasKey, setAt }: Props) {
           >
             Rimuovi chiave
           </Button>
-          {removeState?.error   && <p className="text-xs text-[--danger] mt-1" role="alert">{removeState.error}</p>}
-          {removeState?.success && <p className="text-xs text-[--brand] mt-1">{removeState.success}</p>}
+          {removeState?.error   && <p className="text-xs text-(--danger) mt-1" role="alert">{removeState.error}</p>}
+          {removeState?.success && <p className="text-xs text-(--brand) mt-1">{removeState.success}</p>}
         </form>
       )}
 
-      <p className="text-xs text-[--faint] leading-relaxed max-w-prose">
+      <p className="text-xs text-(--faint) leading-relaxed max-w-prose">
         La chiave è cifrata (AES-256-GCM) nel database e viene usata esclusivamente per
         estrarre i dati dai PDF KID che carichi. Non viene mai inviata ad altri servizi.
         Ogni utente usa (e paga) la propria quota OpenAI.

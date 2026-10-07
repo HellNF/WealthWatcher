@@ -68,15 +68,24 @@ export function fromMinor(minor: number, currency: string): string {
 }
 
 /**
- * Locale-formatted display string (not suitable for storage).
+ * Locale-formatted display string (not suitable for storage). È il formato
+ * unico per ogni importo mostrato in UI: separatore delle migliaia sempre
+ * presente (it-IT di default lo omette sotto 10.000 → "3818 €" accanto a
+ * "11.074 €"), decimali pari a quelli della valuta.
  *
- * @example formatMoney(1250, "EUR") → "12,50 €"  (it-IT locale)
+ * @example formatMoney(1250, "EUR")   → "12,50 €"
+ * @example formatMoney(381806, "EUR") → "3.818,06 €"
  */
 export function formatMoney(minor: number, currency: string): string {
-  const float = parseFloat(fromMinor(minor, currency))
+  const code = currency.toUpperCase()
+  const d = decimalsFor(code)
+  const float = parseFloat(fromMinor(minor, code))
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
-    currency: currency.toUpperCase(),
+    currency: code,
+    useGrouping: 'always',
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
   }).format(float)
 }
 

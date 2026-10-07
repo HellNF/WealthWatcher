@@ -20,15 +20,15 @@ export default function MortgageForm({ accounts }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Capitale erogato (€)" hint="Importo totale del mutuo">
-          <Input name="initial_capital" placeholder="200000" required />
+          <Input name="initial_capital" inputMode="decimal" placeholder="200000" required />
         </Field>
-        <Field label="Tasso annuo (decimale)" hint="Es. 0.035 per 3,5%">
-          <Input name="annual_interest_rate" placeholder="0.035" required />
+        <Field label="Tasso annuo (%)" hint="TAN, ad esempio 3,5">
+          <Input name="annual_interest_rate" inputMode="decimal" placeholder="3,5" required />
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Durata (mesi)">
+        <Field label="Durata (mesi)" hint="360 mesi = 30 anni">
           <Input name="duration_months" type="number" min="1" max="600" placeholder="360" required />
         </Field>
         <Field label="Data prima rata">
@@ -47,10 +47,10 @@ export default function MortgageForm({ accounts }: Props) {
         </Field>
       )}
 
-      {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-sm text-(--danger-text)" role="alert">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? 'Salvataggio…' : 'Aggiungi mutuo'}
+      <Button type="submit" loading={pending}>
+        Aggiungi mutuo
       </Button>
     </form>
   )

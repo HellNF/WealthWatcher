@@ -63,7 +63,7 @@ export default function ConnectBankButton({
     <div className="space-y-3">
       <Field label="Cerca la tua banca" htmlFor="eb-aspsp-search">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[--faint] pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-(--faint) pointer-events-none" />
           <Input
             id="eb-aspsp-search"
             value={query}
@@ -111,7 +111,7 @@ export default function ConnectBankButton({
         </Button>
       </div>
 
-      {error && <p className="text-sm text-[--danger]">{error}</p>}
+      {error && <p className="text-sm text-(--danger)">{error}</p>}
     </div>
   )
 }

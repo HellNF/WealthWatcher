@@ -11,7 +11,7 @@ export default function BolloToggle() {
   else next.set('quarterly', '1')
 
   return (
-    <Link href={`?${next.toString()}`} className="text-xs text-[--brand-text] hover:underline">
+    <Link href={`?${next.toString()}`} className="text-xs text-(--brand-text) hover:underline">
       {isQuarterly ? 'Mostra annuale' : 'Mostra per trimestre'}
     </Link>
   )

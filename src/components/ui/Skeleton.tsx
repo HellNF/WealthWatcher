@@ -19,7 +19,7 @@ export function Skeleton({ variant = 'text', className, ...props }: SkeletonProp
       role="status"
       aria-label="Caricamento…"
       className={cn(
-        'animate-pulse bg-[--surface-2]',
+        'animate-pulse bg-(--surface-2)',
         variantClasses[variant],
         className,
       )}
@@ -31,7 +31,7 @@ export function Skeleton({ variant = 'text', className, ...props }: SkeletonProp
 /** Gruppo di skeleton per un'intera sezione */
 export function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-[--border] bg-[--surface] p-5 space-y-3">
+    <div className="rounded-2xl border border-(--border) bg-(--surface) p-5 space-y-3">
       <Skeleton variant="text" className="w-24" />
       <Skeleton variant="metric" />
       <Skeleton variant="text" className="w-40" />

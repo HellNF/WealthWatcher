@@ -69,20 +69,20 @@ export default function AddInstitutionForm() {
       </div>
 
       {isCustom ? (
-        <p className="flex items-start gap-1.5 text-xs text-[--warning-text]">
+        <p className="flex items-start gap-1.5 text-xs text-(--warning-text)">
           <Info className="size-3.5 shrink-0 mt-0.5" />
           Per le banche personalizzate l&apos;import automatico dell&apos;estratto conto non è
           supportato: potrai comunque inserire i movimenti manualmente.
         </p>
       ) : selected && !selected.parser ? (
-        <p className="flex items-start gap-1.5 text-xs text-[--muted]">
+        <p className="flex items-start gap-1.5 text-xs text-(--muted)">
           <Info className="size-3.5 shrink-0 mt-0.5" />
           Import estratto conto non ancora disponibile per {selected.name}; puoi comunque tracciarne
           conti e saldi.
         </p>
       ) : null}
 
-      {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-sm text-(--danger)">{state.error}</p>}
     </form>
   )
 }

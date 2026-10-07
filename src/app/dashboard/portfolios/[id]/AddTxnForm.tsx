@@ -69,7 +69,7 @@ function ConfidenceBadge({ c }: { c: 'low' | 'medium' | 'high' }) {
 }
 
 // Classe comune per sezioni disclosure
-const sectionCls = 'rounded-xl border border-[--border] bg-[--surface-2] p-4 space-y-3'
+const sectionCls = 'rounded-xl border border-(--border) bg-(--surface-2) p-4 space-y-3'
 
 export interface KnownInstrument {
   instrumentId: number
@@ -207,7 +207,7 @@ export default function AddTxnForm({
         <CardTitle as="h3">Nuova operazione</CardTitle>
         <button
           onClick={handleClose}
-          className="text-[--faint] hover:text-[--ink] transition-colors"
+          className="text-(--faint) hover:text-(--ink) transition-colors"
           aria-label="Chiudi"
         >
           <X className="size-4" />
@@ -218,7 +218,7 @@ export default function AddTxnForm({
 
         {/* ── ISIN lookup ──────────────────────────────────────────────────── */}
         <div className={sectionCls}>
-          <p className="text-xs font-medium text-[--muted]">Cerca per ISIN (opzionale)</p>
+          <p className="text-xs font-medium text-(--muted)">Cerca per ISIN (opzionale)</p>
           <div className="flex gap-2">
             <Input
               value={instr.isin}
@@ -242,14 +242,14 @@ export default function AddTxnForm({
 
           {isBuySell && knownInstruments.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs text-[--faint]">Nel portafoglio:</p>
+              <p className="text-xs text-(--faint)">Nel portafoglio:</p>
               <div className="flex flex-wrap gap-1.5">
                 {knownInstruments.map((k) => (
                   <button
                     key={k.instrumentId}
                     type="button"
                     onClick={() => applyResult(knownToResult(k))}
-                    className="inline-flex items-center gap-1 rounded-md border border-[--border] bg-[--surface] px-2 py-1 text-xs font-mono text-[--ink] hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors duration-100"
+                    className="inline-flex items-center gap-1 rounded-md border border-(--border) bg-(--surface) px-2 py-1 text-xs font-mono text-(--ink) hover:border-(--brand) hover:bg-(--brand-subtle) transition-colors duration-100"
                   >
                     {k.symbol}
                   </button>
@@ -258,12 +258,12 @@ export default function AddTxnForm({
             </div>
           )}
 
-          {lookupErr && <p className="text-xs text-[--warning]">{lookupErr}</p>}
+          {lookupErr && <p className="text-xs text-(--warning)">{lookupErr}</p>}
 
           {hits.length > 0 && (
             <div className="space-y-2">
               {hits.some(r => r.exchCode !== 'PORTFOLIO') && (
-                <p className="text-xs text-[--muted]">
+                <p className="text-xs text-(--muted)">
                   Lo stesso strumento è quotato su più borse — scegli quella su cui hai comprato:
                 </p>
               )}
@@ -274,12 +274,12 @@ export default function AddTxnForm({
                     type="button"
                     onClick={() => applyResult(r)}
                     className={cn(
-                      'rounded-lg border border-[--border] bg-[--surface] px-3 py-2.5 text-left',
-                      'hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors duration-100 group',
+                      'rounded-lg border border-(--border) bg-(--surface) px-3 py-2.5 text-left',
+                      'hover:border-(--brand) hover:bg-(--brand-subtle) transition-colors duration-100 group',
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-mono font-semibold text-[--ink] group-hover:text-[--brand] transition-colors">
+                      <p className="text-sm font-mono font-semibold text-(--ink) group-hover:text-(--brand) transition-colors">
                         {r.yahooSymbol}
                       </p>
                       {r.exchCode === 'PORTFOLIO' ? (
@@ -288,7 +288,7 @@ export default function AddTxnForm({
                         <Badge variant="success">consigliato</Badge>
                       ) : null}
                     </div>
-                    <p className="text-xs text-[--muted] mt-0.5">{r.exchLabel}</p>
+                    <p className="text-xs text-(--muted) mt-0.5">{r.exchLabel}</p>
                   </button>
                 ))}
               </div>
@@ -298,16 +298,16 @@ export default function AddTxnForm({
 
         {/* ── KID import ───────────────────────────────────────────────────── */}
         <div className={sectionCls}>
-          <p className="text-xs font-medium text-[--muted]">Importa dati da KID (opzionale)</p>
+          <p className="text-xs font-medium text-(--muted)">Importa dati da KID (opzionale)</p>
 
           {!kidExtracted ? (
             <div className="flex items-center gap-3">
               <label className={cn(
-                'inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[--border]',
-                'text-sm text-[--ink] cursor-pointer hover:bg-[--surface] transition-colors duration-100',
+                'inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-(--border)',
+                'text-sm text-(--ink) cursor-pointer hover:bg-(--surface) transition-colors duration-100',
                 kidPending && 'opacity-50 pointer-events-none',
               )}>
-                <Upload className="size-4 text-[--muted]" />
+                <Upload className="size-4 text-(--muted)" />
                 {kidPending ? 'Estrazione in corso…' : 'Carica PDF KID'}
                 <input
                   ref={kidFileRef}
@@ -317,14 +317,14 @@ export default function AddTxnForm({
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleKidUpload(f) }}
                 />
               </label>
-              {kidErr && <p className="text-xs text-[--danger]">{kidErr}</p>}
+              {kidErr && <p className="text-xs text-(--danger)">{kidErr}</p>}
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-xs text-[--muted]">
+              <p className="text-xs text-(--muted)">
                 Campi estratti da{' '}
-                <span className="font-mono text-[--ink]">{kidFilename}</span>{' '}
-                via <span className="text-[--faint]">{kidModel}</span>.
+                <span className="font-mono text-(--ink)">{kidFilename}</span>{' '}
+                via <span className="text-(--faint)">{kidModel}</span>.
                 Verifica e correggi prima di confermare.
               </p>
 
@@ -429,14 +429,14 @@ export default function AddTxnForm({
               </div>
 
               {kidExtracted.benchmark.value && (
-                <p className="text-xs text-[--muted]">
-                  Benchmark: <span className="text-[--ink]">{kidExtracted.benchmark.value}</span>
+                <p className="text-xs text-(--muted)">
+                  Benchmark: <span className="text-(--ink)">{kidExtracted.benchmark.value}</span>
                   {' '}<ConfidenceBadge c={kidExtracted.benchmark.confidence} />
                 </p>
               )}
               {kidExtracted.taxation_note.value && (
-                <p className="text-xs text-[--muted]">
-                  Fiscalità: <span className="text-[--ink]">{kidExtracted.taxation_note.value}</span>
+                <p className="text-xs text-(--muted)">
+                  Fiscalità: <span className="text-(--ink)">{kidExtracted.taxation_note.value}</span>
                 </p>
               )}
 
@@ -462,12 +462,12 @@ export default function AddTxnForm({
                   Annulla
                 </Button>
                 {!instr.symbol && (
-                  <p className="text-xs text-[--warning]">Compila prima il simbolo strumento</p>
+                  <p className="text-xs text-(--warning)">Compila prima il simbolo strumento</p>
                 )}
               </form>
 
-              {confirmKidState?.error   && <p className="text-sm text-[--danger]">{confirmKidState.error}</p>}
-              {confirmKidState?.success && <p className="text-sm text-[--brand]">{confirmKidState.success}</p>}
+              {confirmKidState?.error   && <p className="text-sm text-(--danger)">{confirmKidState.error}</p>}
+              {confirmKidState?.success && <p className="text-sm text-(--brand)">{confirmKidState.success}</p>}
             </div>
           )}
         </div>
@@ -587,9 +587,9 @@ export default function AddTxnForm({
                 placeholder="0"
                 className="w-24 font-mono"
               />
-              <span className="text-sm text-[--muted]">%</span>
+              <span className="text-sm text-(--muted)">%</span>
             </div>
-            <p className="mt-1 text-xs text-[--faint]">
+            <p className="mt-1 text-xs text-(--faint)">
               Quota del fondo in titoli di Stato White List (0 = nessuna, 100 = BTP/Tit. di Stato puri).
               Influenza l&apos;aliquota fiscale: da 26% a 12,5%.
             </p>
@@ -609,17 +609,17 @@ export default function AddTxnForm({
             </Field>
             <Field htmlFor="txn-price">
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="txn-price" className="text-sm font-medium text-[--ink]">
+                <label htmlFor="txn-price" className="text-sm font-medium text-(--ink)">
                   Prezzo unitario
                   {isFetching && (
-                    <span className="ml-1 text-[--faint] animate-pulse text-xs">aggiorno…</span>
+                    <span className="ml-1 text-(--faint) animate-pulse text-xs">aggiorno…</span>
                   )}
                 </label>
                 {!isFetching && instr.symbol && (
                   <button
                     type="button"
                     onClick={() => fetchDetails(instr.symbol)}
-                    className="text-xs text-[--faint] hover:text-[--brand] transition-colors flex items-center gap-1"
+                    className="text-xs text-(--faint) hover:text-(--brand) transition-colors flex items-center gap-1"
                     title="Ricarica prezzo corrente"
                   >
                     <RefreshCw className="size-3" />
@@ -636,7 +636,7 @@ export default function AddTxnForm({
                 placeholder="es. 95.42"
                 className="font-mono"
               />
-              {fetchMsg && <p className="text-xs text-[--warning] mt-1">{fetchMsg}</p>}
+              {fetchMsg && <p className="text-xs text-(--warning) mt-1">{fetchMsg}</p>}
             </Field>
             <Field label="Commissione" htmlFor="txn-fee">
               <Input
@@ -680,7 +680,7 @@ export default function AddTxnForm({
           </Button>
         </div>
 
-        {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
+        {state?.error && <p className="text-sm text-(--danger)">{state.error}</p>}
       </form>
     </Card>
   )

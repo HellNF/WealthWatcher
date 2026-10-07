@@ -44,7 +44,7 @@ export default function RenameForm({ action, currentName, label = 'Nome' }: Rena
           <X className="size-4" />
         </Button>
       </div>
-      {state?.error && <p className="text-xs text-[--danger] self-center">{state.error}</p>}
+      {state?.error && <p className="text-xs text-(--danger) self-center">{state.error}</p>}
     </form>
   )
 }

@@ -10,16 +10,18 @@ import { estimatedWealthTaxes } from '@/lib/tax/wealth'
 import AddInstitutionForm from './AddInstitutionForm'
 import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
-import NetWorthChart from './NetWorthChart'
+import NetWorthHero from './NetWorthHero'
+import CompositionBar from './CompositionBar'
 import RefreshNetWorthButton from './RefreshNetWorthButton'
-import { ensureTodaySnapshot, listSnapshots, snapshotDelta } from '@/lib/valuation'
+import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
 import { AddSection } from '@/components/dashboard/AddSection'
 import {
   Card,
-  Stat, Badge, EmptyState,
+  EmptyState, HeroLink, StickyBar, PAGE_SHELL,
 } from '@/components/ui'
 import Link from 'next/link'
-import { Building2, ChevronRight, Wallet, AlertTriangle, Info, CheckCircle2, TrendingUp } from 'lucide-react'
+import { cn } from '@/lib/cn'
+import { Building2, ChevronRight, Wallet, AlertTriangle } from 'lucide-react'
 import { computeGoalsSummary, listGoals, isGoalCompleted } from '@/lib/goals'
 import { budgetStatus } from '@/lib/budgets'
 import { getScadenziarioEvents } from '@/lib/calendar'
@@ -39,17 +41,61 @@ const KIND_LABEL: Record<string, string> = {
 
 function formatEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
   })
 }
 
 function formatEurCompact(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
+}
+
+/** Riga cliccabile delle liste di accesso rapido (conti, portafogli, istituzioni). */
+function EntityRow({ href, name, sub, value, accent }: {
+  href: string
+  name: string
+  sub?: string
+  value: React.ReactNode
+  accent?: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 px-4 py-3 hover:bg-(--surface-2) active:bg-(--surface-2) transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)"
+    >
+      <span
+        className={cn(
+          'size-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-semibold',
+          accent ? 'bg-(--brand-subtle) text-(--brand-text)' : 'bg-(--surface-2) ring-1 ring-(--border) text-(--muted)',
+        )}
+        aria-hidden
+      >
+        {name[0]?.toUpperCase()}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-medium text-(--ink) truncate">{name}</span>
+        {sub && <span className="block text-xs text-(--muted) truncate">{sub}</span>}
+      </span>
+      <span className="font-mono tabular-nums text-sm font-medium text-(--ink) shrink-0">{value}</span>
+      <ChevronRight className="size-4 text-(--faint) group-hover:text-(--ink) group-hover:translate-x-0.5 transition-[color,transform] duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
+    </Link>
+  )
+}
+
+/** Lista raggruppata della colonna laterale: titolo piccolo + righe in un unico contenitore. */
+function RailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2.5">
+      <h2 className="px-1 text-sm font-semibold text-(--ink)">{title}</h2>
+      <Card noPadding className="overflow-hidden divide-y divide-(--border)">
+        {children}
+      </Card>
+    </section>
+  )
 }
 
 interface BreakdownEntry {
@@ -65,9 +111,6 @@ export default async function DashboardPage() {
 
   const snapshots = listSnapshots(user.id)
   const latest  = snapshots.at(-1) ?? null
-
-  const deltaInfo = snapshotDelta(snapshots)
-  const delta = deltaInfo?.absMinor ?? null
 
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
@@ -185,25 +228,53 @@ export default async function DashboardPage() {
     },
   }
 
+  const estimatedTaxMinor = (latentTax?.latentTaxMinor ?? 0) + (wealthTaxes?.totalMinor ?? 0)
+
+  // Composizione del patrimonio per la barra del hero (solo blocchi positivi)
+  const compositionParts = latest ? [
+    { label: 'Investimenti',   minor: latest.investments_eur_minor,  bar: 'bg-(--brand)' },
+    { label: 'Conti correnti', minor: latest.accounts_eur_minor,     bar: 'bg-(--info)' },
+    { label: 'Altri beni',     minor: latest.other_assets_eur_minor, bar: 'bg-(--warning)' },
+  ].filter((c) => c.minor > 0) : []
+  const compositionTotal = compositionParts.reduce((sum, c) => sum + c.minor, 0)
+  const composition = compositionParts.map((c) => ({
+    label: c.label,
+    bar:   c.bar,
+    value: formatEurCompact(c.minor),
+    pct:   (c.minor / compositionTotal) * 100,
+  }))
+
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <>
+    {latest && (
+      <StickyBar watchId="networth-value">
+        <span className="text-sm font-medium text-(--ink)">Patrimonio netto</span>
+        <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">{formatEur(latest.net_worth_eur_minor)}</span>
+        {estimatedTaxMinor > 0 && (
+          <span className="text-xs text-(--muted) ml-auto font-mono tabular-nums">
+            Netto reale {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
+          </span>
+        )}
+      </StickyBar>
+    )}
+    <main className={`${PAGE_SHELL} space-y-10`}>
 
       {/* ── Banner liquidità critica ──────────────────────────────────────── */}
       {runway?.status === 'CRITICAL_SHORTAGE' && (
-        <Card className="border-[--danger] bg-[--danger]/5">
+        <Card className="border-(--danger) bg-(--danger)/5">
           <div className="flex items-start gap-3.5">
-            <div className="size-9 rounded-xl bg-[--danger-subtle] flex items-center justify-center shrink-0">
-              <AlertTriangle className="size-4 text-[--danger]" strokeWidth={1.75} />
+            <div className="size-9 rounded-xl bg-(--danger-subtle) flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-4 text-(--danger)" strokeWidth={1.75} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[--danger]">
+              <p className="text-sm font-semibold text-(--danger)">
                 Rischio scoperto entro i prossimi {runway.windowDays} giorni
               </p>
-              <p className="text-sm text-[--muted] mt-0.5">
-                Deficit stimato: <strong className="text-[--danger]">{formatEur(runway.deficitMinor)}</strong>.
+              <p className="text-sm text-(--muted) mt-0.5">
+                Deficit stimato: <strong className="text-(--danger)">{formatEur(runway.deficitMinor)}</strong>.
                 Considera di ridurre le allocazioni agli obiettivi o di posticipare alcune uscite.
               </p>
-              <Link href="/dashboard/scadenziario" className="text-xs text-[--brand-text] hover:underline mt-1.5 inline-block">
+              <Link href="/dashboard/scadenziario" className="text-xs text-(--brand-text) hover:underline mt-1.5 inline-block">
                 Vedi lo scadenziario →
               </Link>
             </div>
@@ -211,269 +282,138 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* ── Net worth hero ────────────────────────────────────────────────── */}
-      <Card noPadding className="relative overflow-hidden">
-        {/* glow ambientale, fisso e non interattivo — mai su elementi scrollabili */}
-        <div
-          className="pointer-events-none absolute -top-28 -right-20 w-80 h-80 rounded-full bg-[--brand]/[0.08] blur-[90px]"
-          aria-hidden
-        />
-        <div className="relative p-6 pb-4">
-          <div className="flex items-start justify-between gap-6 flex-wrap">
-            <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-[--muted] uppercase tracking-wide">
-                <span className="size-1.5 rounded-full bg-[--brand] animate-pulse" />
-                Patrimonio netto
-              </p>
-              {latest ? (
-                <div className="flex items-end gap-3 flex-wrap">
-                  <span className="text-4xl sm:text-5xl font-bold font-mono tabular-nums text-[--ink] leading-none tracking-tight">
-                    {formatEur(latest.net_worth_eur_minor)}
-                  </span>
-                  {delta !== null && (
-                    delta === 0 ? (
-                      <span className="mb-1 text-sm font-mono tabular-nums text-[--muted]">
-                        0,00 € (0,00%)
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_24rem] min-[131rem]:grid-cols-[minmax(0,1fr)_30rem] gap-x-8 2xl:gap-x-10 gap-y-10 items-start xl:items-stretch">
+
+        {/* ══ Colonna principale ════════════════════════════════════════════ */}
+        <div className="min-w-0 flex flex-col gap-10">
+
+          {/* ── Net worth hero ──────────────────────────────────────────── */}
+          <NetWorthHero
+            valueId="networth-value"
+            points={snapshots.map((snap) => ({ date: snap.date, value: snap.net_worth_eur_minor }))}
+            stale={latest?.stale === 1}
+            refresh={<RefreshNetWorthButton />}
+            aside={<CompositionBar parts={composition} className="xl:hidden" />}
+            footer={
+              <div className="flex items-center gap-x-8 gap-y-3 flex-wrap border-t border-(--border) px-6 sm:px-8 py-4 text-sm">
+                {latest && (latentTax || wealthTaxes) && (
+                  <>
+                    <p className="text-(--muted)">
+                      Imposte stimate{' '}
+                      <span className="ml-1 font-mono tabular-nums font-medium text-(--ink)">
+                        −{formatEur(estimatedTaxMinor)}
                       </span>
-                    ) : (
-                      <Badge variant={delta > 0 ? 'gain' : 'loss'} className="mb-1">
-                        {delta > 0 ? '+' : '−'}
-                        {formatEurCompact(Math.abs(delta))}
-                        {deltaInfo?.pct !== null && deltaInfo?.pct !== undefined && (
-                          <> ({delta > 0 ? '+' : '−'}{Math.abs(deltaInfo.pct).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</>
-                        )}
-                      </Badge>
-                    )
-                  )}
-                </div>
-              ) : (
-                <span className="text-[--muted] text-sm">Calcolo in corso…</span>
-              )}
-              {latest && (
-                <div className="flex items-center gap-1.5 text-xs text-[--faint]">
-                  {latest.stale === 1 ? (
-                    <Info className="size-3 text-[--warning] shrink-0" strokeWidth={1.75} />
-                  ) : (
-                    <CheckCircle2 className="size-3 text-[--brand-text] shrink-0" strokeWidth={1.75} />
-                  )}
-                  <span className={latest.stale === 1 ? 'text-[--warning]' : ''}>
-                    {latest.stale === 1 ? 'Dati parziali · ' : ''}Aggiornato al {latest.date}
-                  </span>
-                  <RefreshNetWorthButton />
-                </div>
-              )}
-            </div>
-
-            {latest && (
-              <div className="flex gap-8 flex-wrap">
-                <Stat
-                  label="Investimenti"
-                  value={formatEurCompact(latest.investments_eur_minor)}
-                  size="sm"
-                />
-                <Stat
-                  label="Conti correnti"
-                  value={formatEurCompact(latest.accounts_eur_minor)}
-                  size="sm"
-                />
-                {latest.other_assets_eur_minor !== 0 && (
-                  <Stat
-                    label="Altri beni"
-                    value={formatEurCompact(latest.other_assets_eur_minor)}
-                    size="sm"
-                  />
+                    </p>
+                    <p className="text-(--muted)">
+                      Netto reale{' '}
+                      <span className="ml-1 font-mono tabular-nums font-medium text-(--ink)">
+                        {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
+                      </span>
+                    </p>
+                  </>
                 )}
+                <HeroLink href="/dashboard/tasse" className="sm:ml-auto">Dettaglio fiscale</HeroLink>
               </div>
+            }
+          />
+
+          {/* ── Widget panoramica ─────────────────────────────────────────────── */}
+          <DashboardGrid data={widgetsData} initialLayout={savedLayout} />
+
+        </div>
+
+        {/* ══ Colonna laterale: dove sono i soldi ══════════════════════════ */}
+        <aside className="min-w-0 space-y-8">
+          {composition.length > 0 && (
+            <Card className="hidden xl:block space-y-4">
+              <h2 className="text-sm font-semibold text-(--ink)">Composizione</h2>
+              <CompositionBar parts={composition} stacked />
+            </Card>
+          )}
+
+          {accounts.length > 0 && (
+            <RailSection title="Conti correnti">
+              {accounts.map((acc) => {
+                const eurMinor = accountValueMap.get(acc.id)
+                return (
+                  <EntityRow
+                    key={acc.id}
+                    href={`/dashboard/accounts/${acc.id}`}
+                    name={acc.name}
+                    sub={institutionMap.get(acc.institution_id)}
+                    value={eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
+                  />
+                )
+              })}
+            </RailSection>
+          )}
+
+          {portfolios.length > 0 && (
+            <RailSection title="Portafogli">
+              {portfolios.map((pf) => {
+                const eurMinor = portfolioValueMap.get(pf.id)
+                return (
+                  <EntityRow
+                    key={pf.id}
+                    href={`/dashboard/portfolios/${pf.id}`}
+                    name={pf.name}
+                    sub={institutionMap.get(pf.institution_id)}
+                    value={eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
+                  />
+                )
+              })}
+            </RailSection>
+          )}
+
+          {/* ── Istituzioni ───────────────────────────────────────────────────── */}
+          <AddSection
+            title="Istituzioni"
+            icon={<Building2 className="size-4 text-(--muted)" strokeWidth={1.75} />}
+            addLabel="Aggiungi"
+            form={
+              <Card>
+                <AddInstitutionForm />
+              </Card>
+            }
+          >
+            {institutions.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon={Building2}
+                  title="Nessuna istituzione"
+                  description="Aggiungi la tua prima banca o broker per iniziare a tracciare il patrimonio."
+                />
+              </Card>
+            ) : (
+              <Card noPadding className="overflow-hidden divide-y divide-(--border)">
+                {institutions.map((inst, i) => {
+                  const val = instValues[i]
+                  return (
+                    <EntityRow
+                      key={inst.id}
+                      href={`/dashboard/institutions/${inst.id}`}
+                      name={inst.name}
+                      sub={KIND_LABEL[inst.kind] ?? inst.kind}
+                      value={
+                        <>
+                          {formatEurCompact(val.valueEurMinor)}
+                          {val.stale && <span className="text-(--warning-text) ml-1" title="Valore parziale">*</span>}
+                        </>
+                      }
+                      />
+                  )
+                })}
+              </Card>
             )}
-          </div>
-        </div>
+          </AddSection>
 
-        {/* ── Micro-Card Fiscale ────────────────────────────────────────── */}
-        {latest && (latentTax || wealthTaxes) ? (
-          <div className="mx-6 mb-4 rounded-xl border border-[--border] bg-[--surface-2] overflow-hidden">
-            <div className="grid grid-cols-3 divide-x divide-[--border]">
-              <div className="px-4 py-3 text-center">
-                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Lordo</p>
-                <p className="font-mono tabular-nums text-sm font-semibold text-[--ink]">
-                  {formatEur(latest.net_worth_eur_minor)}
-                </p>
-              </div>
-              <div className="px-4 py-3 text-center">
-                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Imposte stimate</p>
-                <p className="font-mono tabular-nums text-sm font-semibold text-[--danger]">
-                  −{formatEur((latentTax?.latentTaxMinor ?? 0) + (wealthTaxes?.totalMinor ?? 0))}
-                </p>
-                <p className="text-[10px] text-[--faint] mt-0.5">latenti + bollo</p>
-              </div>
-              <div className="px-4 py-3 text-center">
-                <p className="text-[10px] font-medium uppercase tracking-widest text-[--faint] mb-1">Netto reale</p>
-                <p className="font-mono tabular-nums text-sm font-semibold text-[--brand-text]">
-                  {formatEur(latest.net_worth_eur_minor - (latentTax?.latentTaxMinor ?? 0) - (wealthTaxes?.totalMinor ?? 0))}
-                </p>
-              </div>
-            </div>
-            <div className="border-t border-[--border] px-4 py-2 flex justify-center">
-              <Link
-                href="/dashboard/tasse"
-                className="group inline-flex items-center gap-1 text-xs text-[--brand-text] hover:underline"
-              >
-                Dettaglio fiscale completo
-                <ChevronRight className="size-3 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5" />
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="mx-6 mb-4">
-            <Link
-              href="/dashboard/tasse"
-              className="group inline-flex items-center gap-1.5 text-xs text-[--brand-text] hover:underline"
-            >
-              Dettaglio fiscale — tasse latenti, plus/minus realizzate, bollo/IVAFE
-              <ChevronRight className="size-3.5 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        )}
-
-        <div className="px-2 pb-4">
-          <NetWorthChart snapshots={snapshots} />
-        </div>
-      </Card>
-
-      {/* ── Widget panoramica ─────────────────────────────────────────────── */}
-      <DashboardGrid data={widgetsData} initialLayout={savedLayout} />
-
-      {/* ── Conti correnti (accesso rapido) ──────────────────────────────── */}
-      {accounts.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-[--ink]">
-            <Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />
-            Conti correnti
-          </h2>
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {accounts.map((acc) => {
-              const instName = institutionMap.get(acc.institution_id)
-              const eurMinor = accountValueMap.get(acc.id)
-              return (
-                <Link
-                  key={acc.id}
-                  href={`/dashboard/accounts/${acc.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
-                >
-                  <div className="size-9 rounded-xl bg-[--surface-2] ring-1 ring-[--border] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
-                    <span className="text-sm font-semibold text-[--muted]">
-                      {acc.name[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="flex-1 min-w-0 text-sm font-medium text-[--ink] truncate">
-                    {acc.name}
-                  </p>
-                  {instName && (
-                    <Badge variant="neutral" className="shrink-0">{instName}</Badge>
-                  )}
-                  <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
-                    {eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
-                  </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
-                </Link>
-              )
-            })}
-          </Card>
-        </section>
-      )}
-
-      {/* ── Portafogli d'investimento (accesso rapido) ───────────────────── */}
-      {portfolios.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-[--ink]">
-            <TrendingUp className="size-4 text-[--muted]" strokeWidth={1.75} />
-            Portafogli d&apos;investimento
-          </h2>
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {portfolios.map((pf) => {
-              const instName = institutionMap.get(pf.institution_id)
-              const eurMinor = portfolioValueMap.get(pf.id)
-              return (
-                <Link
-                  key={pf.id}
-                  href={`/dashboard/portfolios/${pf.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
-                >
-                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
-                    <span className="text-sm font-semibold text-[--brand-text]">
-                      {pf.name[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="flex-1 min-w-0 text-sm font-medium text-[--ink] truncate">
-                    {pf.name}
-                  </p>
-                  {instName && (
-                    <Badge variant="neutral" className="shrink-0">{instName}</Badge>
-                  )}
-                  <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
-                    {eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
-                  </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
-                </Link>
-              )
-            })}
-          </Card>
-        </section>
-      )}
-
-      {/* ── Istituzioni ───────────────────────────────────────────────────── */}
-      <AddSection
-        title="Istituzioni"
-        icon={<Building2 className="size-4 text-[--muted]" strokeWidth={1.75} />}
-        addLabel="Aggiungi"
-        form={
-          <Card>
-            <AddInstitutionForm />
-          </Card>
-        }
-      >
-        {institutions.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={Building2}
-              title="Nessuna istituzione"
-              description="Aggiungi la tua prima banca o broker per iniziare a tracciare il patrimonio."
-            />
-          </Card>
-        ) : (
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
-            {institutions.map((inst, i) => {
-              const val = instValues[i]
-              return (
-                <Link
-                  key={inst.id}
-                  href={`/dashboard/institutions/${inst.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-[--surface-2] transition-colors duration-200 [transition-timing-function:var(--ease-spring)] group"
-                >
-                  <div className="size-9 rounded-xl bg-[--brand-subtle] flex items-center justify-center shrink-0 transition-transform duration-200 [transition-timing-function:var(--ease-spring)] group-hover:scale-105">
-                    <span className="text-sm font-semibold text-[--brand-text]">
-                      {inst.name[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[--ink] truncate">{inst.name}</p>
-                    <p className="text-xs text-[--muted]">{KIND_LABEL[inst.kind] ?? inst.kind}</p>
-                  </div>
-                  <span className="font-mono tabular-nums text-sm text-[--ink] shrink-0">
-                    {formatEur(val.valueEurMinor)}
-                    {val.stale && <span className="text-[--warning] ml-1" title="Valore parziale">*</span>}
-                  </span>
-                  <ChevronRight className="size-4 text-[--faint] group-hover:text-[--muted] group-hover:translate-x-0.5 transition-all duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
-                </Link>
-              )
-            })}
-          </Card>
-        )}
-      </AddSection>
+                  </aside>
+      </div>
 
       {/* ── Altri beni ────────────────────────────────────────────────────── */}
       <AddSection
         title="Altri beni"
-        icon={<Wallet className="size-4 text-[--muted]" strokeWidth={1.75} />}
+        icon={<Wallet className="size-4 text-(--muted)" strokeWidth={1.75} />}
         subtitle="Liquidità, immobili, veicoli e altro — concorrono al patrimonio netto."
         addLabel="Aggiungi"
         form={
@@ -491,7 +431,7 @@ export default async function DashboardPage() {
             />
           </Card>
         ) : (
-          <Card noPadding className="overflow-hidden divide-y divide-[--border]">
+          <Card noPadding className="overflow-hidden divide-y divide-(--border)">
             {assets.map((asset) => (
               <AssetRow key={asset.id} asset={asset} vehicleDetails={vehicleDetailsByAsset.get(asset.id)} />
             ))}
@@ -499,5 +439,6 @@ export default async function DashboardPage() {
         )}
       </AddSection>
     </main>
+    </>
   )
 }

@@ -2,7 +2,7 @@
 // interpola sentiment (Fear & Greed), posizione nel ciclo (BTC vs media 200
 // settimane) e momentum in una posizione argomentata. La dominance è contesto.
 import { getBtcCycle } from '../crypto'
-import { synthesize, driverFearGreed, driverBtc200w, driverMomentum } from './scoring'
+import { synthesize, fmtIt, driverFearGreed, driverBtc200w, driverMomentum } from './scoring'
 import type { SectorAnalysis } from './types'
 
 const LEARN = [
@@ -20,8 +20,8 @@ export async function analyzeCrypto(): Promise<SectorAnalysis> {
   ]
 
   const note = [
-    c.pctAbove200w !== null ? `Bitcoin è ${c.pctAbove200w >= 0 ? 'sopra' : 'sotto'} la media a 200 settimane del ${Math.abs(c.pctAbove200w).toFixed(0)}%` : null,
-    c.dominance !== null ? `dominance BTC al ${c.dominance.toFixed(0)}%` : null,
+    c.pctAbove200w !== null ? `Bitcoin è ${c.pctAbove200w >= 0 ? 'sopra' : 'sotto'} la media a 200 settimane del ${fmtIt(Math.abs(c.pctAbove200w), 0)}%` : null,
+    c.dominance !== null ? `dominance BTC al ${fmtIt(c.dominance, 0)}%` : null,
   ].filter(Boolean).join('; ')
 
   return synthesize({

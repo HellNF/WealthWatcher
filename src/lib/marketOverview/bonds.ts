@@ -6,6 +6,8 @@
 // del decennio", "rendimenti compressi").
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import { buildPercentileSignal, type MarketSignal } from './signals'
+import { fetchHicpAnnualRate } from './eurostat'
+import { fetchFred } from './fred'
 
 interface CountrySpec {
   code:    string
@@ -112,7 +114,7 @@ export interface BondMacro {
   curve2y:    number | null   // euro area AAA 2Y spot (%)
   curve10y:   number | null   // euro area AAA 10Y spot (%)
   slope:      number | null   // 10Y − 2Y (punti percentuali)
-  inflation:  number | null   // HICP annuo euro (%)
+  inflation:  number | null   // HICP annuo euro (%), Eurostat
   realYield:  number | null   // BTP 10Y − inflazione (%)
   asOf:       number
 }
@@ -136,7 +138,8 @@ export async function getBondMacro(): Promise<BondMacro> {
     fetchEcbSeries('DE'),
     fetchEcb('YC', 'B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y', 30),
     fetchEcb('YC', 'B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y', 30),
-    fetchEcb('ICP', 'M.U2.N.000000.4.ANR', 24),
+    // Inflazione da Eurostat: la serie ICP del portale BCE è ferma a dic 2025.
+    fetchHicpAnnualRate('EA'),
   ])
 
   const last = (s: Observation[]) => (s.length ? s[s.length - 1].value : null)
@@ -161,5 +164,39 @@ export async function getBondMacro(): Promise<BondMacro> {
     inflation,
     realYield,
     asOf: Math.floor(Date.now() / 1000),
+  }
+}
+
+// ── Obbligazioni USA (FRED) ───────────────────────────────────────────────────
+
+export interface UsBondMacro {
+  us10y:      number | null   // Treasury 10 anni (%)
+  us10yPct:   number | null   // percentile sugli ultimi 10 anni
+  tips10y:    number | null   // rendimento reale di mercato (TIPS 10 anni, %)
+  slope:      number | null   // 10Y − 2Y (punti percentuali)
+  asOf:       number
+}
+
+function percentileOfLast(values: number[], minObs: number): number | null {
+  if (values.length < minObs) return null
+  const latest = values[values.length - 1]
+  return (values.filter((v) => v <= latest).length / values.length) * 100
+}
+
+/** Treasury, TIPS e curva USA da FRED. Ogni campo è null-safe. */
+export async function getUsBondMacro(): Promise<UsBondMacro> {
+  const since = new Date(); since.setFullYear(since.getFullYear() - 10)
+  const from = since.toISOString().slice(0, 10)
+  const [y10, tips, curve] = await Promise.all([
+    fetchFred('DGS10', from), fetchFred('DFII10', from), fetchFred('T10Y2Y', from),
+  ])
+  const lastOf = (s: Observation[]) => (s.length ? s[s.length - 1].value : null)
+
+  return {
+    us10y:    lastOf(y10),
+    us10yPct: percentileOfLast(y10.map((o) => o.value), 500),
+    tips10y:  lastOf(tips),
+    slope:    lastOf(curve),
+    asOf:     Math.floor(Date.now() / 1000),
   }
 }

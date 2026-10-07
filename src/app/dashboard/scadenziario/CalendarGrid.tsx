@@ -62,40 +62,40 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
 
   return (
     <div
-      className="flex flex-col sm:flex-row rounded-2xl border border-[--border] bg-[--surface] overflow-hidden"
+      className="flex flex-col sm:flex-row rounded-2xl border border-(--border) bg-(--surface) overflow-hidden"
       style={{ boxShadow: 'var(--shadow-sm)' }}
     >
       {/* ── Griglia ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex items-center gap-1 px-4 py-3 border-b border-[--border]">
+        <div className="flex items-center gap-1 px-4 py-3 border-b border-(--border)">
           <button
             onClick={() => goMonth(-1)} aria-label="Mese precedente"
-            className="size-7 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+            className="size-7 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           >
             <ChevronLeft className="size-3.5" strokeWidth={2.5} />
           </button>
-          <h3 className="flex-1 text-center text-sm font-semibold text-[--ink] select-none">
+          <h3 className="flex-1 text-center text-sm font-semibold text-(--ink) select-none">
             {MONTHS_IT[cm - 1]} {cy}
           </h3>
           <button
             onClick={() => goMonth(1)} aria-label="Mese successivo"
-            className="size-7 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+            className="size-7 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           >
             <ChevronRight className="size-3.5" strokeWidth={2.5} />
           </button>
           {!isCurrentMonth && (
             <button
               onClick={() => { setCurrentMonth(today.slice(0, 7)); setSelectedDate(today) }}
-              className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-[--brand-subtle] text-[--brand-text] hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+              className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-(--brand-subtle) text-(--brand-text) hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
             >
               Oggi
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-7 border-b border-[--border]">
+        <div className="grid grid-cols-7 border-b border-(--border)">
           {DAYS_SHORT.map((d, i) => (
-            <div key={d} className={`py-2 text-center text-[10px] font-semibold uppercase tracking-wider select-none ${i >= 5 ? 'text-[--faint]' : 'text-[--muted]'}`}>
+            <div key={d} className={`py-2 text-center text-[10px] font-semibold uppercase tracking-wider select-none ${i >= 5 ? 'text-(--faint)' : 'text-(--muted)'}`}>
               {d}
             </div>
           ))}
@@ -103,7 +103,7 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
 
         <div className="flex-1">
           {weeks.map((week, wi) => (
-            <div key={wi} className={`grid grid-cols-7${wi < weeks.length - 1 ? ' border-b border-[--border]' : ''}`}>
+            <div key={wi} className={`grid grid-cols-7${wi < weeks.length - 1 ? ' border-b border-(--border)' : ''}`}>
               {week.map((date, di) => {
                 const inMonth = date.startsWith(currentMonth)
                 const isToday = date === today
@@ -112,9 +112,9 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
                 const dayNum  = parseInt(date.split('-')[2], 10)
                 const weekend = di >= 5
                 const numCls = isToday
-                  ? 'bg-[--brand] text-white'
-                  : isSel ? 'text-[--brand]'
-                  : inMonth ? (weekend ? 'text-[--faint]' : 'text-[--ink]') : 'text-[--faint] opacity-40'
+                  ? 'bg-(--brand) text-white'
+                  : isSel ? 'text-(--brand)'
+                  : inMonth ? (weekend ? 'text-(--faint)' : 'text-(--ink)') : 'text-(--faint) opacity-40'
                 return (
                   <button
                     key={date}
@@ -122,10 +122,10 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
                     aria-pressed={isSel || undefined}
                     className={[
                       'flex flex-col items-center gap-0.5 py-2.5 min-h-[52px] transition-colors',
-                      'focus-visible:outline-none focus-visible:z-10 focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-[--ring]',
-                      di > 0 ? 'border-l border-[--border]' : '',
-                      isSel && !isToday ? 'bg-[--brand-subtle]' : '',
-                      inMonth ? 'hover:bg-[--surface-2] cursor-pointer' : 'cursor-default',
+                      'focus-visible:outline-none focus-visible:z-10 focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-(--ring)',
+                      di > 0 ? 'border-l border-(--border)' : '',
+                      isSel && !isToday ? 'bg-(--brand-subtle)' : '',
+                      inMonth ? 'hover:bg-(--surface-2) cursor-pointer' : 'cursor-default',
                     ].filter(Boolean).join(' ')}
                   >
                     <span className={`size-6 sm:size-7 flex items-center justify-center rounded-full text-xs font-medium tabular-nums leading-none ${numCls}`}>
@@ -137,7 +137,7 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
                           <span key={i} className="size-1 rounded-full"
                             style={{ background: isToday ? 'rgba(255,255,255,0.75)' : metaFor(e.source).dot }} />
                         ))}
-                        {dayEvts.length > 3 && <span className="text-[8px] text-[--faint] leading-none ml-0.5">+{dayEvts.length - 3}</span>}
+                        {dayEvts.length > 3 && <span className="text-[8px] text-(--faint) leading-none ml-0.5">+{dayEvts.length - 3}</span>}
                       </div>
                     )}
                   </button>
@@ -149,7 +149,7 @@ export default function CalendarGrid({ events, today, onAddEvent }: Props) {
       </div>
 
       {/* ── Dettaglio giorno (unico: side-panel su sm+, sotto su mobile) ─── */}
-      <aside className="w-full sm:w-72 shrink-0 border-t sm:border-t-0 sm:border-l border-[--border]" aria-label="Dettaglio giorno">
+      <aside className="w-full sm:w-72 shrink-0 border-t sm:border-t-0 sm:border-l border-(--border)" aria-label="Dettaglio giorno">
         <DayDetailPanel date={selectedDate} events={selEvents} today={today} onAddEvent={onAddEvent} />
       </aside>
     </div>

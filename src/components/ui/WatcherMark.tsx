@@ -12,7 +12,7 @@ interface WatcherMarkProps {
  * Glifo SVG "Aperture / Watcher":
  * un anello-lente con una linea di trend in salita all'interno.
  * Usa `currentColor` — impostare il colore con una classe Tailwind
- * (es. `text-[--brand]` o `text-emerald-400`).
+ * (es. `text-(--brand)` o `text-emerald-400`).
  */
 export function WatcherMark({ size = 'md', className }: WatcherMarkProps) {
   const px = typeof size === 'number' ? size : PIXEL_SIZES[size]

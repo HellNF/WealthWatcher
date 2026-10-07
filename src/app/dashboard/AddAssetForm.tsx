@@ -38,7 +38,7 @@ export default function AddAssetForm() {
       </div>
 
       {kind === 'vehicle' && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap p-3 rounded-lg bg-[--surface-2]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap p-3 rounded-lg bg-(--surface-2)">
           <Field label="Marca" htmlFor="asset-vehicle-make" className="min-w-32">
             <Input id="asset-vehicle-make" name="vehicle_make" required placeholder="es. Volkswagen" maxLength={50} />
           </Field>
@@ -94,14 +94,14 @@ export default function AddAssetForm() {
               ))}
             </Select>
           </Field>
-          <label className="flex items-center gap-1.5 text-sm text-[--muted] pb-2 select-none">
+          <label className="flex items-center gap-1.5 text-sm text-(--muted) pb-2 select-none">
             <input type="checkbox" name="vehicle_auto_estimate" defaultChecked className="size-4" />
             Stima automatica da AutoScout24
           </label>
         </div>
       )}
 
-      {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-sm text-(--danger)">{state.error}</p>}
     </form>
   )
 }

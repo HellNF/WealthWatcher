@@ -17,9 +17,9 @@ import { estimateIncomeTax } from '@/lib/tax/income'
 import { getPensionTaxStatus } from '@/lib/tax/pension'
 import type { Insight } from '@/lib/insights'
 import {
-  Landmark, Briefcase, PiggyBank, Calculator, Lightbulb, Coins, Sparkles,
+  Landmark, Briefcase, PiggyBank, Calculator, Lightbulb, Coins,
 } from 'lucide-react'
-import { Breadcrumb, Card, Stat, InsightCard } from '@/components/ui'
+import { Card, Stat, InsightCard, PageHeader, StickyBar, PAGE_SHELL } from '@/components/ui'
 import Link from 'next/link'
 import YearSelector from './YearSelector'
 import ViewToggle from './ViewToggle'
@@ -145,23 +145,24 @@ export default async function TassePage({ searchParams }: Props) {
   }))
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-      <Breadcrumb items={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Tasse' },
-      ]} />
-
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2.5">
-          <Landmark className="size-5 text-[--brand-text]" strokeWidth={1.75} />
-          <h1 className="text-xl font-bold text-[--ink]">Gestione fiscale — {year}</h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <ViewToggle />
-          <YearSelector years={years} selectedYear={year} />
-        </div>
-      </div>
+    <>
+    <StickyBar watchId="tax-total">
+      <span className="text-sm font-medium text-(--ink)">Gestione fiscale {year}</span>
+      <span className="text-sm text-(--muted)">
+        Carico stimato <span className="font-mono tabular-nums font-semibold text-(--ink)">{fmtEur(totalTaxMinor)}</span>
+      </span>
+    </StickyBar>
+    <main className={`${PAGE_SHELL} space-y-8`}>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Tasse' }]}
+        title={`Gestione fiscale ${year}`}
+        actions={
+          <>
+            <ViewToggle />
+            <YearSelector years={years} selectedYear={year} />
+          </>
+        }
+      />
 
       {/* ══ Verdetto (sempre) ═════════════════════════════════════════════════ */}
       <TaxVerdict
@@ -169,6 +170,7 @@ export default async function TassePage({ searchParams }: Props) {
         detail={detail}
         totalLabel={`Carico fiscale stimato ${year}`}
         totalValue={fmtEur(totalTaxMinor)}
+        valueId="tax-total"
         stats={verdictStats}
       />
 
@@ -176,22 +178,19 @@ export default async function TassePage({ searchParams }: Props) {
       {insights.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2.5">
-              <Sparkles className="size-4 text-[--brand-text]" strokeWidth={1.75} aria-hidden />
-              <h2 className="text-base font-semibold text-[--ink]">Considerazioni fiscali</h2>
-            </div>
+            <h2 className="text-base font-semibold text-(--ink)">Considerazioni fiscali</h2>
             <SourceLink source={ETF_ASYMMETRY_SOURCE} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-4">
             {insights.map(ins => (
-              <InsightCard key={ins.id} insight={ins} />
+              <InsightCard key={ins.id} insight={ins} className="flex-1 basis-[30rem]" />
             ))}
           </div>
         </section>
       )}
 
       {/* Disclaimer globale (unico) */}
-      <p className="text-xs text-[--faint] leading-relaxed">
+      <p className="text-xs text-(--muted) leading-relaxed max-w-[130ch]">
         Tutti gli importi sono <strong>stime informative</strong> calcolate sui dati inseriti e non
         costituiscono consulenza fiscale. Metodo FIFO, compensazione Art. 68 TUIR, imposta sostitutiva
         D.Lgs. 461/1997. Verifica sempre con un commercialista prima della dichiarazione dei redditi.
@@ -200,8 +199,9 @@ export default async function TassePage({ searchParams }: Props) {
       {/* ══ VISTA AVANZATA ════════════════════════════════════════════════════ */}
       {isAdvanced && (
         <div className="space-y-8 pt-2">
+          <div className="grid grid-cols-1 2xl:grid-cols-2 gap-x-6 gap-y-8 2xl:items-stretch [&>*:only-child]:2xl:col-span-2">
           {/* Plusvalenze e zainetto */}
-          <section className="space-y-4">
+          <section className="flex flex-col gap-4 [&>*:last-child]:flex-1">
             <SectionHeading icon={Briefcase} title={`Plusvalenze e zainetto ${year}`} source="capitalGain" />
             <RealizedSection
               year={year}
@@ -212,7 +212,7 @@ export default async function TassePage({ searchParams }: Props) {
           </section>
 
           {/* Imposte patrimoniali */}
-          <section className="space-y-4">
+          <section className="flex flex-col gap-4 [&>*:last-child]:flex-1">
             <SectionHeading
               icon={Landmark}
               title={`Imposte patrimoniali ${year}`}
@@ -227,9 +227,11 @@ export default async function TassePage({ searchParams }: Props) {
             />
           </section>
 
+          </div>
+
           {/* Ritenuta interessi */}
           {interestTotal.accountCount > 0 && (
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4 [&>*:last-child]:flex-1">
               <SectionHeading icon={Coins} title="Ritenuta sugli interessi" source="interest" />
               <Card className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                 <Stat
@@ -261,12 +263,12 @@ export default async function TassePage({ searchParams }: Props) {
           {harvestingInsights.length > 0 && (
             <section className="space-y-4">
               <SectionHeading icon={Lightbulb} title="Tax-Loss Harvesting" source="capitalGain" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-4">
                 {harvestingInsights.map(ins => (
-                  <InsightCard key={ins.id} insight={ins} />
+                  <InsightCard key={ins.id} insight={ins} className="flex-1 basis-[30rem]" />
                 ))}
               </div>
-              <p className="text-xs text-[--faint]">
+              <p className="text-xs text-(--muted)">
                 Suggerimenti automatici basati su zainetto e posizioni aperte. In Italia la vendita e il
                 riacquisto immediato è legale (nessuna wash-sale rule). Verifica le commissioni del tuo broker.
               </p>
@@ -276,15 +278,15 @@ export default async function TassePage({ searchParams }: Props) {
           {/* Simulatore vendita */}
           <section className="space-y-4">
             <SectionHeading icon={Calculator} title="Simulatore vendita" source="capitalGain" />
-            <p className="text-xs text-[--muted]">
+            <p className="text-xs text-(--muted)">
               Calcola plusvalenza lorda, imposta sostitutiva e guadagno netto di una vendita ipotetica
               (metodo FIFO). Nessuna operazione viene registrata.
             </p>
             {portfoliosForSimulator.length === 0 ? (
               <Card>
-                <p className="text-sm text-[--muted]">
+                <p className="text-sm text-(--muted)">
                   Nessuna posizione aperta disponibile per la simulazione.{' '}
-                  <Link href="/dashboard" className="text-[--brand-text] hover:underline">Vai alla dashboard</Link>{' '}
+                  <Link href="/dashboard" className="text-(--brand-text) hover:underline">Vai alla dashboard</Link>{' '}
                   per aggiungere operazioni.
                 </p>
               </Card>
@@ -297,5 +299,6 @@ export default async function TassePage({ searchParams }: Props) {
         </div>
       )}
     </main>
+    </>
   )
 }

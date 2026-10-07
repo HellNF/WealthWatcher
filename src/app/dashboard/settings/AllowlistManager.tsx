@@ -37,8 +37,8 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
   return (
     <Tr>
       <Td>
-        <span className="text-sm text-[--ink] font-medium">{entry.email}</span>
-        {isSelf && <span className="ml-2 text-xs text-[--muted]">(tu)</span>}
+        <span className="text-sm text-(--ink) font-medium">{entry.email}</span>
+        {isSelf && <span className="ml-2 text-xs text-(--muted)">(tu)</span>}
       </Td>
       <Td>
         {isSelf ? (
@@ -47,7 +47,7 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
           <select
             defaultValue={entry.role}
             onChange={handleRoleChange}
-            className="text-xs rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[--ring]"
+            className="text-xs rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 py-1 focus:outline-none focus:ring-2 focus:ring-(--ring)"
           >
             <option value="member">member</option>
             <option value="admin">admin</option>
@@ -55,7 +55,7 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
         )}
       </Td>
       <Td>
-        <span className="text-xs text-[--muted]">{fmtDate(entry.created_at)}</span>
+        <span className="text-xs text-(--muted)">{fmtDate(entry.created_at)}</span>
       </Td>
       <Td>
         <Button
@@ -64,7 +64,7 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
           onClick={handleRemove}
           disabled={isSelf}
           title={isSelf ? 'Non puoi rimuovere te stesso' : `Rimuovi ${entry.email}`}
-          className="text-[--danger] hover:bg-[--danger-subtle] disabled:opacity-30"
+          className="text-(--danger) hover:bg-(--danger-subtle) disabled:opacity-30"
         >
           <Trash2 className="size-3.5" />
         </Button>
@@ -80,7 +80,7 @@ export default function AllowlistManager({ entries, currentEmail }: Props) {
     <div className="space-y-6">
       {/* Tabella email correnti */}
       {entries.length > 0 ? (
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -102,27 +102,27 @@ export default function AllowlistManager({ entries, currentEmail }: Props) {
           </Table>
         </TableWrapper>
       ) : (
-        <p className="text-sm text-[--muted]">Nessuna email in whitelist.</p>
+        <p className="text-sm text-(--muted)">Nessuna email in whitelist.</p>
       )}
 
       {/* Form aggiunta */}
       <form action={formAction} className="flex items-end gap-3 flex-wrap">
         <div className="flex-1 min-w-52 space-y-1">
-          <label className="text-xs font-medium text-[--muted]">Nuova email</label>
+          <label className="text-xs font-medium text-(--muted)">Nuova email</label>
           <input
             name="email"
             type="email"
             required
             placeholder="utente@esempio.com"
-            className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+            className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[--muted]">Ruolo</label>
+          <label className="text-xs font-medium text-(--muted)">Ruolo</label>
           <select
             name="role"
             defaultValue="member"
-            className="h-9 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[--ring]"
+            className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)"
           >
             <option value="member">member</option>
             <option value="admin">admin</option>
@@ -135,10 +135,10 @@ export default function AllowlistManager({ entries, currentEmail }: Props) {
       </form>
 
       {state?.error && (
-        <p className="text-sm text-[--danger]">{state.error}</p>
+        <p className="text-sm text-(--danger)">{state.error}</p>
       )}
       {state?.success && (
-        <p className="text-sm text-[--brand-text]">{state.success}</p>
+        <p className="text-sm text-(--brand-text)">{state.success}</p>
       )}
     </div>
   )

@@ -4,14 +4,14 @@
 /** Euro senza decimali (importi di sintesi). */
 export function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
+    style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0,
   })
 }
 
 /** Euro con 2 decimali (importi puntuali/legali). */
 export function fmtEurDec(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
+    style: 'currency', useGrouping: 'always', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
   })
 }
 

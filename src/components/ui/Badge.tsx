@@ -15,14 +15,14 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  success: 'bg-[--brand-subtle] text-[--brand-text]',
-  danger:  'bg-[--danger-subtle] text-[--danger-text]',
-  warning: 'bg-[--warning-subtle] text-[--warning-text]',
-  info:    'bg-[--info-subtle] text-[--info-text]',
-  neutral: 'bg-[--surface-2] text-[--muted]',
+  success: 'bg-(--brand-subtle) text-(--brand-text)',
+  danger:  'bg-(--danger-subtle) text-(--danger-text)',
+  warning: 'bg-(--warning-subtle) text-(--warning-text)',
+  info:    'bg-(--info-subtle) text-(--info-text)',
+  neutral: 'bg-(--surface-2) text-(--muted)',
   // P/L semantici — gain = brand, loss = danger
-  gain: 'bg-[--brand-subtle] text-[--brand-text]',
-  loss: 'bg-[--danger-subtle] text-[--danger-text]',
+  gain: 'bg-(--brand-subtle) text-(--brand-text)',
+  loss: 'bg-(--danger-subtle) text-(--danger-text)',
 }
 
 export function Badge({ variant = 'neutral', className, children, ...props }: BadgeProps) {

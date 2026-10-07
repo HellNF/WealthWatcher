@@ -14,28 +14,28 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: [
-    'bg-[--brand] text-[--brand-fg] border-transparent',
+    'bg-(--brand) text-(--brand-fg) border-transparent',
     'shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)]',
-    'hover:bg-[--brand-hover] hover:-translate-y-px hover:shadow-[var(--shadow-md),inset_0_1px_0_0_oklch(1_0_0/0.25)]',
-    'active:scale-[0.98] active:translate-y-0',
+    'hover:bg-(--brand-hover)',
+    'active:scale-[0.97]',
     'disabled:opacity-50',
   ].join(' '),
   secondary: [
-    'bg-transparent text-[--ink] border-[--border]',
-    'hover:bg-[--surface-2] hover:-translate-y-px',
-    'active:scale-[0.98] active:translate-y-0',
+    'bg-transparent text-(--ink) border-(--border)',
+    'hover:bg-(--surface-2)',
+    'active:scale-[0.97]',
     'disabled:opacity-50',
   ].join(' '),
   ghost: [
-    'bg-transparent text-[--muted] border-transparent',
-    'hover:bg-[--surface-2] hover:text-[--ink]',
-    'active:scale-[0.98]',
+    'bg-transparent text-(--muted) border-transparent',
+    'hover:bg-(--surface-2) hover:text-(--ink)',
+    'active:scale-[0.97]',
     'disabled:opacity-50',
   ].join(' '),
   danger: [
-    'bg-transparent text-[--danger] border-[--danger]/40',
-    'hover:bg-[--danger-subtle] hover:border-[--danger]',
-    'active:scale-[0.98]',
+    'bg-transparent text-(--danger) border-(--danger)/40',
+    'hover:bg-(--danger-subtle) hover:border-(--danger)',
+    'active:scale-[0.97]',
     'disabled:opacity-50',
   ].join(' '),
 }
@@ -53,8 +53,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          'inline-flex items-center justify-center font-medium border transition-all duration-200 [transition-timing-function:var(--ease-spring)]',
-          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[--ring]',
+          'inline-flex items-center justify-center font-medium border',
+          'transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-150 ease-out-strong disabled:active:scale-100',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)',
           'cursor-pointer disabled:cursor-not-allowed select-none',
           variantClasses[variant],
           sizeClasses[size],

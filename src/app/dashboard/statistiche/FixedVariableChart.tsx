@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -33,17 +33,17 @@ export default function FixedVariableChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:     'oklch(0.26 0.01 160)',
-        axis:     'oklch(0.42 0.01 160)',
-        fixed:    'oklch(0.42 0.01 160)',
-        variable: '#34d399',
+        axis:     'oklch(0.72 0.01 160)',
+        fixed:    'oklch(0.50 0.01 160)',
+        variable: 'oklch(0.84 0.01 160)',
         tooltipBg:     '#1a2421',
         tooltipBorder: 'oklch(0.26 0.01 160)',
       }
     : {
         grid:     'oklch(0.88 0.005 160)',
-        axis:     'oklch(0.65 0.008 160)',
-        fixed:    'oklch(0.65 0.008 160)',
-        variable: '#059669',
+        axis:     'oklch(0.45 0.01 160)',
+        fixed:    'oklch(0.70 0.008 160)',
+        variable: 'oklch(0.38 0.01 160)',
         tooltipBg:     '#ffffff',
         tooltipBorder: 'oklch(0.88 0.005 160)',
       }

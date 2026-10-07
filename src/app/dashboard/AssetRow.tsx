@@ -5,7 +5,7 @@ import { Button, Field, Input, Select, Badge, ConfirmDelete } from '@/components
 import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction } from './assets-actions'
 import { ASSET_KINDS, KIND_MAP } from './assetKinds'
 import { FUEL_OPTIONS, GEARBOX_OPTIONS, COUNTRY_OPTIONS, DRIVETRAIN_OPTIONS } from './vehicleFields'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import { formatDateIt } from '@/lib/formatDate'
 import type { Asset, VehicleDetails } from '@/lib/assets'
 
@@ -81,7 +81,7 @@ export default function AssetRow({
           </div>
 
           {asset.kind === 'vehicle' && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap p-3 rounded-lg bg-[--surface-2]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap p-3 rounded-lg bg-(--surface-2)">
               <Field label="Marca" htmlFor={`a-vmake-${asset.id}`} className="min-w-32">
                 <Input id={`a-vmake-${asset.id}`} name="vehicle_make" defaultValue={vehicleDetails?.make} required maxLength={50} />
               </Field>
@@ -144,26 +144,28 @@ export default function AssetRow({
                   ))}
                 </Select>
               </Field>
-              <label className="flex items-center gap-1.5 text-sm text-[--muted] pb-2 select-none">
+              <label className="flex items-center gap-1.5 text-sm text-(--muted) pb-2 select-none">
                 <input type="checkbox" name="vehicle_auto_estimate" defaultChecked={vehicleDetails ? !!vehicleDetails.auto_estimate : true} className="size-4" />
                 Stima automatica da AutoScout24
               </label>
             </div>
           )}
         </form>
-        {state?.error && <p className="text-xs text-[--danger]">{state.error}</p>}
+        {state?.error && <p className="text-xs text-(--danger)">{state.error}</p>}
       </div>
     )
   }
 
   return (
-    <div className="flex items-center gap-4 px-5 py-4">
-      <div className="size-10 rounded-xl bg-[--surface-2] flex items-center justify-center shrink-0">
-        <Icon className="size-5 text-[--muted]" />
+    // Mobile: griglia a tre righe (nome + valore · dettagli a tutta larghezza · azioni).
+    // Da sm in su: una riga sola, come prima.
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 px-4 py-4 sm:flex sm:gap-4 sm:px-5">
+      <div className="size-10 rounded-xl bg-(--surface-2) flex items-center justify-center shrink-0">
+        <Icon className="size-5 text-(--muted)" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[--ink] truncate">{asset.name}</p>
-        <p className="text-xs text-[--muted] flex items-center gap-1.5 flex-wrap">
+      <div className="contents sm:block sm:flex-1 sm:min-w-0">
+        <p className="min-w-0 text-sm font-medium text-(--ink) truncate">{asset.name}</p>
+        <p className="col-span-3 row-start-2 text-xs text-(--muted) leading-relaxed flex items-center gap-x-1.5 gap-y-1 flex-wrap">
           {kind.label}
           {vehicleDetails && (
             <>
@@ -172,7 +174,7 @@ export default function AssetRow({
                 {vehicleDetails.power_hp ? ` · ${vehicleDetails.power_hp} CV` : ''}
                 {vehicleDetails.displacement_cc ? ` · ${vehicleDetails.displacement_cc} cc` : ''}
                 {' · '}{COUNTRY_OPTIONS.find((c) => c.value === vehicleDetails.country)?.label ?? vehicleDetails.country}
-                {vehicleDetails.purchase_price_minor != null ? ` · pagato ${fromMinor(vehicleDetails.purchase_price_minor, asset.currency)}` : ''}
+                {vehicleDetails.purchase_price_minor != null ? ` · pagato ${formatMoney(vehicleDetails.purchase_price_minor, asset.currency)}` : ''}
               </span>
               {vehicleDetails.auto_estimate ? (
                 vehicleDetails.last_estimate_at ? (
@@ -198,9 +200,9 @@ export default function AssetRow({
           )}
         </p>
       </div>
-      <div className="flex flex-col items-end gap-0.5 shrink-0">
-        <span className="font-mono tabular-nums text-sm font-medium text-[--ink]">
-          {fromMinor(asset.value_minor, asset.currency)}
+      <div className="col-start-3 row-start-1 flex flex-col items-end gap-0.5 shrink-0">
+        <span className="font-mono tabular-nums text-sm font-medium text-(--ink)">
+          {formatMoney(asset.value_minor, asset.currency)}
         </span>
         {vehicleDetails?.purchase_price_minor != null && vehicleDetails.purchase_price_minor > 0 && (() => {
           // Confronto valore attuale vs prezzo pagato, stessa valuta dell'asset
@@ -214,7 +216,8 @@ export default function AssetRow({
           )
         })()}
       </div>
-      <div className="flex items-center gap-1.5 shrink-0">
+      {/* Su mobile le azioni hanno una riga propria, con etichetta e area di tocco piena */}
+      <div className="col-span-3 row-start-3 flex items-center gap-1.5 border-t border-(--border) pt-2.5 sm:border-0 sm:pt-0 shrink-0 [&_button]:max-sm:h-9 [&_button]:max-sm:px-3">
         {vehicleDetails?.auto_estimate && (
           <Button
             variant="ghost"
@@ -230,16 +233,20 @@ export default function AssetRow({
             }}
           >
             <RefreshCw className="size-3.5" />
+            <span className="sm:hidden">Aggiorna stima</span>
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={() => setEditing(true)} aria-label="Modifica">
           <Pencil className="size-3.5" />
+          <span className="sm:hidden">Modifica</span>
         </Button>
+        <span className="max-sm:ml-auto">
         <ConfirmDelete
           action={deleteAssetAction.bind(null, asset.id)}
           label=""
           confirmText="Eliminare questo bene?"
         />
+        </span>
       </div>
     </div>
   )

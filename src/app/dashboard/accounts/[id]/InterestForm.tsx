@@ -51,7 +51,7 @@ export default function InterestForm({ accountId, currentRate }: Props) {
               autoFocus
               className="pr-8"
             />
-            <Percent className="size-3.5 text-[--faint] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Percent className="size-3.5 text-(--faint) absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </Field>
         <div className="flex gap-2 shrink-0">
@@ -61,11 +61,11 @@ export default function InterestForm({ accountId, currentRate }: Props) {
           </Button>
         </div>
       </div>
-      <p className="text-xs text-[--muted]">
+      <p className="text-xs text-(--muted)">
         Lascia vuoto e salva per rimuovere il tasso. L&apos;interesse mostrato è una stima sulla
         giacenza attuale, al lordo e al netto della ritenuta del 26%.
       </p>
-      {state?.error && <p className="text-xs text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-xs text-(--danger)">{state.error}</p>}
     </form>
   )
 }

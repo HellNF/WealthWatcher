@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -30,10 +30,10 @@ export default function PacingChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.42 0.01 160)',
+        axis:    'oklch(0.72 0.01 160)',
         typical: 'oklch(0.42 0.01 160)',
         typicalFill: 'oklch(0.42 0.01 160 / 0.15)',
-        actual:  '#34d399',
+        actual:  'oklch(0.92 0.01 160)',
         projected: '#a78bfa',
         today:   'oklch(0.42 0.01 160)',
         tooltipBg:     '#1a2421',
@@ -41,10 +41,10 @@ export default function PacingChart({ data }: Props) {
       }
     : {
         grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.65 0.008 160)',
+        axis:    'oklch(0.45 0.01 160)',
         typical: 'oklch(0.65 0.008 160)',
         typicalFill: 'oklch(0.65 0.008 160 / 0.12)',
-        actual:  '#059669',
+        actual:  'oklch(0.25 0.01 160)',
         projected: '#7c3aed',
         today:   'oklch(0.65 0.008 160)',
         tooltipBg:     '#ffffff',

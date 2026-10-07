@@ -20,10 +20,10 @@ export function BrandMark({ size = 'md', showName = false, className }: BrandMar
     <span className={cn('inline-flex items-center gap-2 select-none', className)}>
       <WatcherMark
         size={classes.mark}
-        className="text-[--brand]"
+        className="text-(--brand)"
       />
       {showName && (
-        <span className={cn('font-semibold text-[--ink]', classes.text)}>
+        <span className={cn('font-semibold text-(--ink)', classes.text)}>
           WealthWatcher
         </span>
       )}

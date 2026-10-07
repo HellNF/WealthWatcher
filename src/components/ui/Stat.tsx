@@ -38,13 +38,13 @@ export function Stat({
 
   return (
     <div className={cn('flex flex-col gap-1', className)}>
-      <span className={cn('font-medium text-[--muted] uppercase tracking-wide', sizeClasses.label[size])}>
+      <span className={cn('font-medium text-(--muted)', sizeClasses.label[size])}>
         {label}
       </span>
       <div className="flex items-end gap-2 flex-wrap">
         <span
           className={cn(
-            'font-mono tabular-nums font-semibold text-[--ink] leading-none',
+            'font-mono tabular-nums font-semibold text-(--ink) leading-none',
             sizeClasses.value[size],
           )}
         >
@@ -57,7 +57,7 @@ export function Stat({
         )}
       </div>
       {sub && (
-        <span className="text-xs text-[--muted]">{sub}</span>
+        <span className="text-xs text-(--muted)">{sub}</span>
       )}
     </div>
   )

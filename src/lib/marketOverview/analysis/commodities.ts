@@ -5,7 +5,7 @@
 import type { MarketSignal } from '../signals'
 import { fetchTrendMetrics } from './seriesMetrics'
 import {
-  synthesize, driverPricePercentile, driverTrendVsMA, driverGoldSilver,
+  synthesize, fmtIt, driverPricePercentile, driverTrendVsMA, driverGoldSilver,
   driverGoldVsRealYield, driverMomentum,
 } from './scoring'
 import type { SectorAnalysis } from './types'
@@ -39,7 +39,7 @@ export async function analyzeCommodities(signals: MarketSignal[], realYield: num
 
   const note = gold
     ? `L'oro è al ${Math.round(gold.percentile ?? 0)}° percentile del decennio` +
-      (ratio !== null ? `, rapporto oro/argento a ${ratio.toFixed(0)}.` : '.')
+      (ratio !== null ? `, rapporto oro/argento a ${fmtIt(ratio, 0)}.` : '.')
     : undefined
 
   const subMarkets = LIGHT.map((l) => {

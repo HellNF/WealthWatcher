@@ -9,7 +9,7 @@ import {
 } from './actions'
 import type { CoinSearchResult } from '@/lib/prices/coingecko'
 import type { Position } from '@/lib/investments/fifo'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import { formatDateTimeIt } from '@/lib/formatDate'
 import {
   Button, Badge, EmptyState, Field, Input,
@@ -67,7 +67,7 @@ function CoinSearchBox({ onSelect }: { onSelect: (coin: CoinSearchResult) => voi
       </div>
 
       {empty && (
-        <p className="text-xs text-[--warning]">Nessuna cripto trovata per &ldquo;{query}&rdquo;</p>
+        <p className="text-xs text-(--warning)">Nessuna cripto trovata per &ldquo;{query}&rdquo;</p>
       )}
 
       {results.length > 0 && (
@@ -77,17 +77,17 @@ function CoinSearchBox({ onSelect }: { onSelect: (coin: CoinSearchResult) => voi
               key={coin.id}
               type="button"
               onClick={() => pick(coin)}
-              className="flex items-center gap-3 rounded-xl border border-[--border] bg-[--surface] px-3 py-2.5 text-left hover:border-[--brand] hover:bg-[--brand-subtle] transition-colors duration-100 group"
+              className="flex items-center gap-3 rounded-xl border border-(--border) bg-(--surface) px-3 py-2.5 text-left hover:border-(--brand) hover:bg-(--brand-subtle) transition-colors duration-100 group"
             >
               {coin.thumb && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={coin.thumb} alt="" className="size-6 rounded-full shrink-0" />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[--ink] truncate group-hover:text-[--brand] transition-colors">
+                <p className="text-sm font-medium text-(--ink) truncate group-hover:text-(--brand) transition-colors">
                   {coin.name}
                 </p>
-                <p className="text-xs text-[--muted]">{coin.symbol}</p>
+                <p className="text-xs text-(--muted)">{coin.symbol}</p>
               </div>
             </button>
           ))}
@@ -131,14 +131,14 @@ function HoldingForm({
   }
 
   return (
-    <form action={handleSubmit} className="space-y-3 p-4 rounded-xl border border-[--border] bg-[--surface-2]">
+    <form action={handleSubmit} className="space-y-3 p-4 rounded-xl border border-(--border) bg-(--surface-2)">
       <input type="hidden" name="coin_id"     value={coin.id} />
       <input type="hidden" name="coin_symbol" value={coin.symbol} />
       <input type="hidden" name="coin_name"   value={coin.name} />
 
       <div className="flex items-center gap-2">
-        <p className="text-sm font-medium text-[--ink] flex-1">{coin.name}</p>
-        <p className="text-xs text-[--muted] font-mono">{coin.symbol}</p>
+        <p className="text-sm font-medium text-(--ink) flex-1">{coin.name}</p>
+        <p className="text-xs text-(--muted) font-mono">{coin.symbol}</p>
       </div>
 
       {/* Grid 1 colonna su mobile, 2 su sm+ */}
@@ -166,12 +166,12 @@ function HoldingForm({
       </div>
 
       {avgCostVal.trim() === '' ? (
-        <p className="text-xs text-[--warning]">
+        <p className="text-xs text-(--warning)">
           Senza prezzo medio il P/L e la <strong>tassa latente</strong> vengono calcolati
           sull&rsquo;intero valore attuale della posizione (26% sul valore di mercato).
         </p>
       ) : (
-        <p className="text-xs text-[--faint]">
+        <p className="text-xs text-(--faint)">
           Il prezzo medio è opzionale. Se non indicato il P/L parte da oggi.
         </p>
       )}
@@ -184,7 +184,7 @@ function HoldingForm({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Annulla
         </Button>
-        {error && <p className="text-xs text-[--danger]">{error}</p>}
+        {error && <p className="text-xs text-(--danger)">{error}</p>}
       </div>
     </form>
   )
@@ -237,7 +237,7 @@ export default function HoldingsManager({
       {/* ── Tabella posizioni ─────────────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-base font-semibold text-[--ink]">Posizioni crypto</h2>
+          <h2 className="text-base font-semibold text-(--ink)">Posizioni crypto</h2>
           <Button
             variant="secondary"
             size="sm"
@@ -276,7 +276,7 @@ export default function HoldingsManager({
 
             {/* ── Desktop: tabella ─────────────────────────────────────────── */}
             <div className="hidden sm:block">
-              <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+              <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
                 <Table>
                   <TableHead>
                     <Tr>
@@ -297,8 +297,8 @@ export default function HoldingsManager({
                       return (
                         <Tr key={pos.instrumentId}>
                           <Td>
-                            <p className="font-medium text-[--ink]">{pos.name}</p>
-                            <p className="text-xs text-[--muted]">{pos.symbol}</p>
+                            <p className="font-medium text-(--ink)">{pos.name}</p>
+                            <p className="text-xs text-(--muted)">{pos.symbol}</p>
                           </Td>
                           <Td numeric>
                             {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
@@ -306,7 +306,7 @@ export default function HoldingsManager({
                             })}
                           </Td>
                           <Td numeric>
-                            <span className="text-[--muted] text-xs">
+                            <span className="text-(--muted) text-xs">
                               {avgCost > 0
                                 ? avgCost.toLocaleString('it-IT', {
                                     minimumFractionDigits: 2,
@@ -318,29 +318,29 @@ export default function HoldingsManager({
                           <Td numeric>
                             {pos.lastPrice ? (
                               <div className="text-right">
-                                <span className="text-[--ink]">
+                                <span className="text-(--ink)">
                                   {parseFloat(pos.lastPrice).toLocaleString('it-IT', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 6,
                                   })}
                                 </span>
-                                <p className="text-[10px] text-[--faint]">{fmtDate(pos.lastPriceAt)}</p>
+                                <p className="text-[10px] text-(--faint)">{fmtDate(pos.lastPriceAt)}</p>
                               </div>
                             ) : (
                               <Badge variant="warning">stale</Badge>
                             )}
                           </Td>
                           <Td numeric>
-                            <span className="text-[--ink]">
+                            <span className="text-(--ink)">
                               {pos.marketValueMinor !== null
-                                ? fromMinor(pos.marketValueMinor, 'EUR')
+                                ? formatMoney(pos.marketValueMinor, 'EUR')
                                 : '—'}
                             </span>
                           </Td>
                           <Td numeric>
                             {pl !== null ? (
                               <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
-                                {pl >= 0 ? '+' : ''}{fromMinor(pl, 'EUR')}
+                                {pl >= 0 ? '+' : ''}{formatMoney(pl, 'EUR')}
                                 {pos.unrealizedPlPct && (
                                   <span className="ml-1 opacity-75">
                                     ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
@@ -348,7 +348,7 @@ export default function HoldingsManager({
                                 )}
                               </Badge>
                             ) : (
-                              <span className="text-[--faint] text-xs">—</span>
+                              <span className="text-(--faint) text-xs">—</span>
                             )}
                           </Td>
                           <Td numeric>
@@ -358,7 +358,7 @@ export default function HoldingsManager({
                                 onClick={() => setEditingId(
                                   editingId === pos.instrumentId ? null : pos.instrumentId,
                                 )}
-                                className="p-1.5 rounded-lg text-[--faint] hover:text-[--brand] hover:bg-[--brand-subtle] transition-colors"
+                                className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
                                 title="Modifica quantità"
                               >
                                 <Pencil className="size-3.5" />
@@ -367,7 +367,7 @@ export default function HoldingsManager({
                                 type="button"
                                 onClick={() => handleRemove(pos.instrumentId)}
                                 disabled={removePending}
-                                className="p-1.5 rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] transition-colors disabled:opacity-40"
+                                className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
                                 title="Rimuovi posizione"
                               >
                                 <Trash2 className="size-3.5" />
@@ -401,7 +401,7 @@ export default function HoldingsManager({
                             onClick={() => setEditingId(
                               editingId === pos.instrumentId ? null : pos.instrumentId,
                             )}
-                            className="p-1.5 rounded-lg text-[--faint] hover:text-[--brand] hover:bg-[--brand-subtle] transition-colors"
+                            className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
                             title="Modifica quantità"
                           >
                             <Pencil className="size-3.5" />
@@ -410,7 +410,7 @@ export default function HoldingsManager({
                             type="button"
                             onClick={() => handleRemove(pos.instrumentId)}
                             disabled={removePending}
-                            className="p-1.5 rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] transition-colors disabled:opacity-40"
+                            className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
                             title="Rimuovi posizione"
                           >
                             <Trash2 className="size-3.5" />
@@ -418,18 +418,18 @@ export default function HoldingsManager({
                         </div>
                       }
                     />
-                    <div className="divide-y divide-[--border]">
+                    <div className="divide-y divide-(--border)">
                       <DataRow label="Valore EUR">
                         <span className="font-medium">
                           {pos.marketValueMinor !== null
-                            ? fromMinor(pos.marketValueMinor, 'EUR')
+                            ? formatMoney(pos.marketValueMinor, 'EUR')
                             : '—'}
                         </span>
                       </DataRow>
                       <DataRow label="P/L">
                         {pl !== null ? (
                           <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
-                            {pl >= 0 ? '+' : ''}{fromMinor(pl, 'EUR')}
+                            {pl >= 0 ? '+' : ''}{formatMoney(pl, 'EUR')}
                             {pos.unrealizedPlPct && (
                               <span className="ml-1 opacity-75">
                                 ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
@@ -437,7 +437,7 @@ export default function HoldingsManager({
                             )}
                           </Badge>
                         ) : (
-                          <span className="text-[--faint]">—</span>
+                          <span className="text-(--faint)">—</span>
                         )}
                       </DataRow>
                       <DataRow label="Quantità">
@@ -454,7 +454,7 @@ export default function HoldingsManager({
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 6,
                             })}
-                            <span className="text-[--faint] ml-1 text-[10px]">
+                            <span className="text-(--faint) ml-1 text-[10px]">
                               {fmtDate(pos.lastPriceAt)}
                             </span>
                           </span>
@@ -462,7 +462,7 @@ export default function HoldingsManager({
                       )}
                       {avgCost > 0 && (
                         <DataRow label="P.M. carico">
-                          <span className="tabular-nums text-[--muted]">
+                          <span className="tabular-nums text-(--muted)">
                             {avgCost.toLocaleString('it-IT', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 4,
@@ -487,7 +487,7 @@ export default function HoldingsManager({
             <button
               type="button"
               onClick={() => { setAddingNew(false); setSelectedCoin(null) }}
-              className="text-[--faint] hover:text-[--ink] transition-colors"
+              className="text-(--faint) hover:text-(--ink) transition-colors"
               aria-label="Annulla"
             >
               <X className="size-4" />

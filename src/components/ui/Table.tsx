@@ -54,8 +54,8 @@ export function Th({ className, children, ...props }: ThProps) {
   return (
     <th
       className={cn(
-        'px-3 py-2.5 text-left text-xs font-medium text-[--muted] uppercase tracking-wide',
-        'border-b border-[--border] whitespace-nowrap',
+        'px-3 py-2.5 text-left text-xs font-medium text-(--muted) uppercase tracking-wide',
+        'border-b border-(--border) whitespace-nowrap',
         className,
       )}
       {...props}
@@ -70,7 +70,7 @@ export function Th({ className, children, ...props }: ThProps) {
 export function TableBody({ className, children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <tbody
-      className={cn('divide-y divide-[--border]', className)}
+      className={cn('divide-y divide-(--border)', className)}
       {...props}
     >
       {children}
@@ -90,8 +90,8 @@ export function Tr({ className, children, clickable, ...props }: TrProps) {
   return (
     <tr
       className={cn(
-        'transition-colors duration-150 hover:bg-[--surface-2]/60',
-        clickable && 'cursor-pointer hover:bg-[--surface-2]',
+        'transition-colors duration-150 hover:bg-(--surface-2)/60',
+        clickable && 'cursor-pointer hover:bg-(--surface-2)',
         className,
       )}
       {...props}
@@ -113,7 +113,7 @@ export function Td({ className, children, numeric, ...props }: TdProps) {
   return (
     <td
       className={cn(
-        'px-3 py-3 text-sm text-[--ink] whitespace-nowrap',
+        'px-3 py-3 text-sm text-(--ink) whitespace-nowrap',
         numeric && 'font-mono tabular-nums text-right',
         className,
       )}

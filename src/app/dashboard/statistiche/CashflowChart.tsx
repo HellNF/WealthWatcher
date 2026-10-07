@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -31,7 +31,7 @@ export default function CashflowChart({ data }: Props) {
 
   if (data.length < 2) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         Il grafico si popola con almeno 2 mesi di movimenti importati.
       </p>
     )
@@ -40,9 +40,9 @@ export default function CashflowChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.42 0.01 160)',
+        axis:    'oklch(0.72 0.01 160)',
         inflow:  '#34d399',
-        outflow: '#f87171',
+        outflow: 'oklch(0.80 0.01 160)',
         net:     '#a78bfa',
         tooltipBg:     '#1a2421',
         tooltipBorder: 'oklch(0.26 0.01 160)',
@@ -50,9 +50,9 @@ export default function CashflowChart({ data }: Props) {
       }
     : {
         grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.65 0.008 160)',
+        axis:    'oklch(0.45 0.01 160)',
         inflow:  '#059669',
-        outflow: '#dc2626',
+        outflow: 'oklch(0.40 0.01 160)',
         net:     '#7c3aed',
         tooltipBg:     '#ffffff',
         tooltipBorder: 'oklch(0.88 0.005 160)',
@@ -67,7 +67,7 @@ export default function CashflowChart({ data }: Props) {
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
         <XAxis

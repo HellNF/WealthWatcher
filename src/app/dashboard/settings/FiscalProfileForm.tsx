@@ -28,10 +28,10 @@ export default function FiscalProfileForm({ currentRate }: Props) {
       </Field>
 
       {state?.error && (
-        <p className="text-sm text-[--danger]">{state.error}</p>
+        <p className="text-sm text-(--danger)">{state.error}</p>
       )}
       {state?.success && (
-        <p className="text-sm text-[--brand-text]">{state.success}</p>
+        <p className="text-sm text-(--brand-text)">{state.success}</p>
       )}
 
       <Button type="submit" disabled={pending}>

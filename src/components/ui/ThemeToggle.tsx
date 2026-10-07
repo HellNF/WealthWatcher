@@ -29,7 +29,7 @@ export function ThemeToggle({ mode = 'icon', className }: ThemeToggleProps) {
         role="radiogroup"
         aria-label="Tema dell'interfaccia"
         className={cn(
-          'flex items-center rounded-lg bg-[--surface-2] p-0.5 gap-0.5',
+          'flex items-center rounded-lg bg-(--surface-2) p-0.5 gap-0.5',
           className,
         )}
       >
@@ -44,15 +44,15 @@ export function ThemeToggle({ mode = 'icon', className }: ThemeToggleProps) {
               onClick={() => setTheme(value)}
               className={cn(
                 'relative flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors duration-150',
-                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[--ring]',
-                active ? 'text-[--ink]' : 'text-[--muted] hover:text-[--ink]',
+                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
+                active ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}
             >
               {active && (
                 <motion.span
                   layoutId="theme-toggle-pill"
-                  className="absolute inset-0 rounded-md bg-[--surface] shadow-[--shadow-sm]"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm)"
+                  transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
                 />
               )}
               <Icon className="relative z-10 size-3.5 shrink-0" />

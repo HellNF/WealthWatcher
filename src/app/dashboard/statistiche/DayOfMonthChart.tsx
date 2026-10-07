@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -36,7 +36,7 @@ export default function DayOfMonthChart({ data }: Props) {
 
   if (data.length < 5) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         Importa almeno 2 mesi di movimenti per visualizzare i pattern per giorno del mese.
       </p>
     )
@@ -45,10 +45,10 @@ export default function DayOfMonthChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:     'oklch(0.26 0.01 160)',
-        axis:     'oklch(0.42 0.01 160)',
-        bar:      '#34d399',
-        barHigh:  '#f87171',
-        barDim:   '#34d39944',
+        axis:     'oklch(0.72 0.01 160)',
+        bar:      'oklch(0.62 0.01 160)',
+        barHigh:  'oklch(0.92 0.01 160)',
+        barDim:   'oklch(0.36 0.01 160)',
         ref:      'oklch(0.42 0.01 160)',
         trend:    '#a78bfa',
         tooltipBg:     '#1a2421',
@@ -56,10 +56,10 @@ export default function DayOfMonthChart({ data }: Props) {
       }
     : {
         grid:     'oklch(0.88 0.005 160)',
-        axis:     'oklch(0.65 0.008 160)',
-        bar:      '#059669',
-        barHigh:  '#dc2626',
-        barDim:   '#05966940',
+        axis:     'oklch(0.45 0.01 160)',
+        bar:      'oklch(0.58 0.01 160)',
+        barHigh:  'oklch(0.25 0.01 160)',
+        barDim:   'oklch(0.84 0.005 160)',
         ref:      'oklch(0.65 0.008 160)',
         trend:    '#7c3aed',
         tooltipBg:     '#ffffff',

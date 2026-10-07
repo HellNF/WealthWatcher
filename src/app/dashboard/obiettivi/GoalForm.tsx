@@ -15,9 +15,9 @@ export default function GoalForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Importo target (€)">
-          <Input name="target_amount" placeholder="5000" required />
+          <Input name="target_amount" inputMode="decimal" placeholder="5000" required />
         </Field>
-        <Field label="Entro il" hint="Opzionale">
+        <Field label="Entro il" hint="Opzionale: serve a calcolare quanto mettere da parte al mese">
           <Input name="target_date" type="date" />
         </Field>
       </div>
@@ -27,14 +27,14 @@ export default function GoalForm() {
           name="color_hex"
           type="color"
           defaultValue="#3b82f6"
-          className="h-9 w-16 rounded border border-[--border] bg-transparent cursor-pointer"
+          className="h-9 w-16 rounded-lg border border-(--border) bg-(--surface-2) p-1 cursor-pointer"
         />
       </Field>
 
-      {state?.error && <p className="text-sm text-[--danger]">{state.error}</p>}
+      {state?.error && <p className="text-sm text-(--danger-text)" role="alert">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? 'Salvataggio…' : 'Crea obiettivo'}
+      <Button type="submit" loading={pending}>
+        Crea obiettivo
       </Button>
     </form>
   )

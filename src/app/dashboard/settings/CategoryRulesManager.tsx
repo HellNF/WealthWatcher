@@ -13,16 +13,16 @@ import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
 import type { CategoryRuleRow } from '@/lib/merchants'
 
 function fmtAmount(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR' })
 }
 
 function AmountFilter({ min, max }: { min: number | null; max: number | null }) {
-  if (min === null && max === null) return <span className="text-[--faint] text-xs">qualsiasi</span>
+  if (min === null && max === null) return <span className="text-(--faint) text-xs">qualsiasi</span>
   if (min !== null && max !== null)
-    return <span className="text-xs text-[--muted]">{fmtAmount(min)} – {fmtAmount(max)}</span>
+    return <span className="text-xs text-(--muted)">{fmtAmount(min)} – {fmtAmount(max)}</span>
   if (min !== null)
-    return <span className="text-xs text-[--muted]">≥ {fmtAmount(min)}</span>
-  return <span className="text-xs text-[--muted]">≤ {fmtAmount(max!)}</span>
+    return <span className="text-xs text-(--muted)">≥ {fmtAmount(min)}</span>
+  return <span className="text-xs text-(--muted)">≤ {fmtAmount(max!)}</span>
 }
 
 interface Category { id: number; name: string; kind: string }
@@ -43,7 +43,7 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
   return (
     <Tr>
       <Td>
-        <code className="text-xs bg-[--surface-2] border border-[--border] rounded px-1.5 py-0.5 text-[--ink] font-mono">
+        <code className="text-xs bg-(--surface-2) border border-(--border) rounded px-1.5 py-0.5 text-(--ink) font-mono">
           {rule.pattern}
         </code>
       </Td>
@@ -60,7 +60,7 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
           onClick={handleDelete}
           disabled={isPending}
           title={`Elimina regola "${rule.pattern}"`}
-          className="text-[--danger] hover:bg-[--danger-subtle] disabled:opacity-30"
+          className="text-(--danger) hover:bg-(--danger-subtle) disabled:opacity-30"
         >
           <Trash2 className="size-3.5" />
         </Button>
@@ -80,8 +80,8 @@ function RecategorizeButton() {
           Ricategorizza storico
         </Button>
       </form>
-      {state?.success && <p className="text-sm text-[--brand-text]">{state.success}</p>}
-      {state?.error   && <p className="text-sm text-[--danger]">{state.error}</p>}
+      {state?.success && <p className="text-sm text-(--brand-text)">{state.success}</p>}
+      {state?.error   && <p className="text-sm text-(--danger)">{state.error}</p>}
     </div>
   )
 }
@@ -96,7 +96,7 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
   return (
     <div className="space-y-6">
       {/* Spiegazione */}
-      <p className="text-sm text-[--muted] leading-relaxed">
+      <p className="text-sm text-(--muted) leading-relaxed">
         Se la descrizione di un movimento contiene la parola chiave (ricerca case-insensitive),
         verrà assegnata la categoria indicata. Le regole si applicano durante l&apos;import e
         possono essere ri-applicate a tutti i movimenti esistenti.
@@ -104,12 +104,12 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
 
       {/* Tabella regole */}
       {rules.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl border border-dashed border-[--border] p-4 text-[--muted]">
+        <div className="flex items-center gap-3 rounded-xl border border-dashed border-(--border) p-4 text-(--muted)">
           <Tag className="size-4 shrink-0" />
           <p className="text-sm">Nessuna regola ancora. Creane una qui sotto.</p>
         </div>
       ) : (
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -132,7 +132,7 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
       <form action={createAction} className="space-y-3">
         <div className="flex items-end gap-3 flex-wrap">
           <div className="flex-1 min-w-40 space-y-1">
-            <label htmlFor="rule-pattern" className="text-xs font-medium text-[--muted]">
+            <label htmlFor="rule-pattern" className="text-xs font-medium text-(--muted)">
               Parola chiave
             </label>
             <input
@@ -141,13 +141,13 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
               type="text"
               required
               placeholder="es. netflix, apple, abbonamento…"
-              className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+              className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
             />
           </div>
 
           {/* Filtro importo opzionale */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-[--muted] flex items-center gap-1">
+            <label className="text-xs font-medium text-(--muted) flex items-center gap-1">
               <Euro className="size-3" />
               Da (opz.)
             </label>
@@ -156,11 +156,11 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
               type="text"
               inputMode="decimal"
               placeholder="0,00"
-              className="w-24 h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+              className="w-24 h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-[--muted] flex items-center gap-1">
+            <label className="text-xs font-medium text-(--muted) flex items-center gap-1">
               <Euro className="size-3" />
               A (opz.)
             </label>
@@ -169,19 +169,19 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
               type="text"
               inputMode="decimal"
               placeholder="9,99"
-              className="w-24 h-9 rounded-lg border border-[--border] bg-[--surface-2] px-3 text-sm text-[--ink] placeholder:text-[--faint] focus:outline-none focus:ring-2 focus:ring-[--ring] focus:border-[--brand] transition-colors duration-150"
+              className="w-24 h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
             />
           </div>
 
           <div className="min-w-40 space-y-1">
-            <label htmlFor="rule-category" className="text-xs font-medium text-[--muted]">
+            <label htmlFor="rule-category" className="text-xs font-medium text-(--muted)">
               Categoria
             </label>
             <select
               id="rule-category"
               name="category_id"
               required
-              className="w-full h-9 rounded-lg border border-[--border] bg-[--surface-2] text-[--ink] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[--ring]"
+              className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)"
             >
               <option value="">— scegli —</option>
               {expenseCategories.length > 0 && (
@@ -214,18 +214,18 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
           </Button>
         </div>
 
-        <p className="text-xs text-[--faint]">
+        <p className="text-xs text-(--faint)">
           I campi importo filtrano sull&apos;importo assoluto del movimento (es. Da 0 A 5 cattura
           pagamenti fino a €5). Lasciali vuoti per applicare la regola a qualsiasi importo.
         </p>
       </form>
 
-      {createState?.error   && <p className="text-sm text-[--danger]">{createState.error}</p>}
-      {createState?.success && <p className="text-sm text-[--brand-text]">{createState.success}</p>}
+      {createState?.error   && <p className="text-sm text-(--danger)">{createState.error}</p>}
+      {createState?.success && <p className="text-sm text-(--brand-text)">{createState.success}</p>}
 
       {/* Ricategorizza storico */}
-      <div className="pt-4 border-t border-[--border] space-y-2">
-        <p className="text-xs text-[--muted]">
+      <div className="pt-4 border-t border-(--border) space-y-2">
+        <p className="text-xs text-(--muted)">
           Applica le regole attuali a tutti i movimenti già importati.
         </p>
         <RecategorizeButton />

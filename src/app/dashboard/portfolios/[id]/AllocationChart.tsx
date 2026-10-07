@@ -22,7 +22,7 @@ const PALETTE = [
 
 function formatVal(minor: number, currency: string): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency,
     maximumFractionDigits: 0,
   })
@@ -43,7 +43,7 @@ export default function AllocationChart({ positions }: Props) {
 
   if (active.length === 0) {
     return (
-      <p className="text-sm text-[--muted] py-4 text-center">
+      <p className="text-sm text-(--muted) py-4 text-center">
         Nessuna posizione aperta con valore disponibile.
       </p>
     )
@@ -73,8 +73,8 @@ export default function AllocationChart({ positions }: Props) {
       {/* Totale al centro della ciambella — solo se le posizioni condividono la stessa valuta */}
       {singleCurrency && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: 40 }}>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-[--faint]">Totale</span>
-          <span className="font-mono tabular-nums text-lg font-semibold text-[--ink]">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-(--faint)">Totale</span>
+          <span className="font-mono tabular-nums text-lg font-semibold text-(--ink)">
             {formatVal(total, singleCurrency)}
           </span>
         </div>

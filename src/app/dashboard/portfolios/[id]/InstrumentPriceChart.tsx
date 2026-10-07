@@ -31,7 +31,7 @@ function shortDate(iso: string, period: string): string {
 
 function formatPrice(value: number, currency: string): string {
   return value.toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
@@ -99,8 +99,8 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
       {/* Header: nome + delta */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-sm font-medium text-[--ink] leading-tight">{name}</p>
-          <p className="text-xs text-[--muted]">{symbol} · {currency}</p>
+          <p className="text-sm font-medium text-(--ink) leading-tight">{name}</p>
+          <p className="text-xs text-(--muted)">{symbol} · {currency}</p>
         </div>
         <div className="flex items-center gap-2">
           {deltaPct !== null && (
@@ -118,7 +118,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
           )}
           {/* Period selector */}
           <LayoutGroup id={pillGroupId}>
-            <div className="flex rounded-lg border border-[--border] overflow-hidden p-0.5 gap-0.5">
+            <div className="flex rounded-lg border border-(--border) overflow-hidden p-0.5 gap-0.5">
               {PERIODS.map(({ key, label }) => {
                 const active = period === key
                 return (
@@ -148,16 +148,16 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
       {/* Chart */}
       <div className="relative" style={{ height: 140 }}>
         {isPending && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[--surface]/60 rounded-lg z-10">
-            <span className="text-xs text-[--muted]">Caricamento…</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-(--surface)/60 rounded-lg z-10">
+            <span className="text-xs text-(--muted)">Caricamento…</span>
           </div>
         )}
         {hasData === false && !isPending ? (
           <div className="h-full flex flex-col items-center justify-center gap-2">
-            <span className="text-xs text-[--faint]">Dati non disponibili per questo strumento</span>
+            <span className="text-xs text-(--faint)">Dati non disponibili per questo strumento</span>
             <button
               onClick={() => { setHasData(null); setRetryKey(k => k + 1) }}
-              className="text-xs text-[--brand-text] hover:underline"
+              className="text-xs text-(--brand-text) hover:underline"
             >
               Riprova
             </button>

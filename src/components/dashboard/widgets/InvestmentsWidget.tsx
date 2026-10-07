@@ -14,7 +14,7 @@ const PALETTE_LIGHT = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#
 const PALETTE_DARK  = ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171', '#22d3ee', '#fb923c', '#f472b6']
 
 function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 
 function fmtEurCompact(minor: number) {
@@ -44,7 +44,7 @@ function ChartStrip({
 }) {
   if (sparkline.length < 2) {
     return (
-      <p className="text-xs text-[--faint] text-center py-3">
+      <p className="text-xs text-(--faint) text-center py-3">
         Storico non ancora disponibile
       </p>
     )
@@ -120,9 +120,9 @@ function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: Ro
         onClick={canExpand ? onToggle : undefined}
         className={cn(
           'w-full flex items-center gap-2.5 px-4 sm:px-5 py-2 text-left transition-colors duration-100',
-          canExpand && 'hover:bg-[--surface-2] cursor-pointer',
+          canExpand && 'hover:bg-(--surface-2) cursor-pointer',
           !canExpand && 'cursor-default',
-          isSelected && 'bg-[--surface-2]',
+          isSelected && 'bg-(--surface-2)',
         )}
       >
         {/* Avatar */}
@@ -134,7 +134,7 @@ function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: Ro
         </div>
 
         {/* Nome */}
-        <span className="flex-1 min-w-0 text-xs font-medium text-[--ink] truncate">
+        <span className="flex-1 min-w-0 text-xs font-medium text-(--ink) truncate">
           {pf.name}
         </span>
 
@@ -149,7 +149,7 @@ function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: Ro
         )}
 
         {/* Valore */}
-        <span className="text-xs font-mono tabular-nums text-[--ink] shrink-0">
+        <span className="text-xs font-mono tabular-nums text-(--ink) shrink-0">
           {pf.eurMinor !== null ? fmtEur(pf.eurMinor) : '—'}
         </span>
       </button>
@@ -223,17 +223,17 @@ export function InvestmentsWidget({
     <div>
       {/* Totale */}
       <div className="mb-3">
-        <p className="text-[10px] font-medium text-[--faint] uppercase tracking-wider mb-0.5">
+        <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">
           Totale investito
         </p>
-        <p className="text-xl font-bold font-mono tabular-nums text-[--ink] leading-none">
+        <p className="text-xl font-bold font-mono tabular-nums text-(--ink) leading-none">
           {fmtEurCompact(totalInvestmentsMinor)}
         </p>
       </div>
 
       {/* Lista portafogli con animazione di riordino */}
       <LayoutGroup>
-        <div className="divide-y divide-[--border] -mx-4 sm:-mx-5">
+        <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
           {displayed.map((pf) => (
             <PortfolioRow
               key={pf.id}
@@ -246,7 +246,7 @@ export function InvestmentsWidget({
             />
           ))}
           {hiddenCount > 0 && (
-            <p className="px-4 sm:px-5 py-2 text-[10px] text-[--faint]">
+            <p className="px-4 sm:px-5 py-2 text-[10px] text-(--faint)">
               +{hiddenCount} altri portafogli
             </p>
           )}

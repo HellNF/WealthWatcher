@@ -4,6 +4,7 @@
 // è teso") e si ferma lì: contesto educativo, mai un ordine.
 import type { AllocationResult, Cluster } from './allocation'
 import type { SectorAnalysis, Stance } from './analysis/types'
+import { exposurePct, type ExposureResult } from './lookthrough'
 
 export interface CrossInsight {
   id:   string
@@ -35,11 +36,17 @@ function bySector(analyses: SectorAnalysis[], key: string): SectorAnalysis | und
 export function buildCrossInsights(
   allocation: AllocationResult,
   analyses:   SectorAnalysis[],
+  exposure?:  ExposureResult,
 ): CrossInsight[] {
   const out: CrossInsight[] = []
-  const equityPct = pctOf(allocation, 'stock', 'etf')
-  const bondPct   = pctOf(allocation, 'bond')
+  // Con la composizione dei fondi si usa l'esposizione EFFETTIVA; senza, si
+  // ripiega sull'approssimazione "ogni ETF è azionario" e lo si dice nel testo.
+  const effective = exposure?.hasLookthrough ? exposure : null
+  const equityPct = effective ? exposurePct(effective, 'equity') : pctOf(allocation, 'stock', 'etf')
+  const bondPct   = effective ? exposurePct(effective, 'bond') : pctOf(allocation, 'bond')
   const cryptoPct = pctOf(allocation, 'crypto')
+  const equityLabel = effective ? 'La tua esposizione azionaria effettiva' : 'La tua quota in azioni ed ETF'
+  const bondLabel   = effective ? 'la tua esposizione obbligazionaria effettiva' : 'la tua quota obbligazionaria'
 
   const eq = bySector(analyses, 'equities')
   const bo = bySector(analyses, 'bonds')
@@ -50,7 +57,7 @@ export function buildCrossInsights(
     out.push({
       id:   'equity-high-exposure',
       tone: 'attention',
-      text: `La tua quota azionario/ETF è ${fmtPct(equityPct)} e il contesto azionario è valutato "${eq.headline.toLowerCase()}". Fasi come questa storicamente hanno offerto meno margine a nuovi ingressi ai massimi — spunto di riflessione, non un'indicazione.`,
+      text: `${equityLabel} è ${fmtPct(equityPct)} e il contesto azionario è valutato «${eq.headline.toLowerCase()}». Fasi come questa storicamente hanno offerto meno margine a nuovi ingressi ai massimi — spunto di riflessione, non un'indicazione.`,
     })
   }
 
@@ -59,7 +66,7 @@ export function buildCrossInsights(
     out.push({
       id:   'bonds-favorable-low-exposure',
       tone: 'neutral',
-      text: `Il contesto obbligazionario euro è valutato "${bo.headline.toLowerCase()}", mentre la tua quota obbligazionaria è ${fmtPct(bondPct)}. Con rendimenti reali positivi le obbligazioni offrono più reddito che negli anni scorsi.`,
+      text: `Il contesto obbligazionario euro è valutato «${bo.headline.toLowerCase()}», mentre ${bondLabel} è ${fmtPct(bondPct)}. Rispetto alla loro storia recente, oggi le obbligazioni offrono rendimenti più alti del solito.`,
     })
   }
 
@@ -68,7 +75,7 @@ export function buildCrossInsights(
     out.push({
       id:   'crypto-caution',
       tone: 'attention',
-      text: `La tua quota crypto è ${fmtPct(cryptoPct)} e il contesto è valutato "${cr.headline.toLowerCase()}". Le fasi di euforia storicamente precedono più volatilità.`,
+      text: `La tua quota crypto è ${fmtPct(cryptoPct)} e il contesto è valutato «${cr.headline.toLowerCase()}». Le fasi di euforia storicamente precedono più volatilità.`,
     })
   }
 

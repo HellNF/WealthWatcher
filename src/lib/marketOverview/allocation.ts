@@ -19,8 +19,16 @@ export interface ClusterAllocation {
   pct:           number // 0–100 sul totale valorizzabile
 }
 
+/** Una posizione valorizzata in EUR: base per l'esposizione effettiva (lookthrough.ts). */
+export interface ValuedPosition {
+  instrumentId:  number
+  cluster:       Cluster
+  valueEurMinor: number
+}
+
 export interface AllocationResult {
   byCluster:      ClusterAllocation[]
+  positions:      ValuedPosition[]
   totalEurMinor:  number
   /** true se almeno una posizione è stata esclusa perché senza prezzo o non convertibile. */
   hasStalePrices: boolean
@@ -40,6 +48,7 @@ export async function getPortfolioAllocation(
 ): Promise<AllocationResult> {
   const portfolios = listPortfolios(userId)
   const totals = new Map<Cluster, number>()
+  const valued: ValuedPosition[] = []
   let total = 0
   let hasStale = false
 
@@ -53,6 +62,7 @@ export async function getPortfolioAllocation(
 
       const cluster = getInstrument(pos.instrumentId)?.cluster ?? 'other'
       totals.set(cluster, (totals.get(cluster) ?? 0) + eur)
+      valued.push({ instrumentId: pos.instrumentId, cluster, valueEurMinor: eur })
       total += eur
     }
   }
@@ -68,5 +78,5 @@ export async function getPortfolioAllocation(
       }
     })
 
-  return { byCluster, totalEurMinor: total, hasStalePrices: hasStale }
+  return { byCluster, positions: valued, totalEurMinor: total, hasStalePrices: hasStale }
 }

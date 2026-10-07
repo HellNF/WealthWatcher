@@ -18,14 +18,14 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       )}
     >
       {Icon && (
-        <div className="rounded-2xl bg-[--surface-2] p-4">
-          <Icon className="size-8 text-[--faint]" strokeWidth={1.5} />
+        <div className="rounded-2xl bg-(--surface-2) p-4">
+          <Icon className="size-8 text-(--faint)" strokeWidth={1.5} />
         </div>
       )}
       <div className="flex flex-col gap-1.5 max-w-[45ch]">
-        <p className="text-sm font-medium text-[--ink]">{title}</p>
+        <p className="text-sm font-medium text-(--ink)">{title}</p>
         {description && (
-          <p className="text-sm text-[--muted] text-wrap-pretty">{description}</p>
+          <p className="text-sm text-(--muted) text-wrap-pretty">{description}</p>
         )}
       </div>
       {action && <div className="mt-1">{action}</div>}

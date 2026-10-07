@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -31,7 +31,7 @@ export default function LifestyleCreepChart({ data }: Props) {
 
   if (data.length < 3) {
     return (
-      <p className="text-sm text-[--muted] py-4 text-center">
+      <p className="text-sm text-(--muted) py-4 text-center">
         Servono almeno 3 mesi con entrate per visualizzare il grafico.
       </p>
     )
@@ -40,17 +40,17 @@ export default function LifestyleCreepChart({ data }: Props) {
   const colors = isDark
     ? {
         grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.42 0.01 160)',
+        axis:    'oklch(0.72 0.01 160)',
         income:  '#34d399',
-        spend:   '#f87171',
+        spend:   'oklch(0.80 0.01 160)',
         tooltipBg:     '#1a2421',
         tooltipBorder: 'oklch(0.26 0.01 160)',
       }
     : {
         grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.65 0.008 160)',
+        axis:    'oklch(0.45 0.01 160)',
         income:  '#059669',
-        spend:   '#dc2626',
+        spend:   'oklch(0.40 0.01 160)',
         tooltipBg:     '#ffffff',
         tooltipBorder: 'oklch(0.88 0.005 160)',
       }

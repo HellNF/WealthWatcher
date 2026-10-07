@@ -14,7 +14,7 @@ import AllowlistManager from './AllowlistManager'
 import CategoryRulesManager from './CategoryRulesManager'
 import FiscalProfileForm from './FiscalProfileForm'
 import ApiTokensManager from './ApiTokensManager'
-import { Breadcrumb, Card, CardHeader, CardTitle, CardDescription } from '@/components/ui'
+import { Card, CardHeader, CardTitle, CardDescription, PageHeader, HeroShell, Eyebrow, PAGE_SHELL } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,15 +44,48 @@ export default async function SettingsPage() {
   const profile    = getUserProfile(user.id)
   const apiTokens  = listApiTokens(user.id)
 
-  return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-      <Breadcrumb items={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Impostazioni' },
-      ]} />
+  const rateLabel = profile.irpefMarginalRate != null
+    ? `${(profile.irpefMarginalRate * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`
+    : 'Da impostare'
+  const tiles: { href: string; label: string; value: string; sub: string }[] = [
+    { href: '#fiscale',   label: 'Aliquota IRPEF',        value: rateLabel,                              sub: 'per la stima del risparmio previdenziale' },
+    { href: '#regole',    label: 'Regole di categoria',   value: String(rules.length),                   sub: rules.length === 1 ? 'regola attiva' : 'regole attive' },
+    { href: '#openai',    label: 'Import KID (OpenAI)',   value: hasKey ? 'Attivo' : 'Non configurato',  sub: hasKey ? 'chiave salvata' : 'serve una chiave API' },
+    { href: '#banking',   label: 'Open Banking',          value: hasEbKey ? 'Attivo' : 'Non configurato', sub: hasEbKey ? 'chiave salvata' : 'serve una chiave Enable Banking' },
+    { href: '#api',       label: 'Token API',             value: String(apiTokens.length),               sub: 'in sola lettura' },
+  ]
 
-      {/* Profilo fiscale */}
-      <Card className="max-w-xl">
+  return (
+    <main className={`${PAGE_SHELL} space-y-8`}>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Impostazioni' }]}
+        title="Impostazioni"
+        description="Profilo fiscale, regole automatiche e collegamenti con i servizi esterni."
+      />
+
+      {/* ── Hero: cosa è configurato, a colpo d'occhio ────────────────────── */}
+      <HeroShell>
+        <div className="px-5 sm:px-6 pt-5 pb-4">
+          <Eyebrow>Stato della configurazione</Eyebrow>
+        </div>
+        <div className="flex flex-wrap gap-px bg-(--border) border-t border-(--border)">
+          {tiles.map((t) => (
+            <a
+              key={t.href}
+              href={t.href}
+              className="group flex-1 basis-[16rem] min-[131rem]:basis-0 min-w-0 flex flex-col gap-2 p-5 sm:p-6 bg-(--surface) hover:bg-(--surface-2) active:bg-(--surface-2) transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)"
+            >
+              <span className="text-xs font-medium text-(--muted)">{t.label}</span>
+              <span className="text-2xl sm:text-3xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)">{t.value}</span>
+              <span className="text-xs text-(--muted)">{t.sub}</span>
+            </a>
+          ))}
+        </div>
+      </HeroShell>
+
+      {/* Due colonne bilanciate dal browser: ogni scheda resta intera */}
+      <div className="xl:columns-2 gap-6 [&>*]:break-inside-avoid [&>*]:mb-6 [&>*]:scroll-mt-20">
+      <Card id="fiscale">
         <CardHeader>
           <div>
             <CardTitle>Profilo fiscale</CardTitle>
@@ -65,7 +98,7 @@ export default async function SettingsPage() {
       </Card>
 
       {/* Regole di categorizzazione — visibile a tutti */}
-      <Card className="max-w-2xl">
+      <Card id="regole">
         <CardHeader>
           <div>
             <CardTitle>Regole di categorizzazione</CardTitle>
@@ -80,20 +113,20 @@ export default async function SettingsPage() {
         <CategoryRulesManager rules={rules} categories={categories} />
       </Card>
 
-      <Card className="max-w-xl">
+      <Card id="openai">
         <CardHeader>
           <div>
             <CardTitle>Chiave API OpenAI</CardTitle>
             <CardDescription>
               Necessaria per importare i dati dai documenti KID (PDF). Ottienila da{' '}
-              <span className="text-[--ink]">platform.openai.com/api-keys</span>.
+              <span className="text-(--ink)">platform.openai.com/api-keys</span>.
             </CardDescription>
           </div>
         </CardHeader>
         <OpenAiKeyForm hasKey={hasKey} setAt={setAt} />
       </Card>
 
-      <Card className="max-w-2xl">
+      <Card id="banking">
         <CardHeader>
           <div>
             <CardTitle>Open Banking (Enable Banking)</CardTitle>
@@ -112,13 +145,13 @@ export default async function SettingsPage() {
         />
       </Card>
 
-      <Card className="max-w-2xl">
+      <Card id="api">
         <CardHeader>
           <div>
             <CardTitle>Accesso API · Homepage</CardTitle>
             <CardDescription>
               Token in sola lettura per mostrare il tuo patrimonio nella dashboard
-              self-hosted <span className="text-[--ink]">Homepage</span> (gethomepage.dev)
+              self-hosted <span className="text-(--ink)">Homepage</span> (gethomepage.dev)
               o in qualunque altro strumento che sappia chiamare un&apos;API JSON.
             </CardDescription>
           </div>
@@ -127,7 +160,7 @@ export default async function SettingsPage() {
       </Card>
 
       {isAdmin && (
-        <Card className="max-w-xl">
+        <Card id="accessi">
           <CardHeader>
             <div>
               <CardTitle>Whitelist accessi</CardTitle>
@@ -143,6 +176,7 @@ export default async function SettingsPage() {
           />
         </Card>
       )}
+      </div>
     </main>
   )
 }

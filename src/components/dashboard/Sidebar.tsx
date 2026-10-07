@@ -37,7 +37,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Dashboard',
+    label: 'Panoramica',
     items: [
       { label: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true },
       { label: 'Report',       href: '/dashboard/reports',      icon: BarChart3 },
@@ -95,7 +95,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Navigazione principale">
       {NAV_GROUPS.map((group) => (
         <div key={group.label}>
-          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[--faint]">
+          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-(--faint)">
             {group.label}
           </p>
           <div className="space-y-0.5">
@@ -106,24 +106,24 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-[color,background-color,transform] duration-150 ease-out-strong active:scale-[0.98]',
                     active
-                      ? 'text-[--brand-text] font-medium'
-                      : 'text-[--muted] hover:bg-[--surface-2] hover:text-[--ink]',
+                      ? 'text-(--brand-text) font-medium'
+                      : 'text-(--muted) hover:bg-(--surface-2) hover:text-(--ink)',
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
                   {active && (
                     <motion.span
                       layoutId="sidebar-active-pill"
-                      className="absolute inset-0 rounded-lg bg-[--brand-subtle]"
-                      transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                      className="absolute inset-0 rounded-lg bg-(--brand-subtle)"
+                      transition={{ type: 'spring', duration: 0.35, bounce: 0 }}
                     />
                   )}
                   <item.icon className="relative z-10 size-[18px] shrink-0" strokeWidth={1.75} />
                   <span className="relative z-10">{item.label}</span>
                   {active && (
-                    <ChevronRight className="relative z-10 size-3.5 ml-auto text-[--brand]" />
+                    <ChevronRight className="relative z-10 size-3.5 ml-auto text-(--brand)" />
                   )}
                 </Link>
               )
@@ -135,32 +135,32 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   )
 
   const userFooter = (
-    <div className="px-3 py-3 border-t border-[--border] space-y-2">
+    <div className="px-3 py-3 border-t border-(--border) space-y-2">
       <ThemeToggle mode="icon+label" className="w-full justify-center" />
       <div className="flex items-center gap-2">
         <Link
           href="/dashboard/profilo"
           aria-label="Profilo personale"
-          className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1 rounded-lg hover:bg-[--surface-2] transition-colors duration-100"
+          className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1 rounded-lg hover:bg-(--surface-2) transition-colors duration-100"
         >
-          <div className="size-7 rounded-full bg-[--brand-subtle] flex items-center justify-center shrink-0">
-            <span className="text-xs font-semibold text-[--brand-text]">
+          <div className="size-7 rounded-full bg-(--brand-subtle) flex items-center justify-center shrink-0">
+            <span className="text-xs font-semibold text-(--brand-text)">
               {(user.name ?? user.email ?? '?')[0].toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[--ink] truncate">
+            <p className="text-xs font-medium text-(--ink) truncate">
               {user.name ?? user.email}
             </p>
             {user.role === 'admin' && (
-              <p className="text-[10px] text-[--brand-text]">admin</p>
+              <p className="text-[10px] text-(--brand-text)">admin</p>
             )}
           </div>
         </Link>
         <form action={signOutAction} className="shrink-0">
           <button
             type="submit"
-            className="p-1 rounded-md text-[--faint] hover:text-[--danger] hover:bg-[--danger-subtle] active:scale-90 transition-all duration-150"
+            className="p-1 rounded-md text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) active:scale-90 transition-all duration-150"
             title="Esci"
             aria-label="Esci dall'account"
           >
@@ -175,11 +175,11 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     <>
       {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside
-        className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-[--border] bg-[--surface]"
+        className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-(--border) bg-(--surface)"
         aria-label="Barra laterale"
       >
         {/* Brand */}
-        <div className="px-4 py-4 border-b border-[--border]">
+        <div className="px-4 py-4 border-b border-(--border)">
           <Link
             href="/dashboard"
             aria-label="Torna alla dashboard"
@@ -194,10 +194,10 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       </aside>
 
       {/* ── Mobile top bar ──────────────────────────────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md shadow-[--shadow-sm]">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-(--border) bg-(--surface)/90 backdrop-blur-md shadow-(--shadow-sm)">
         <button
           onClick={() => setMobileOpen((o) => !o)}
-          className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+          className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
           aria-label={mobileOpen ? 'Chiudi menu' : 'Apri menu'}
           aria-expanded={mobileOpen}
         >
@@ -250,7 +250,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col',
-          'bg-[--surface] border-r border-[--border] lg:hidden',
+          'bg-(--surface) border-r border-(--border) lg:hidden',
           'transition-transform duration-300 [transition-timing-function:var(--ease-spring)]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
@@ -258,7 +258,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
         aria-hidden={!mobileOpen}
         inert={!mobileOpen ? true : undefined}
       >
-        <div className="px-4 py-4 border-b border-[--border] flex items-center justify-between">
+        <div className="px-4 py-4 border-b border-(--border) flex items-center justify-between">
           <Link
             href="/dashboard"
             aria-label="Torna alla dashboard"
@@ -268,7 +268,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1 rounded-md text-[--faint] hover:text-[--ink] hover:bg-[--surface-2] active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+            className="p-1 rounded-md text-(--faint) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
             aria-label="Chiudi menu"
           >
             <X className="size-5" />

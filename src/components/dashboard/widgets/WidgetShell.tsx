@@ -25,7 +25,7 @@ export function WidgetShell({
   return (
     <Card className={cn(
       'relative h-full flex flex-col overflow-hidden transition-shadow duration-200',
-      isEditing && 'ring-1 ring-[--border]',
+      isEditing && 'ring-1 ring-(--border)',
       className,
     )}>
       {/* Header — non scorre */}
@@ -37,10 +37,10 @@ export function WidgetShell({
               onPointerDown={onDragStart}
               className="touch-none cursor-grab active:cursor-grabbing shrink-0"
             >
-              <GripVertical className="size-4 text-[--muted]" strokeWidth={1.75} />
+              <GripVertical className="size-4 text-(--muted)" strokeWidth={1.75} />
             </div>
           )}
-          <h3 className="text-sm font-semibold text-[--ink] truncate">{title}</h3>
+          <h3 className="text-sm font-semibold text-(--ink) truncate">{title}</h3>
         </div>
 
         {/* Right: size picker (edit) | vedi tutto (view) | hide (edit) */}
@@ -48,7 +48,7 @@ export function WidgetShell({
           {isEditing ? (
             <>
               {/* S / M / L size picker */}
-              <div className="flex items-center gap-0.5 rounded-md border border-[--border] p-0.5">
+              <div className="flex items-center gap-0.5 rounded-md border border-(--border) p-0.5">
                 {(['sm', 'md', 'lg'] as const).map((s) => (
                   <button
                     key={s}
@@ -56,8 +56,8 @@ export function WidgetShell({
                     className={cn(
                       'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase leading-none transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-none',
                       size === s
-                        ? 'bg-[--brand] text-white'
-                        : 'text-[--muted] hover:text-[--ink] hover:bg-[--surface-2]',
+                        ? 'bg-(--brand) text-white'
+                        : 'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2)',
                     )}
                   >
                     {s.toUpperCase()}
@@ -69,7 +69,7 @@ export function WidgetShell({
               <button
                 onClick={onHide}
                 aria-label="Nascondi widget"
-                className="size-6 flex items-center justify-center rounded-lg text-[--faint] hover:text-[--danger] hover:bg-[--danger]/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+                className="size-6 flex items-center justify-center rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger)/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
               >
                 <EyeOff className="size-3.5" strokeWidth={1.75} />
               </button>
@@ -77,7 +77,7 @@ export function WidgetShell({
           ) : href ? (
             <Link
               href={href}
-              className="flex items-center gap-0.5 text-xs text-[--brand-text] hover:underline focus-visible:outline-none"
+              className="flex items-center gap-0.5 text-xs text-(--brand-text) hover:underline focus-visible:outline-none"
             >
               Vedi tutto
               <ChevronRight className="size-3" strokeWidth={2} />

@@ -169,18 +169,18 @@ export async function getHistoricalPricesRange(
       }
     } catch { /* non critico: factor resta 1 */ }
 
+    // chart() e non historical(): quest'ultima è deprecata e lancia se anche una
+    // sola riga ha chiusura nulla (capita con la seduta in corso, es. ^N225).
+    // period2 è esclusivo → +1 giorno per includere toDate.
+    const end = new Date(`${toDate}T00:00:00Z`)
+    end.setUTCDate(end.getUTCDate() + 1)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows: any[] = await yf.historical(symbol, {
-      period1:  fromDate,
-      period2:  toDate,
-      interval: '1d',
-    })
+    const res: any = await yf.chart(symbol, { period1: fromDate, period2: end, interval: '1d' })
 
-    const points: PricePoint[] = rows
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((r: any) => r.close != null)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((r: any) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const points: PricePoint[] = ((res?.quotes ?? []) as any[])
+      .filter((r) => r?.date && r.close != null)
+      .map((r) => ({
         date:  new Date(r.date).toISOString().slice(0, 10),
         close: (r.close as number) * factor,
       }))
@@ -188,6 +188,29 @@ export async function getHistoricalPricesRange(
     return { points, currency }
   } catch (e) {
     console.error('[yahoo] getHistoricalPricesRange', symbol, fromDate, toDate, e)
+    return { points: [], currency: null }
+  }
+}
+
+/**
+ * Chiusure giornaliere RETTIFICATE (dividendi e frazionamenti inclusi) da
+ * `fromDate` a oggi, via `chart()`. Servono a misurare i rendimenti: per un ETF
+ * a distribuzione la chiusura semplice sottostima il guadagno reale. Per gli
+ * indici di prezzo la rettifica coincide con la chiusura. Non lancia mai.
+ */
+export async function getAdjustedCloses(symbol: string, fromDate: string): Promise<HistoricalRangeResult> {
+  try {
+    const yf = await getYf()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res: any = await yf.chart(symbol, { period1: fromDate, period2: new Date(), interval: '1d' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const points: PricePoint[] = ((res?.quotes ?? []) as any[])
+      .filter((q) => q?.date && (q.adjclose ?? q.close) != null)
+      .map((q) => ({ date: new Date(q.date).toISOString().slice(0, 10), close: (q.adjclose ?? q.close) as number }))
+    const currency = typeof res?.meta?.currency === 'string' ? (res.meta.currency as string).toUpperCase() : null
+    return { points, currency }
+  } catch (e) {
+    console.error('[yahoo] getAdjustedCloses', symbol, fromDate, e)
     return { points: [], currency: null }
   }
 }
@@ -242,6 +265,44 @@ export async function getInstrumentDetails(symbol: string): Promise<InstrumentDe
   } catch { /* provider down o simbolo non valido */ }
 
   return { price, currency, ter }
+}
+
+// ── Composizione interna di un fondo/ETF ──────────────────────────────────────
+
+export interface FundBreakdown {
+  stock:   number                  // quota in azioni (0–1)
+  bond:    number                  // quota in obbligazioni
+  cash:    number                  // quota in liquidità
+  other:   number                  // tutto il resto (preferred, convertibili, altro)
+  sectors: Record<string, number>  // pesi settoriali della parte azionaria (0–1), chiavi Yahoo
+}
+
+/**
+ * Cosa c'è dentro un fondo/ETF secondo Yahoo `topHoldings` (dati Morningstar):
+ * ripartizione azioni/obbligazioni/liquidità e pesi settoriali. Null se il
+ * simbolo non è un fondo o Yahoo non espone il dato (loggato): chi chiama deve
+ * trattare l'assenza come "composizione ignota", non come zero.
+ */
+export async function getFundBreakdown(symbol: string): Promise<FundBreakdown | null> {
+  try {
+    const yf = await getYf()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const th: any = (await yf.quoteSummary(symbol, { modules: ['topHoldings'] }))?.topHoldings
+    if (!th) return null
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0)
+    const stock = n(th.stockPosition), bond = n(th.bondPosition), cash = n(th.cashPosition)
+    const other = n(th.otherPosition) + n(th.preferredPosition) + n(th.convertiblePosition)
+    if (stock + bond + cash + other < 0.5) return null // composizione non dichiarata
+
+    const sectors: Record<string, number> = {}
+    for (const entry of (th.sectorWeightings ?? []) as Record<string, unknown>[]) {
+      for (const [k, v] of Object.entries(entry)) if (n(v) > 0) sectors[k] = n(v)
+    }
+    return { stock, bond, cash, other, sectors }
+  } catch (e) {
+    console.warn('[yahoo] getFundBreakdown', symbol, e instanceof Error ? e.message : e)
+    return null
+  }
 }
 
 // ── Metriche di mercato (per la sintesi "Panorama Mercati") ───────────────────

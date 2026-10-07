@@ -6,11 +6,11 @@ import {
   updateDescriptionAction,
   deleteTransactionAction,
 } from './actions'
-import { fromMinor } from '@/lib/money'
+import { formatMoney } from '@/lib/money'
 import type { TransactionRow } from '@/lib/transactions'
 import {
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
-  Badge, EmptyState,
+  EmptyState,
   DataCard, DataCardHeader, DataRow,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -77,9 +77,9 @@ function CategorySelect({
         onChange={handleChange}
         disabled={isPending}
         className={cn(
-          'text-xs bg-[--surface-2] border border-[--border] rounded-md px-2 py-1',
-          'text-[--ink] hover:border-[--brand] focus:outline-none focus:border-[--brand]',
-          'focus:ring-1 focus:ring-[--ring] disabled:opacity-50 transition-colors duration-100',
+          'text-xs bg-(--surface-2) border border-(--border) rounded-md px-2 py-1',
+          'text-(--ink) hover:border-(--brand) focus:outline-none focus:border-(--brand)',
+          'focus:ring-1 focus:ring-(--ring) disabled:opacity-50 transition-colors duration-100',
           'w-full cursor-pointer',
         )}
       >
@@ -91,15 +91,15 @@ function CategorySelect({
 
       {showRule && (
         <div className="flex items-center gap-1 w-full">
-          <Wand2 className="size-3 text-[--brand-text] shrink-0" />
+          <Wand2 className="size-3 text-(--brand-text) shrink-0" />
           <input
             type="text"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="parola chiave…"
             className={cn(
-              'flex-1 min-w-0 text-xs bg-[--surface] border border-[--brand]/40 rounded-md px-2 py-1',
-              'text-[--ink] focus:outline-none focus:border-[--brand] focus:ring-1 focus:ring-[--ring]',
+              'flex-1 min-w-0 text-xs bg-(--surface) border border-(--brand)/40 rounded-md px-2 py-1',
+              'text-(--ink) focus:outline-none focus:border-(--brand) focus:ring-1 focus:ring-(--ring)',
             )}
             onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRule() }}
           />
@@ -107,14 +107,14 @@ function CategorySelect({
             onClick={handleConfirmRule}
             disabled={isCreating || !keyword.trim()}
             title="Salva regola"
-            className="size-6 flex items-center justify-center rounded text-[--brand-text] hover:bg-[--brand-subtle] disabled:opacity-40 transition-colors"
+            className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
           >
             <Check className="size-3.5" />
           </button>
           <button
             onClick={() => { setShowRule(false); setRuleMsg(null) }}
             title="Ignora"
-            className="size-6 flex items-center justify-center rounded text-[--muted] hover:bg-[--surface-2] transition-colors"
+            className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
           >
             <X className="size-3.5" />
           </button>
@@ -122,7 +122,7 @@ function CategorySelect({
       )}
 
       {ruleMsg && (
-        <p className="text-[10px] text-[--brand-text] flex items-center gap-1">
+        <p className="text-[10px] text-(--brand-text) flex items-center gap-1">
           <Check className="size-3 shrink-0" />
           {ruleMsg}
         </p>
@@ -165,22 +165,22 @@ function DescriptionCell({
             if (e.key === 'Escape') { setValue(descriptionRaw); setEditing(false) }
           }}
           className={cn(
-            'flex-1 min-w-0 text-xs bg-[--surface] border border-[--brand]/60 rounded-md px-2 py-1',
-            'text-[--ink] focus:outline-none focus:border-[--brand] focus:ring-1 focus:ring-[--ring]',
+            'flex-1 min-w-0 text-xs bg-(--surface) border border-(--brand)/60 rounded-md px-2 py-1',
+            'text-(--ink) focus:outline-none focus:border-(--brand) focus:ring-1 focus:ring-(--ring)',
           )}
         />
         <button
           onClick={handleSave}
           disabled={isPending || !value.trim()}
           title="Salva"
-          className="size-6 flex items-center justify-center rounded text-[--brand-text] hover:bg-[--brand-subtle] disabled:opacity-40 transition-colors"
+          className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
         >
           <Check className="size-3.5" />
         </button>
         <button
           onClick={() => { setValue(descriptionRaw); setEditing(false) }}
           title="Annulla"
-          className="size-6 flex items-center justify-center rounded text-[--muted] hover:bg-[--surface-2] transition-colors"
+          className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
         >
           <X className="size-3.5" />
         </button>
@@ -193,17 +193,17 @@ function DescriptionCell({
       <div className="truncate min-w-0">
         {merchantName ? (
           <>
-            <span className="font-medium text-[--ink]">{merchantName}</span>
-            <span className="text-[--faint] ml-2 text-xs">{value}</span>
+            <span className="font-medium text-(--ink)">{merchantName}</span>
+            <span className="text-(--faint) ml-2 text-xs">{value}</span>
           </>
         ) : (
-          <span className="text-[--ink]">{value}</span>
+          <span className="text-(--ink)">{value}</span>
         )}
       </div>
       <button
         onClick={() => setEditing(true)}
         title="Modifica descrizione"
-        className="shrink-0 size-5 flex items-center justify-center rounded text-[--faint] opacity-0 group-hover/desc:opacity-100 hover:text-[--ink] hover:bg-[--surface-2] transition-all"
+        className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
       >
         <Pencil className="size-3" />
       </button>
@@ -218,19 +218,19 @@ function DeleteButton({ txnId }: { txnId: number }) {
   if (confirm) {
     return (
       <div className="flex items-center gap-1">
-        <span className="text-[10px] text-[--danger-text]">Eliminare?</span>
+        <span className="text-[10px] text-(--danger-text)">Eliminare?</span>
         <button
           onClick={() => startTransition(() => deleteTransactionAction(txnId))}
           disabled={isPending}
           title="Conferma"
-          className="size-6 flex items-center justify-center rounded text-[--danger-text] hover:bg-[--danger-subtle] disabled:opacity-40 transition-colors"
+          className="size-6 flex items-center justify-center rounded text-(--danger-text) hover:bg-(--danger-subtle) disabled:opacity-40 transition-colors"
         >
           <Check className="size-3.5" />
         </button>
         <button
           onClick={() => setConfirm(false)}
           title="Annulla"
-          className="size-6 flex items-center justify-center rounded text-[--muted] hover:bg-[--surface-2] transition-colors"
+          className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
         >
           <X className="size-3.5" />
         </button>
@@ -242,7 +242,7 @@ function DeleteButton({ txnId }: { txnId: number }) {
     <button
       onClick={() => setConfirm(true)}
       title="Elimina transazione"
-      className="size-7 flex items-center justify-center rounded text-[--faint] hover:text-[--danger-text] hover:bg-[--danger-subtle] opacity-0 group-hover/row:opacity-100 transition-all"
+      className="size-7 flex items-center justify-center rounded-md text-(--muted) hover:text-(--danger-text) hover:bg-(--danger-subtle) active:scale-90 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,color,background-color,transform] duration-150 ease-out-strong"
     >
       <Trash2 className="size-3.5" />
     </button>
@@ -270,7 +270,7 @@ export default function TransactionTable({
     <>
       {/* ── Desktop: tabella ───────────────────────────────────────────────── */}
       <div className="hidden sm:block">
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-2xl border border-(--border) bg-(--surface) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -284,7 +284,7 @@ export default function TransactionTable({
             <TableBody>
               {transactions.map((txn) => (
                 <Tr key={txn.id} className="group/row">
-                  <Td className="text-[--muted] text-xs whitespace-nowrap">
+                  <Td className="text-(--muted) text-xs whitespace-nowrap tabular-nums">
                     {formatDate(txn.booked_date)}
                   </Td>
                   <Td className="max-w-xs">
@@ -303,10 +303,11 @@ export default function TransactionTable({
                     />
                   </Td>
                   <Td numeric>
-                    <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
-                      {txn.amount_minor >= 0 ? '+' : ''}
-                      {fromMinor(txn.amount_minor, txn.currency)}
-                    </Badge>
+                    {/* Uscite neutre, entrate in verde: il colore segnala solo ciò che entra */}
+                    <span className={txn.amount_minor > 0 ? 'text-(--brand-text) font-medium' : 'text-(--ink)'}>
+                      {txn.amount_minor > 0 ? '+' : ''}
+                      {formatMoney(txn.amount_minor, txn.currency)}
+                    </span>
                   </Td>
                   <Td>
                     <DeleteButton txnId={txn.id} />
@@ -326,18 +327,18 @@ export default function TransactionTable({
               title={txn.merchant_name || txn.description_raw}
               subtitle={!txn.merchant_name ? undefined : txn.description_raw}
               badge={
-                <Badge variant={txn.amount_minor < 0 ? 'loss' : 'gain'}>
-                  {txn.amount_minor >= 0 ? '+' : ''}
-                  {fromMinor(txn.amount_minor, txn.currency)}
-                </Badge>
+                <span className={`font-mono tabular-nums text-sm ${txn.amount_minor > 0 ? 'text-(--brand-text) font-medium' : 'text-(--ink)'}`}>
+                  {txn.amount_minor > 0 ? '+' : ''}
+                  {formatMoney(txn.amount_minor, txn.currency)}
+                </span>
               }
             />
-            <div className="divide-y divide-[--border]">
+            <div className="divide-y divide-(--border)">
               <DataRow label="Data">
                 <span className="tabular-nums">{formatDate(txn.booked_date)}</span>
               </DataRow>
               <div className="py-2 space-y-1.5">
-                <span className="text-xs text-[--muted]">Categoria</span>
+                <span className="text-xs text-(--muted)">Categoria</span>
                 <CategorySelect
                   txnId={txn.id}
                   currentCategoryId={txn.category_id}

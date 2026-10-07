@@ -29,14 +29,14 @@ function TokenRow({ t }: { t: ApiTokenRow }) {
     <Tr className={revoked ? 'opacity-50' : undefined}>
       <Td>{t.name}</Td>
       <Td>
-        <code className="text-xs bg-[--surface-2] border border-[--border] rounded px-1.5 py-0.5 text-[--ink] font-mono">
+        <code className="text-xs bg-(--surface-2) border border-(--border) rounded px-1.5 py-0.5 text-(--ink) font-mono">
           {t.prefix}…
         </code>
       </Td>
-      <Td className="text-xs text-[--muted]">
+      <Td className="text-xs text-(--muted)">
         {formatDateIt(t.created_at, { day: '2-digit', month: 'short', year: 'numeric' })}
       </Td>
-      <Td className="text-xs text-[--muted]">
+      <Td className="text-xs text-(--muted)">
         {t.last_used_at
           ? formatDateIt(t.last_used_at, { day: '2-digit', month: 'short', year: 'numeric' })
           : 'Mai usato'}
@@ -70,12 +70,12 @@ function NewTokenReveal({ token, onDismiss }: { token: string; onDismiss: () => 
   }
 
   return (
-    <div className="rounded-xl border border-[--brand]/40 bg-[--brand-subtle] p-4 space-y-3">
-      <p className="text-sm font-medium text-[--ink]">
+    <div className="rounded-xl border border-(--brand)/40 bg-(--brand-subtle) p-4 space-y-3">
+      <p className="text-sm font-medium text-(--ink)">
         Token creato — copialo ora, non sarà più mostrato.
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 min-w-0 truncate text-xs bg-[--surface] border border-[--border] rounded-lg px-3 py-2 text-[--ink] font-mono">
+        <code className="flex-1 min-w-0 truncate text-xs bg-(--surface) border border-(--border) rounded-lg px-3 py-2 text-(--ink) font-mono">
           {token}
         </code>
         <Button type="button" variant="secondary" size="sm" onClick={copy}>
@@ -99,12 +99,12 @@ export default function ApiTokensManager({ tokens }: Props) {
   return (
     <div className="space-y-4">
       {tokens.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl border border-dashed border-[--border] p-4 text-[--muted]">
+        <div className="flex items-center gap-3 rounded-xl border border-dashed border-(--border) p-4 text-(--muted)">
           <KeyRound className="size-4 shrink-0" />
           <p className="text-sm">Nessun token ancora. Creane uno qui sotto per collegare Homepage.</p>
         </div>
       ) : (
-        <TableWrapper className="rounded-xl border border-[--border] overflow-hidden">
+        <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
           <Table>
             <TableHead>
               <Tr>
@@ -131,7 +131,7 @@ export default function ApiTokensManager({ tokens }: Props) {
         className="flex items-end gap-2"
       >
         <div className="flex-1 min-w-40">
-          <label htmlFor="token-name" className="text-xs font-medium text-[--muted]">
+          <label htmlFor="token-name" className="text-xs font-medium text-(--muted)">
             Nome del token
           </label>
           <Input
@@ -148,14 +148,14 @@ export default function ApiTokensManager({ tokens }: Props) {
         </Button>
       </form>
 
-      {createState?.error && <p className="text-xs text-[--danger]" role="alert">{createState.error}</p>}
+      {createState?.error && <p className="text-xs text-(--danger)" role="alert">{createState.error}</p>}
 
-      <p className="text-xs text-[--faint] leading-relaxed max-w-prose">
+      <p className="text-xs text-(--faint) leading-relaxed max-w-prose">
         Il token dà accesso in sola lettura al tuo patrimonio via API — trattalo come una
         password. Usalo solo su reti fidate (es. la tua LAN/VPN) e revocalo se sospetti
         che sia stato esposto. Vedi{' '}
-        <span className="text-[--ink]">docs/homepage-integration.md</span> per la guida
-        completa e lo <code className="text-[--ink]">services.yaml</code> da incollare in Homepage.
+        <span className="text-(--ink)">docs/homepage-integration.md</span> per la guida
+        completa e lo <code className="text-(--ink)">services.yaml</code> da incollare in Homepage.
       </p>
     </div>
   )

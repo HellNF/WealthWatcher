@@ -57,14 +57,14 @@ export default function SyncButton({
   if (status === 'revoked') return null
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-t border-[--border] first:border-t-0">
+    <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-t border-(--border) first:border-t-0">
       <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-[--ink]">{aspsp.name}</span>
+        <span className="text-sm text-(--ink)">{aspsp.name}</span>
         <Badge variant={status === 'active' ? 'success' : 'warning'}>
           {status === 'active' ? 'Collegata' : status === 'expired' ? 'Scaduta' : 'In attesa'}
         </Badge>
         {lastSyncedAt && (
-          <span className="text-xs text-[--faint]">ultima sync {lastSyncedAt}</span>
+          <span className="text-xs text-(--faint)">ultima sync {lastSyncedAt}</span>
         )}
       </div>
 
@@ -85,21 +85,21 @@ export default function SyncButton({
       </Button>
 
       {result?.error && (
-        <p className="w-full text-xs text-[--danger]">{result.error}</p>
+        <p className="w-full text-xs text-(--danger)">{result.error}</p>
       )}
       {result && !result.error && (
         <div className="w-full space-y-0.5">
-          <p className="text-xs text-[--muted]">
+          <p className="text-xs text-(--muted)">
             {result.insertedCount} movimenti inseriti · {result.duplicateCount} duplicati ignorati
           </p>
           {result.categorized !== undefined && (
-            <p className="text-xs text-[--muted]">
+            <p className="text-xs text-(--muted)">
               {result.categorized} categorizzati automaticamente
               {result.uncategorized ? ` · ${result.uncategorized} senza categoria` : ''}
             </p>
           )}
           {result.unmappedMccs && result.unmappedMccs.length > 0 && (
-            <p className="text-xs text-[--faint]">
+            <p className="text-xs text-(--faint)">
               Codici MCC non mappati: {result.unmappedMccs.join(', ')}
             </p>
           )}

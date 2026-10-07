@@ -14,7 +14,7 @@ interface Props {
 }
 
 function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 function shortDate(iso: string): string {
   const [, m, d] = iso.split('-')
@@ -47,7 +47,7 @@ function ProjectionTooltip(
       {p.events.length > 0 && (
         <ul style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${colors.tipBorder}`, listStyle: 'none' }}>
           {p.events.slice(0, 4).map((e, i) => (
-            <li key={i} style={{ color: e.direction === 'in' ? colors.brand : colors.danger, fontSize: 11, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <li key={i} style={{ color: e.direction === 'in' ? colors.brand : colors.ink, fontSize: 11, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.label}</span>
               <span style={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                 {e.direction === 'in' ? '+' : '−'}{fmtEur(e.amountMinor)}
@@ -66,7 +66,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
 
   if (points.length < 2) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         La proiezione richiede uno storico movimenti sufficiente per essere stimata.
       </p>
     )
@@ -76,7 +76,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
   const hasNegative = points.some(p => p.balanceMinor < 0)
 
   const colors: ChartColors = isDark
-    ? { brand: '#34d399', danger: '#f87171', warning: '#fbbf24', grid: '#262626', axis: '#a3a3a3',
+    ? { brand: '#34d399', danger: '#f87171', warning: '#fbbf24', grid: 'oklch(0.28 0.01 160)', axis: 'oklch(0.72 0.01 160)',
         tipBg: '#1a2421', tipBorder: '#2d3d38', tipLabel: '#a3a3a3', ink: '#e5e5e5' }
     : { brand: '#059669', danger: '#dc2626', warning: '#d97706', grid: '#e5e5e5', axis: '#6b7280',
         tipBg: '#ffffff', tipBorder: '#e5e7eb', tipLabel: '#6b7280', ink: '#171717' }
@@ -84,7 +84,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
   const stroke = hasNegative ? colors.warning : colors.brand
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="cashProjGrad" x1="0" y1="0" x2="0" y2="1">
@@ -111,7 +111,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
 
         {/* Soglia di allerta (≈ 1 mese di spese) */}
         {thresholdMinor > 0 && (
-          <ReferenceLine y={thresholdMinor} stroke={colors.warning} strokeDasharray="4 4" strokeOpacity={0.7} />
+          <ReferenceLine y={thresholdMinor} stroke={colors.axis} strokeDasharray="4 4" strokeOpacity={0.7} />
         )}
         {/* Linea dello zero (scoperto) */}
         {hasNegative && <ReferenceLine y={0} stroke={colors.danger} strokeDasharray="2 2" />}
@@ -129,7 +129,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
             const hasOut = payload.events.some(e => e.direction === 'out')
             return (
               <circle key={index} cx={cx} cy={cy} r={3}
-                fill={hasOut ? colors.danger : colors.brand} stroke={colors.tipBg} strokeWidth={1} />
+                fill={hasOut ? colors.axis : colors.brand} stroke={colors.tipBg} strokeWidth={1} />
             )
           }}
           activeDot={{ r: 4, fill: stroke, strokeWidth: 0 }}

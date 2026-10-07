@@ -13,7 +13,7 @@ interface Props {
 
 function fmtEur(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency',
+    style: 'currency', useGrouping: 'always',
     currency: 'EUR',
     maximumFractionDigits: 0,
   })
@@ -30,7 +30,7 @@ export default function AllocationOverTime({ data }: Props) {
 
   if (data.length < 2) {
     return (
-      <p className="text-sm text-[--muted] py-6 text-center">
+      <p className="text-sm text-(--muted) py-6 text-center">
         Il grafico si popola con almeno 2 snapshot di patrimonio.
       </p>
     )

@@ -34,12 +34,12 @@ export default function EventForm({ defaultDate, onClose }: Props) {
   }, [pending, state, toast, onClose])
 
   return (
-    <div className="rounded-2xl border border-[--border] bg-[--surface] p-4 sm:p-5 space-y-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
+    <div className="rounded-2xl border border-(--border) bg-(--surface) p-4 sm:p-5 space-y-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[--ink]">Nuovo evento manuale</h3>
+        <h3 className="text-sm font-semibold text-(--ink)">Nuovo evento manuale</h3>
         <button
           onClick={onClose}
-          className="flex size-6 items-center justify-center rounded text-[--muted] hover:text-[--ink] hover:bg-[--surface-2] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--ring]"
+          className="flex size-6 items-center justify-center rounded text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           aria-label="Chiudi"
         >
           <X className="size-4" />
@@ -70,7 +70,7 @@ export default function EventForm({ defaultDate, onClose }: Props) {
           <Input id="ev-note" name="note" placeholder="Informazioni aggiuntive…" />
         </Field>
 
-        {state?.error && <p className="text-xs text-[--danger]">{state.error}</p>}
+        {state?.error && <p className="text-xs text-(--danger)">{state.error}</p>}
 
         <div className="flex items-center gap-2 justify-end">
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>Annulla</Button>
