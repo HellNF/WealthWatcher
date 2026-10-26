@@ -26,7 +26,15 @@ export interface AuthResponse {
 
 // Un conto autorizzato dal PSU, restituito dentro Session.accounts.
 export interface EbAccount {
+  // Valido solo finché la sessione che lo ha emesso è autorizzata: a ogni
+  // nuovo consenso la banca restituisce un uid diverso per lo stesso conto.
   uid:            string
+  // Stabile tra sessioni diverse: è la chiave per riconoscere lo stesso conto
+  // quando l'utente rinnova il consenso.
+  identification_hash?: string
+  account_id?:    { iban?: string }
+  // Non fa parte della risposta di Enable Banking (l'IBAN sta in
+  // `account_id.iban`): mantenuto per compatibilità con risposte più vecchie.
   iban?:          string
   name?:          string
   product?:       string

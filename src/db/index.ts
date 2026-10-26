@@ -11,6 +11,7 @@ import path from 'path'
 
 import * as schema from './schema'
 import { runSeed } from './seed'
+import { autoMergeRenewalDuplicates } from '@/lib/accountMerge'
 
 function initDb() {
   const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'chat.db')
@@ -55,6 +56,7 @@ function initDb() {
 
     seedAdmin(sqlite)
     runSeed(sqlite)
+    mergeRenewalDuplicatesAtStartup(sqlite)
   }
 
   return { sqlite, db }
@@ -82,3 +84,22 @@ function seedAdmin(sqlite: Database.Database): void {
 const { sqlite, db } = initDb()
 
 export { sqlite, db }
+
+/**
+ * Ripara i conti spezzati in due dai rinnovi Open Banking avvenuti prima che
+ * linkOrCreateAccount ricollegasse i conti per chiave stabile (vedi
+ * src/lib/accountMerge.ts). Idempotente: senza doppioni non fa nulla. Un
+ * errore qui non deve mai impedire l'avvio dell'app.
+ */
+function mergeRenewalDuplicatesAtStartup(sqlite: Database.Database): void {
+  try {
+    for (const m of autoMergeRenewalDuplicates(sqlite)) {
+      console.log(
+        `[enablebanking] conto #${m.mergedId} unito al conto #${m.keptId}: ` +
+        `${m.result.movedCount} movimenti spostati, ${m.result.duplicateCount} doppioni scartati`,
+      )
+    }
+  } catch (err) {
+    console.warn('[enablebanking] unione automatica dei conti doppi fallita:', err instanceof Error ? err.message : err)
+  }
+}

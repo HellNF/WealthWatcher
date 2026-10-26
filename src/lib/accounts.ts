@@ -4,6 +4,7 @@ import { and, desc, eq, exists, or, sql } from 'drizzle-orm'
 import { db, sqlite } from '@/db'
 import { bankAccounts, shares } from '@/db/schema'
 import type { BankAccount } from '@/db/schema'
+import { mergeAccountsIn, type MergeAccountsResult } from '@/lib/accountMerge'
 
 export type { BankAccount }
 
@@ -351,4 +352,37 @@ export function accountAverageBalanceMinor(accountId: number, year: string): Ave
     .all(accountId) as { booked_date: string; amount_minor: number }[]
 
   return averageBalanceFromMovements(currentBalance, movements, year, anchorDate)
+}
+
+export type { MergeAccountsResult }
+
+/** Vedi mergeAccountsIn (src/lib/accountMerge.ts). Ritorna null se i conti non sono fondibili. */
+export function mergeAccounts(userId: number, keepId: number, absorbId: number): MergeAccountsResult | null {
+  return mergeAccountsIn(sqlite, userId, keepId, absorbId)
+}
+
+export interface MergeCandidateRow {
+  id:        number
+  name:      string
+  txnCount:  number
+  firstDate: string | null
+  lastDate:  string | null
+}
+
+/** Conti fondibili in `accountId` (vedi mergeAccounts): stesso proprietario, istituzione e valuta. */
+export function listMergeCandidates(userId: number, accountId: number): MergeCandidateRow[] {
+  return sqlite
+    .prepare(
+      `SELECT o.id, o.name,
+              COUNT(t.id) AS txnCount, MIN(t.booked_date) AS firstDate, MAX(t.booked_date) AS lastDate
+         FROM bank_accounts a
+         JOIN bank_accounts o
+           ON o.owner_id = a.owner_id AND o.institution_id = a.institution_id
+          AND o.currency = a.currency AND o.id <> a.id
+         LEFT JOIN transactions t ON t.bank_account_id = o.id
+        WHERE a.id = ? AND a.owner_id = ?
+        GROUP BY o.id
+        ORDER BY o.id`,
+    )
+    .all(accountId, userId) as MergeCandidateRow[]
 }

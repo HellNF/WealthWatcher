@@ -10,6 +10,7 @@ import { getEnableBankingKey } from '@/lib/userSettings'
 import { maskIban } from '@/lib/privacy'
 import {
   activateConnection,
+  ebAccountKey,
   getConnectionByStateForUser,
   linkOrCreateAccount,
 } from '@/lib/banking/connections'
@@ -69,7 +70,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // fallback: finirebbe in chiaro in bank_accounts.name (visibile ovunque
     // quel nome è mostrato/esportato). Un IBAN mascherato resta comunque
     // identificativo per l'utente senza esporre il numero di conto per intero.
-    const fallbackName = account.iban ? maskIban(account.iban) : `Conto ${account.uid.slice(0, 8)}`
+    const iban = account.account_id?.iban ?? account.iban
+    const fallbackName = iban ? maskIban(iban) : `Conto ${account.uid.slice(0, 8)}`
     linkOrCreateAccount(
       user.id,
       connection.institution_id,
@@ -77,6 +79,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       account.uid,
       account.name ?? fallbackName,
       account.currency ?? 'EUR',
+      ebAccountKey(account),
     )
   }
 

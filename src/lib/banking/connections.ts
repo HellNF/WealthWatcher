@@ -4,12 +4,13 @@
 // src/lib/accounts.ts: tutte le letture sono owner-scoped, le connessioni non
 // sono condivisibili (a differenza di institutions/bank_accounts) perché
 // contengono un consenso bancario personale.
-import { randomBytes } from 'crypto'
-import { and, desc, eq } from 'drizzle-orm'
+import { createHash, randomBytes } from 'crypto'
+import { and, asc, desc, eq, isNull } from 'drizzle-orm'
 import { db, sqlite } from '@/db'
 import { bankAccounts, ebConnections } from '@/db/schema'
 import type { BankAccount, EbConnection } from '@/db/schema'
 import { encryptSecret, decryptSecret } from '@/lib/crypto'
+import type { EbAccount } from './types'
 
 export type { EbConnection }
 export type ConnectionStatus = 'pending' | 'active' | 'expired' | 'revoked'
@@ -121,9 +122,44 @@ export function listActiveConnections(): EbConnection[] {
 // ── Collegamento conti EB ↔ bank_accounts ─────────────────────────────────
 
 /**
- * Collega (o ritrova, se già collegato) un conto EB a un bank_account sotto
- * l'istituzione della connessione. Idempotente su (eb_connection_id,
- * eb_account_uid): un callback rieseguito per errore non duplica i conti.
+ * Chiave stabile di un conto EB tra consensi diversi. Preferisce
+ * `identification_hash` (pensato da Enable Banking proprio per riconoscere lo
+ * stesso conto in sessioni diverse); se l'ASPSP non lo fornisce ripiega su un
+ * hash dell'IBAN, così nel DB non finisce il numero di conto in chiaro.
+ */
+export function ebAccountKey(account: Pick<EbAccount, 'identification_hash' | 'account_id' | 'iban'>): string | null {
+  if (account.identification_hash) return account.identification_hash
+  const iban = account.account_id?.iban ?? account.iban
+  if (!iban) return null
+  const normalized = iban.replace(/\s+/g, '').toUpperCase()
+  return `iban:${createHash('sha256').update(normalized).digest('hex')}`
+}
+
+/** Sposta un bank_account esistente sul nuovo consenso (uid e connessione nuovi). */
+function relinkAccount(accountId: number, connectionId: number, ebAccountUid: string, accountKey: string | null): BankAccount {
+  return db
+    .update(bankAccounts)
+    .set({
+      eb_account_uid:   ebAccountUid,
+      eb_connection_id: connectionId,
+      ...(accountKey ? { eb_account_key: accountKey } : {}),
+    })
+    .where(eq(bankAccounts.id, accountId))
+    .returning()
+    .get() as BankAccount
+}
+
+/**
+ * Collega un conto EB a un bank_account sotto l'istituzione della connessione.
+ * L'uid EB vale solo per la sessione che lo ha emesso: quando l'utente rinnova
+ * un consenso scaduto la banca restituisce uid nuovi per gli stessi conti.
+ * Per non spezzare lo storico in due conti, l'ordine di ricerca è:
+ *  1. stesso (connessione, uid) — callback rieseguito: idempotente;
+ *  2. stessa chiave stabile (ebAccountKey) nell'istituzione — consenso
+ *     rinnovato: il conto esistente viene ricollegato alla nuova connessione;
+ *  3. conti collegati prima che la chiave venisse salvata: un solo conto con
+ *     stesso nome e valuta, legato a una connessione non più attiva.
+ * Solo se nessuno corrisponde viene creato un conto nuovo.
  */
 export function linkOrCreateAccount(
   ownerId:       number,
@@ -132,13 +168,43 @@ export function linkOrCreateAccount(
   ebAccountUid:  string,
   name:          string,
   currency:      string,
+  accountKey:    string | null = null,
 ): BankAccount {
   const existing = db
     .select()
     .from(bankAccounts)
     .where(and(eq(bankAccounts.eb_connection_id, connectionId), eq(bankAccounts.eb_account_uid, ebAccountUid)))
     .get()
-  if (existing) return existing as BankAccount
+  if (existing) {
+    if (accountKey && !existing.eb_account_key) return relinkAccount(existing.id, connectionId, ebAccountUid, accountKey)
+    return existing as BankAccount
+  }
+
+  const sameInstitution = and(eq(bankAccounts.owner_id, ownerId), eq(bankAccounts.institution_id, institutionId))
+
+  if (accountKey) {
+    // Se per un errore passato esistono più conti con la stessa chiave, il più
+    // vecchio è quello con lo storico più lungo.
+    const byKey = db
+      .select()
+      .from(bankAccounts)
+      .where(and(sameInstitution, eq(bankAccounts.eb_account_key, accountKey)))
+      .orderBy(asc(bankAccounts.id))
+      .get()
+    if (byKey) return relinkAccount(byKey.id, connectionId, ebAccountUid, accountKey)
+  }
+
+  const legacy = sqlite
+    .prepare(
+      `SELECT a.id FROM bank_accounts a
+         LEFT JOIN eb_connections c ON c.id = a.eb_connection_id
+        WHERE a.owner_id = ? AND a.institution_id = ?
+          AND a.eb_account_uid IS NOT NULL AND a.eb_account_key IS NULL
+          AND a.name = ? AND a.currency = ?
+          AND (c.id IS NULL OR (c.id <> ? AND c.status <> 'active'))`,
+    )
+    .all(ownerId, institutionId, name, currency, connectionId) as { id: number }[]
+  if (legacy.length === 1) return relinkAccount(legacy[0].id, connectionId, ebAccountUid, accountKey)
 
   const row = db
     .insert(bankAccounts)
@@ -149,10 +215,20 @@ export function linkOrCreateAccount(
       currency,
       eb_account_uid:   ebAccountUid,
       eb_connection_id: connectionId,
+      eb_account_key:   accountKey,
     })
     .returning()
     .get()
   return row as BankAccount
+}
+
+/** Salva la chiave stabile su un conto collegato prima che venisse memorizzata. */
+export function setAccountKey(accountId: number, accountKey: string): void {
+  db
+    .update(bankAccounts)
+    .set({ eb_account_key: accountKey })
+    .where(and(eq(bankAccounts.id, accountId), isNull(bankAccounts.eb_account_key)))
+    .run()
 }
 
 export function listAccountsForConnection(connectionId: number): BankAccount[] {

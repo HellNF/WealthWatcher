@@ -101,6 +101,9 @@ export interface SyncActionResult {
   categorized?:   number
   uncategorized?: number
   unmappedMccs?:  string[]
+  // Conti doppi (rinnovo del consenso) riuniti al conto originale: `from` non
+  // esiste più, la pagina che lo mostrava deve passare a `to`.
+  mergedInto?:    { from: number; to: number }[]
   error?:         string
 }
 
@@ -130,6 +133,9 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
   for (const acc of result.accounts) {
     revalidatePath(`/dashboard/accounts/${acc.accountId}`)
   }
+  for (const m of result.merged ?? []) {
+    revalidatePath(`/dashboard/accounts/${m.keptId}`)
+  }
 
   if (result.status === 'expired') {
     return { insertedCount: 0, duplicateCount: 0, error: 'Connessione scaduta: riconnetti la banca.' }
@@ -147,6 +153,7 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
     categorized:    diagnostics.reduce((s, d) => s + d.categorized, 0),
     uncategorized:  diagnostics.reduce((s, d) => s + d.uncategorized, 0),
     unmappedMccs,
+    mergedInto:     result.merged?.map((m) => ({ from: m.mergedId, to: m.keptId })),
     error:          result.accounts.find((a) => a.error)?.error,
   }
 }
