@@ -6,11 +6,13 @@
 // Banking può coprire più conti), ma il risultato mostrato riguarda solo
 // l'importo di questo conto.
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { syncConnectionAction, type SyncActionResult } from '@/app/dashboard/banking/actions'
 import { Button } from '@/components/ui'
 import { RefreshCw } from 'lucide-react'
 
-export default function AccountSyncButton({ connectionId }: { connectionId: number }) {
+export default function AccountSyncButton({ connectionId, accountId }: { connectionId: number; accountId: number }) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<SyncActionResult | null>(null)
 
@@ -18,6 +20,13 @@ export default function AccountSyncButton({ connectionId }: { connectionId: numb
     setResult(null)
     startTransition(async () => {
       const r = await syncConnectionAction(connectionId)
+      // Questo conto era un doppione nato dal rinnovo del consenso ed è stato
+      // riunito al conto originale: la sua pagina non esiste più.
+      const target = r.mergedInto?.find((m) => m.from === accountId)
+      if (target) {
+        router.replace(`/dashboard/accounts/${target.to}`)
+        return
+      }
       setResult(r)
     })
   }

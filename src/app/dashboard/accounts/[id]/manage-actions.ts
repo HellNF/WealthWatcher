@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getAccountForUser, updateAccount, deleteAccount, setAccountInterestRate } from '@/lib/accounts'
+import { getAccountForUser, updateAccount, deleteAccount, setAccountInterestRate, mergeAccounts } from '@/lib/accounts'
 import { refreshNetWorth } from '@/lib/valuation'
 
 type State = { error?: string; success?: string } | undefined
@@ -61,4 +61,31 @@ export async function deleteAccountAction(accountId: number): Promise<void> {
     redirect(`/dashboard/institutions/${institutionId}`)
   }
   redirect('/dashboard')
+}
+
+// Fonde un altro conto (stessa istituzione e valuta) dentro questo: serve a
+// riunire lo storico quando un rinnovo Open Banking ha creato un doppione.
+export async function mergeAccountAction(
+  accountId: number,
+  _prev: State,
+  formData: FormData,
+): Promise<State> {
+  const user = await requireUser()
+  const absorbId = Number(formData.get('absorbId'))
+  if (!Number.isInteger(absorbId)) return { error: 'Scegli il conto da unire' }
+
+  const result = mergeAccounts(user.id, accountId, absorbId)
+  if (!result) return { error: 'Questi due conti non si possono unire' }
+
+  await refreshNetWorth(user.id)
+  const account = getAccountForUser(user.id, accountId)
+  if (account) revalidatePath(`/dashboard/institutions/${account.institution_id}`)
+  revalidatePath(`/dashboard/accounts/${accountId}`)
+
+  const moved = result.movedCount.toLocaleString('it-IT')
+  return {
+    success: result.duplicateCount > 0
+      ? `Conti uniti: ${moved} movimenti spostati, ${result.duplicateCount.toLocaleString('it-IT')} doppioni scartati`
+      : `Conti uniti: ${moved} movimenti spostati`,
+  }
 }

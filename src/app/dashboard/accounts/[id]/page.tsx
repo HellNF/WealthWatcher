@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
-import { getAccountForUser, getAccountBalanceMinor, estimateInterest } from '@/lib/accounts'
+import { getAccountForUser, getAccountBalanceMinor, estimateInterest, listMergeCandidates } from '@/lib/accounts'
 import { getInstitutionForUser } from '@/lib/institutions'
 import { providerParser } from '@/lib/providers'
 import { listTransactions, countTransactions, listAllCategories } from '@/lib/transactions'
@@ -10,6 +10,7 @@ import TransactionTable from './TransactionTable'
 import SetBalanceForm from './SetBalanceForm'
 import InterestForm from './InterestForm'
 import AccountSyncButton from './AccountSyncButton'
+import MergeAccountForm from './MergeAccountForm'
 import BalanceTrend, { type BalancePoint } from './BalanceTrend'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renameAccountAction, deleteAccountAction } from './manage-actions'
@@ -52,6 +53,8 @@ export default async function AccountPage({ params, searchParams }: Props) {
 
   const interest = estimateInterest(balanceMinor, account.interest_rate)
   const importSupported = providerParser(institution?.provider) !== null
+  // Solo il proprietario può fondere: per un conto condiviso la lista è vuota.
+  const mergeCandidates = listMergeCandidates(user.id, id)
 
   // ── Dati per la colonna di riepilogo ───────────────────────────────────────
   const allTxns   = listTransactions(user.id, id, { limit: 99_999 }) // dal più recente
@@ -139,7 +142,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         description={institution ? `Conto corrente · ${institution.name} · ${account.currency}` : `Conto corrente · ${account.currency}`}
         actions={
           <>
-            {account.eb_connection_id && <AccountSyncButton connectionId={account.eb_connection_id} />}
+            {account.eb_connection_id && <AccountSyncButton connectionId={account.eb_connection_id} accountId={id} />}
             <Link href={`/dashboard/reports?account=${id}`} className={LINK}>
               <BarChart3 className="size-4" strokeWidth={1.75} />
               Report mensile
@@ -314,6 +317,11 @@ export default async function AccountPage({ params, searchParams }: Props) {
                 confirmText="Eliminare il conto e tutti i suoi movimenti?"
               />
             </div>
+            {mergeCandidates.length > 0 && (
+              <div className="border-t border-(--border) pt-4">
+                <MergeAccountForm accountId={id} candidates={mergeCandidates} />
+              </div>
+            )}
           </Card>
         </aside>
       </div>

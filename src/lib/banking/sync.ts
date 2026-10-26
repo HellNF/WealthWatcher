@@ -19,9 +19,13 @@ import { insertBatch, type InsertableTransaction } from '@/lib/transactions'
 import { setAccountBalanceAnchor } from '@/lib/accounts'
 import { getEnableBankingKey } from '@/lib/userSettings'
 import type { BankAccount, EbConnection } from '@/db/schema'
-import { getBalances, getTransactions } from './client'
+import { sqlite } from '@/db'
+import { autoMergeRenewalDuplicates, type RenewalMerge } from '@/lib/accountMerge'
+import { getAccountDetails, getBalances, getTransactions } from './client'
 import type { EbBalance, EbTransaction, EnableBankingCredentials } from './types'
-import { listAccountsForConnection, markConnectionSynced, setConnectionStatus } from './connections'
+import {
+  ebAccountKey, listAccountsForConnection, markConnectionSynced, setAccountKey, setConnectionStatus,
+} from './connections'
 
 // ── Mapping EbTransaction → InsertableTransaction ─────────────────────────
 
@@ -179,6 +183,14 @@ async function syncAccount(
     return { accountId: account.id, insertedCount: 0, duplicateCount: 0, balanceUpdated: false, error: 'Conto senza uid Enable Banking' }
   }
 
+  // Conti collegati prima che salvassimo la chiave stabile: la recuperiamo ora,
+  // così al prossimo rinnovo del consenso il conto verrà ricollegato e non duplicato.
+  if (!account.eb_account_key) {
+    const details = await getAccountDetails(creds, uid)
+    const key = details ? ebAccountKey(details) : null
+    if (key) setAccountKey(account.id, key)
+  }
+
   let balanceUpdated = false
   const balances = await getBalances(creds, uid)
   if (balances && balances.length > 0) {
@@ -221,6 +233,8 @@ export interface ConnectionSyncResult {
   connectionId: number
   status:       'synced' | 'expired' | 'no-credentials'
   accounts:     AccountSyncResult[]
+  // Doppioni da rinnovo del consenso riuniti al conto originale dopo la sync.
+  merged?:      RenewalMerge[]
 }
 
 // Overlap applicato a `last_synced_at` per catturare movimenti contabilizzati
@@ -253,5 +267,9 @@ export async function syncConnection(connection: EbConnection): Promise<Connecti
   }
 
   markConnectionSynced(connection.id)
-  return { connectionId: connection.id, status: 'synced', accounts: results }
+  // Dopo la sync i movimenti nuovi permettono di riconoscere un conto doppio
+  // nato da un rinnovo del consenso (stessi movimenti di un conto collegato a
+  // una connessione scaduta): lo storico viene riunito nel conto originale.
+  const merged = autoMergeRenewalDuplicates(sqlite, connection.owner_id)
+  return { connectionId: connection.id, status: 'synced', accounts: results, merged }
 }

@@ -84,6 +84,11 @@ export const bankAccounts = sqliteTable(
                          () => ebConnections.id,
                          { onDelete: 'set null' },
                        ),
+    // Chiave stabile del conto tra consensi diversi: `identification_hash` di
+    // Enable Banking (o, se assente, sha256 dell'IBAN normalizzato). L'uid
+    // vale solo per la sessione che lo ha emesso: al rinnovo del consenso è
+    // questa chiave a ricollegare il conto esistente invece di crearne uno nuovo.
+    eb_account_key:    text('eb_account_key'),
     created_at:     integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [

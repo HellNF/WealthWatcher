@@ -10,7 +10,7 @@
 import { getEnableBankingJwt } from './jwt'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 import type {
-  Aspsp, AspspsResponse, AuthResponse, EnableBankingCredentials, Session,
+  Aspsp, AspspsResponse, AuthResponse, EbAccount, EnableBankingCredentials, Session,
   BalancesResponse, EbBalance, EbTransaction, TransactionsResponse,
 } from './types'
 
@@ -112,6 +112,14 @@ export async function createSession(creds: EnableBankingCredentials, code: strin
 /** Revoca la sessione lato Enable Banking (disconnessione esplicita). */
 export async function deleteSession(creds: EnableBankingCredentials, sessionId: string): Promise<boolean> {
   return del(creds, `/sessions/${encodeURIComponent(sessionId)}`)
+}
+
+/** Dettagli del conto (stessa forma degli account di Session), incluso `identification_hash`. */
+export async function getAccountDetails(
+  creds:      EnableBankingCredentials,
+  accountUid: string,
+): Promise<EbAccount | null> {
+  return get<EbAccount>(creds, `/accounts/${encodeURIComponent(accountUid)}/details`)
 }
 
 export async function getBalances(
