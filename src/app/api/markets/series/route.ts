@@ -7,7 +7,7 @@ import { getSession } from '@/lib/dal'
 import { getSeriesGroup, isSeriesGroup } from '@/lib/marketOverview/series'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  if (!(await getSession())?.user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  if (!(await getSession())?.uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const group = request.nextUrl.searchParams.get('group') ?? ''
   if (!isSeriesGroup(group)) return NextResponse.json({ error: 'Gruppo non valido' }, { status: 400 })
