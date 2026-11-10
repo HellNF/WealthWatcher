@@ -45,9 +45,9 @@ export const STANCE_META: Record<Stance, { label: string; color: string; badge: 
 }
 
 export const CONFIDENCE_LABEL: Record<Confidence, string> = {
-  alta:  'confidenza alta',
-  media: 'confidenza media',
-  bassa: 'confidenza bassa',
+  alta:  'copertura dati alta',
+  media: 'copertura dati media',
+  bassa: 'copertura dati bassa',
 }
 
 export const READING_STYLE: Record<'favorable' | 'neutral' | 'unfavorable', { dot: string; label: string }> = {

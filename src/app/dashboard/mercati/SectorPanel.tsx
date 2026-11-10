@@ -133,8 +133,8 @@ export function SectorPanel({ analysis, signals }: { analysis: CachedAnalysis; s
       )}
 
       <div className="flex items-center justify-between gap-2 text-xs text-(--muted) border-t border-(--border) pt-3">
-        <SourceLink source={drivers[0]?.source ?? 'Yahoo Finance'} />
-        <span>aggiornato al {asDate}</span>
+        <span className="flex flex-wrap gap-2">{[...new Set(drivers.map(d => d.source).filter(Boolean))].map(source => <SourceLink key={source} source={source} />)}</span>
+        <span>Analisi elaborata il {asDate}; date dei dati nei singoli indicatori</span>
       </div>
     </Card>
   )

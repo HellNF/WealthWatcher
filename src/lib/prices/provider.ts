@@ -3,6 +3,8 @@
 // is not found, getQuote returns null (never throws — callers show "stale").
 
 export interface Quote {
+  kind?: 'quote' | 'close'
+  source?: string   // provider that actually supplied the observation
   price:    string   // decimal string in the instrument's currency
   currency: string   // ISO-4217 code returned by the provider
   asOf:     number   // unix epoch seconds of the quote

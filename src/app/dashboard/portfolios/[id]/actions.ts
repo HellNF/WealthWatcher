@@ -6,16 +6,16 @@ import { requireUser } from '@/lib/dal'
 import { getPortfolioForUser, updatePortfolio, deletePortfolio } from '@/lib/portfolios'
 import { backfillPortfolioHistory, type BackfillResult } from '@/lib/prices/backfill'
 import { simulateSaleFifo, type TaxSimResult } from '@/lib/taxSim'
-import { getOrCreateInstrument, getInstrument, updateInstrumentKidFields } from '@/lib/instruments'
+import { getOrCreateInstrument, updateInstrumentKidFields } from '@/lib/instruments'
 import { insertTxn, deleteTxn, updateTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
 import { lookupIsin, type IsinResult } from '@/lib/isin'
 import { getInstrumentDetails, getHistoricalPrices, type InstrumentDetails, type PricePoint } from '@/lib/prices/yahoo'
 import { searchCoins, type CoinSearchResult } from '@/lib/prices/coingecko'
-import { getCryptoHistory } from '@/lib/prices'
+import { getCryptoHistoryWithSource } from '@/lib/prices'
 import { getInstrumentBySymbol } from '@/lib/instruments'
 import { setCryptoHolding, removeCryptoHolding } from '@/lib/investmentTxns'
-import { toMinor, dec } from '@/lib/money'
+import { toMinor } from '@/lib/money'
 import { getOpenAiKey } from '@/lib/userSettings'
 import { extractKidText, extractKidData, type KidExtraction } from '@/lib/kid/extract'
 import { refreshNetWorth } from '@/lib/valuation'
@@ -247,18 +247,19 @@ export async function refreshPricesAction(portfolioId: number): Promise<void> {
 const VALID_PERIODS = ['1m', '3m', '6m', '1y', '5y'] as const
 type Period = typeof VALID_PERIODS[number]
 
-export async function fetchHistoryAction(symbol: string, period: string): Promise<PricePoint[]> {
+export async function fetchHistoryAction(symbol: string, period: string): Promise<{ points: PricePoint[]; source: string | null; currency: string | null }> {
   await requireUser()
-  if (!VALID_PERIODS.includes(period as Period)) return []
-
-  // Crypto via CoinGecko
+  const empty = { points: [], source: null, currency: null }
+  if (!VALID_PERIODS.includes(period as Period)) return empty
   const instr = getInstrumentBySymbol(symbol)
-  if (instr?.price_source === 'coingecko') {
+  if (!instr) return empty
+  if (instr.price_source === 'coingecko') {
     const coinId = (instr.provider_symbol ?? symbol).toLowerCase()
-    return getCryptoHistory(coinId, symbol, period as Period)
+    const result = await getCryptoHistoryWithSource(coinId, symbol, period as Period)
+    return result.currency === instr.currency ? result : empty
   }
-
-  return getHistoricalPrices(symbol, period as Period)
+  const points = await getHistoricalPrices(symbol, period as Period, instr.currency)
+  return { points, source: points.length ? 'Yahoo Finance' : null, currency: instr.currency }
 }
 
 export async function simulateSaleAction(

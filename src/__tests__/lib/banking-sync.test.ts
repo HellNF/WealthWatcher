@@ -1,7 +1,7 @@
 // src/__tests__/lib/banking-sync.test.ts — Mapping EbTransaction →
 // InsertableTransaction: segno dell'importo, dedup idempotente su
 // entry_reference, fallback a occorrenza in-batch quando assente.
-import { mapTransactions, summarizeMapping } from '@/lib/banking/sync'
+import { mapTransactions, summarizeMapping, pickBalance } from '@/lib/banking/sync'
 import type { EbTransaction } from '@/lib/banking/types'
 import { sqlite } from '@/db'
 
@@ -248,4 +248,48 @@ describe('summarizeMapping', () => {
     expect(diag.uncategorized).toBe(2)
     expect(diag.unmappedMccs).toEqual(['9999'])
   })
+})
+
+describe('mapTransactions — controparte e stato', () => {
+  const base: EbTransaction = {
+    booking_date: '2026-11-01', transaction_amount: { amount: '10', currency: 'EUR' },
+    credit_debit_indicator: 'CRDT', status: 'BOOK',
+    creditor: { name: 'Netflix' }, debtor: { name: 'Esselunga' },
+  }
+  test('accredito: classifica il mittente, non il titolare beneficiario', () => {
+    const [row] = mapTransactions(1, 42, [base])
+    expect(row.counterparty_raw).toBe('Esselunga')
+    expect(row.description_raw).toBe('Esselunga')
+    expect(categoryName(row.category_id)).toBe('Supermercato')
+  })
+  test('addebito: classifica il beneficiario', () => {
+    const [row] = mapTransactions(1, 42, [{ ...base, credit_debit_indicator: 'DBIT' }])
+    expect(row.counterparty_raw).toBe('Netflix')
+    expect(categoryName(row.category_id)).toBe('Abbonamenti')
+  })
+  test('non usa il titolare come controparte se manca il mittente', () => {
+    const [row] = mapTransactions(1, 42, [{ ...base, debtor: undefined }])
+    expect(row.counterparty_raw).toBeNull()
+    expect(row.category_id).toBeNull()
+  })
+  test.each(['PDNG', 'HOLD', 'CNCL', 'RJCT', 'SCHD', 'OTHR'] as const)('%s non entra nel libro contabile', (status) => {
+    expect(mapTransactions(1, 42, [{ ...base, status }])).toEqual([])
+  })
+})
+
+ test('saldo contabile ISO prioritario sul disponibile indipendentemente dall’ordine', () => {
+  const available = { balance_type: 'ITAV', balance_amount: { amount: '80', currency: 'EUR' } }
+  const booked = { balance_type: 'CLBD', balance_amount: { amount: '100', currency: 'EUR' } }
+  expect(pickBalance([available, booked])).toBe(booked)
+  expect(pickBalance([])).toBeNull()
+})
+
+
+test('unstable transaction_id does not duplicate repeated bank imports; identical payments are preserved', () => {
+  const row: EbTransaction = { transaction_id: 'unstable-a', booking_date: '2026-07-01',
+    transaction_amount: { amount: '5.00', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['Shop'] }
+  const first = mapTransactions(1, 42, [row, { ...row, transaction_id: 'unstable-b' }])
+  const second = mapTransactions(1, 42, [{ ...row, transaction_id: 'new-a' }, { ...row, transaction_id: 'new-b' }])
+  expect(first.map(p => p.dedup_hash)).toEqual(second.map(p => p.dedup_hash))
+  expect(new Set(first.map(p => p.dedup_hash)).size).toBe(2)
 })

@@ -2,7 +2,7 @@
 // mappature "codice esterno → categoria WealthWatcher" usate come fallback
 // quando nessuna regola utente/alias merchant fa match. Usa le categorie
 // seedate (src/db/seed.ts), reali nel DB di test.
-import { resolveIntesaCategory, resolveMccCategory, resolveBankTransactionCategory } from '@/lib/merchants'
+import { resolveMerchant, resolveIntesaCategory, resolveMccCategory, resolveBankTransactionCategory } from '@/lib/merchants'
 import { sqlite } from '@/db'
 
 function categoryName(id: number | null): string | null {
@@ -127,5 +127,26 @@ describe('resolveIntesaCategory', () => {
 
   test('categoria sconosciuta → null', () => {
     expect(resolveIntesaCategory('Categoria inventata')).toBeNull()
+  })
+})
+
+describe('matching preciso', () => {
+  test('alias brevi non classificano parole diverse', () => {
+    expect(resolveMerchant('bonifico cooperativa servizi')).toBeNull()
+    expect(resolveMerchant('pagamento superfluo')).toBeNull()
+    expect(categoryName(resolveMerchant('pos coop firenze')?.categoryId ?? null)).toBe('Supermercato')
+    expect(categoryName(resolveMerchant('pos unicoop firenze')?.categoryId ?? null)).toBe('Supermercato')
+  })
+  test('vince il pattern più specifico anche se inserito dopo', () => {
+    const merchant = sqlite.prepare("SELECT id FROM merchants WHERE canonical_name = 'Netflix'").get() as { id: number }
+    sqlite.prepare("INSERT INTO merchant_aliases (pattern, merchant_id) VALUES ('coop speciale', ?)").run(merchant.id)
+    try {
+      expect(resolveMerchant('coop speciale')?.merchantId).toBe(merchant.id)
+    } finally {
+      sqlite.prepare("DELETE FROM merchant_aliases WHERE pattern = 'coop speciale'").run()
+    }
+  })
+  test.each(['3e3', '3100.5', '+3100'])('MCC malformato %s non accede ai range numerici', (mcc) => {
+    expect(resolveMccCategory(mcc)).toBeNull()
   })
 })

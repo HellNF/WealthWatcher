@@ -27,7 +27,7 @@ export const coingeckoProvider: PriceProvider = {
       return {
         price:    entry.eur.toString(),
         currency: 'EUR',
-        asOf:     entry.last_updated_at ?? Math.floor(Date.now() / 1000),
+        asOf:     entry.last_updated_at ?? NaN,
       }
     } catch (e) {
       console.warn(`[coingecko] Errore di rete per coin id "${coinId}":`, e)

@@ -1,15 +1,17 @@
 'use client'
 
-import { useActionState, useTransition } from 'react'
+import { useActionState, useTransition, useState } from 'react'
 import {
   createCategoryRuleAction,
   deleteCategoryRuleAction,
-  recategorizeAllAction,
+  previewCategoriesAction, applyCategoriesAction,
 } from './actions'
 import {
   Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge,
 } from '@/components/ui'
 import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
+import type { CategoryProposal } from '@/lib/categorization'
+import { formatMoney } from '@/lib/money'
 import type { CategoryRuleRow } from '@/lib/merchants'
 
 function fmtAmount(minor: number): string {
@@ -70,20 +72,45 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
 }
 
 function RecategorizeButton() {
-  const [state, action, pending] = useActionState(recategorizeAllAction, undefined)
-
-  return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <form action={action}>
-        <Button type="submit" variant="secondary" size="sm" loading={pending} disabled={pending}>
-          <RefreshCw className="size-3.5" />
-          Ricategorizza storico
-        </Button>
-      </form>
-      {state?.success && <p className="text-sm text-(--brand-text)">{state.success}</p>}
-      {state?.error   && <p className="text-sm text-(--danger)">{state.error}</p>}
-    </div>
-  )
+  const [pending, start] = useTransition()
+  const [preview, setPreview] = useState<{ proposals: CategoryProposal[]; total: number } | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [message, setMessage] = useState('')
+  function load() {
+    start(async () => {
+      try {
+        const result = await previewCategoriesAction()
+        setPreview(result); setSelected(new Set(result.proposals.map(p => p.id))); setMessage('')
+      } catch { setMessage('Impossibile caricare la revisione. Riprova.') }
+    })
+  }
+  return <div className="space-y-3">
+    <Button variant="secondary" size="sm" disabled={pending} loading={pending} onClick={load}>
+      <RefreshCw className="size-3.5" /> Rivedi categorie dello storico
+    </Button>
+    <p className="text-xs text-(--muted)">Le scelte manuali, inclusa la rimozione della categoria, sono protette. Le assegnazioni precedenti senza provenienza sono indicate come storiche.</p>
+    {preview && <div className="space-y-3">
+      <p className="text-sm">{preview.total} modifiche proposte. {preview.total > 500 && 'Visualizzate le prime 500; ripeti la revisione per le successive.'}</p>
+      <div className="max-h-80 overflow-auto space-y-2">
+        {preview.proposals.map(p => <label key={p.id} className="flex gap-3 rounded-lg border border-(--border) p-3 text-sm">
+          <input type="checkbox" checked={selected.has(p.id)} disabled={pending} onChange={e => {
+            const next = new Set(selected); if (e.target.checked) next.add(p.id); else next.delete(p.id); setSelected(next)
+          }} />
+          <span><span className="block">{p.date} · {p.description} · {formatMoney(p.amountMinor, p.currency)}</span>
+            <span className="text-(--muted)">{p.before ?? 'Senza categoria'} → {p.after ?? 'Senza categoria'} · {p.source === 'rule' ? 'Regola' : 'Automatica'}</span>
+          </span>
+        </label>)}
+      </div>
+      {selected.size > 0 && <Button size="sm" disabled={pending} loading={pending} onClick={() => start(async () => {
+        try {
+          const result = await applyCategoriesAction(preview.proposals.filter(p => selected.has(p.id)).map(({ id, fingerprint }) => ({ id, fingerprint })))
+          setMessage(`${result.updated} movimenti aggiornati. ${result.skipped ? `${result.skipped} modificati nel frattempo: ricarica la revisione.` : ''}`)
+          setPreview(null)
+        } catch { setMessage('Applicazione non riuscita. Ricarica la revisione.') }
+      })}>Applica {selected.size} modifiche selezionate</Button>}
+    </div>}
+    {message && <p role="status" className="text-sm">{message}</p>}
+  </div>
 }
 
 export default function CategoryRulesManager({ rules, categories }: Props) {

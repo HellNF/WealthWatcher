@@ -3,8 +3,9 @@
 // bank_transaction_code) allo storico già importato. Il caso chiave è l'MCC/
 // btc_sub_code persistiti: una transazione salvata senza categoria ma con uno
 // dei due deve riceverla al re-run, senza dover ri-sincronizzare dalla banca.
-import { recategorizeAll } from '@/lib/categorization'
+import { recategorizeAll, previewRecategorization, applyRecategorization } from '@/lib/categorization'
 import { sqlite } from '@/db'
+import { insertBatch, updateTransactionCategory, listTransactions, countTransactions } from '@/lib/transactions'
 
 function categoryName(id: number | null): string | null {
   if (id === null) return null
@@ -80,4 +81,79 @@ describe('recategorizeAll — fallback MCC', () => {
     const row = sqlite.prepare('SELECT category_id FROM transactions WHERE id = ?').get(id) as { category_id: number | null }
     expect(categoryName(row.category_id)).toBe('Supermercato')
   })
+  test('alias senza categoria non cancella la categoria esistente; rerun idempotente', () => {
+    const category = sqlite.prepare("SELECT id FROM categories WHERE name = 'Shopping'").get() as { id: number }
+    const merchantId = Number(sqlite.prepare("INSERT INTO merchants (canonical_name) VALUES ('Unclassified Test')").run().lastInsertRowid)
+    sqlite.prepare("INSERT INTO merchant_aliases (pattern, merchant_id) VALUES ('indecifrabile', ?)").run(merchantId)
+    try {
+      const id = insertTxn(null, category.id)
+      expect(recategorizeAll(ownerId, accountId).updated).toBe(1)
+      const row = sqlite.prepare('SELECT category_id, merchant_id FROM transactions WHERE id = ?').get(id)
+      expect(row).toEqual({ category_id: category.id, merchant_id: merchantId })
+      expect(recategorizeAll(ownerId, accountId).updated).toBe(0)
+    } finally {
+      sqlite.prepare('DELETE FROM transactions WHERE owner_id = ?').run(ownerId)
+      sqlite.prepare('DELETE FROM merchant_aliases WHERE merchant_id = ?').run(merchantId)
+      sqlite.prepare('DELETE FROM merchants WHERE id = ?').run(merchantId)
+    }
+  })
+
+  test('sync ripetuta recupera MCC e categoria mancanti senza sovrascrivere correzioni', () => {
+    const id = insertTxn(null, null)
+    const original = sqlite.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as import('@/db/schema').Transaction
+    const category = sqlite.prepare("SELECT id FROM categories WHERE name = 'Supermercato'").get() as { id: number }
+    const otherCategory = sqlite.prepare("SELECT id FROM categories WHERE name = 'Shopping'").get() as { id: number }
+    const params = { ownerId, bankAccountId: accountId, source: 'enablebanking', filename: 'test',
+      rows: [{ ...original, mcc: '5411', category_id: category.id }] }
+    expect(insertBatch(params)).toMatchObject({ insertedCount: 0, duplicateCount: 1 })
+    expect(sqlite.prepare('SELECT mcc, category_id FROM transactions WHERE id = ?').get(id))
+      .toEqual({ mcc: '5411', category_id: category.id })
+    sqlite.prepare('UPDATE transactions SET category_id = ? WHERE id = ?').run(otherCategory.id, id)
+    insertBatch(params)
+    expect(sqlite.prepare('SELECT category_id FROM transactions WHERE id = ?').get(id))
+      .toEqual({ category_id: otherCategory.id })
+  })
+
+  test('manual removal is protected from recategorization and repeated sync', () => {
+    const id = insertTxn('5411', null)
+    const row = sqlite.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as import('@/db/schema').Transaction
+    const category = sqlite.prepare("SELECT id FROM categories WHERE name = 'Supermercato'").get() as { id: number }
+    updateTransactionCategory(ownerId, id, null)
+    expect(previewRecategorization(ownerId)).toHaveLength(0)
+    insertBatch({ ownerId, bankAccountId: accountId, source: 'enablebanking', filename: 'test', rows: [{ ...row, category_id: category.id }] })
+    expect(sqlite.prepare('SELECT category_id, category_source FROM transactions WHERE id = ?').get(id)).toEqual({ category_id: null, category_source: 'manual' })
+  })
+  test('preview does not write, and a concurrent manual change invalidates it', () => {
+    const id = insertTxn('5411', null)
+    const proposals = previewRecategorization(ownerId)
+    expect(proposals.map(p => p.id)).toContain(id)
+    expect(sqlite.prepare('SELECT category_id FROM transactions WHERE id = ?').get(id)).toEqual({ category_id: null })
+    updateTransactionCategory(ownerId, id, null)
+    expect(applyRecategorization(ownerId, proposals)).toEqual({ updated: 0, skipped: 1 })
+  })
+  test('apply checks owner and proposals cannot be replayed', () => {
+    insertTxn('5411', null)
+    const proposals = previewRecategorization(ownerId)
+    expect(applyRecategorization(ownerId + 999, proposals).updated).toBe(0)
+    expect(applyRecategorization(ownerId, proposals).updated).toBe(1)
+    expect(applyRecategorization(ownerId, proposals).updated).toBe(0)
+  })
+  test('duplicate review counts and lists the same rows without deleting legitimate twins', () => {
+    insertTxn(null, null); insertTxn(null, null)
+    expect(countTransactions(ownerId, accountId, { review: 'duplicates' })).toBe(2)
+    expect(listTransactions(ownerId, accountId, { review: 'duplicates' })).toHaveLength(2)
+    expect(listTransactions(ownerId + 999, accountId, { review: 'duplicates' })).toHaveLength(0)
+    expect(countTransactions(ownerId, accountId, { review: 'uncategorized' })).toBe(2)
+  })
+  test('known old bank identity is reconciled without losing manual choices', () => {
+    const id = insertTxn(null, null)
+    const original = sqlite.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as import('@/db/schema').Transaction
+    updateTransactionCategory(ownerId, id, null)
+    const result = insertBatch({ ownerId, bankAccountId: accountId, source: 'enablebanking', filename: 'test',
+      rows: [{ ...original, dedup_hash: 'new-stable-hash', legacy_dedup_hash: original.dedup_hash }] })
+    expect(result.insertedCount).toBe(0)
+    expect(sqlite.prepare('SELECT id, category_source, dedup_hash FROM transactions WHERE id = ?').get(id))
+      .toEqual({ id, category_source: 'manual', dedup_hash: 'new-stable-hash' })
+  })
+
 })

@@ -1,5 +1,4 @@
 // src/lib/transactions.ts — Transaction repository.
-import { eq } from 'drizzle-orm'
 import { db, sqlite } from '@/db'
 import { importBatches } from '@/db/schema'
 import type { ImportBatch, Transaction } from '@/db/schema'
@@ -31,8 +30,10 @@ export interface InsertableTransaction {
   counterparty_raw?: string | null
   external_id?:     string | null
   dedup_hash:       string
+  legacy_dedup_hash?: string
   merchant_id?:     number | null
   category_id?:     number | null
+  category_source?: 'legacy' | 'manual' | 'rule' | 'automatic'
   mcc?:             string | null
   btc_sub_code?:    string | null
 }
@@ -137,19 +138,48 @@ export function insertBatch(params: {
       INSERT OR IGNORE INTO transactions
         (owner_id, bank_account_id, booked_date, value_date, amount_minor, currency,
          description_raw, counterparty_raw, external_id, dedup_hash, import_batch_id,
-         merchant_id, category_id, mcc, btc_sub_code)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         merchant_id, category_id, mcc, btc_sub_code, category_source)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `)
 
+    // Repeated bank syncs may provide metadata absent on the first import.
+    // Fill gaps only: never overwrite a category already chosen by the user.
+    const enrichStmt = params.source === 'enablebanking' ? sqlite.prepare(`
+      UPDATE transactions SET
+        mcc = COALESCE(mcc, ?), btc_sub_code = COALESCE(btc_sub_code, ?),
+        merchant_id = COALESCE(merchant_id, ?),
+        category_source = CASE WHEN category_id IS NULL AND category_source != 'manual' AND ? IS NOT NULL THEN ? ELSE category_source END,
+        category_id = CASE WHEN category_source = 'manual' THEN category_id ELSE COALESCE(category_id, ?) END
+      WHERE owner_id = ? AND bank_account_id = ? AND dedup_hash = ?
+    `) : null
+
+    const reconcile = params.source === 'enablebanking' ? sqlite.prepare(`
+      UPDATE transactions SET dedup_hash = ?
+      WHERE owner_id = ? AND bank_account_id = ? AND dedup_hash = ?
+      AND booked_date = ? AND amount_minor = ? AND currency = ? AND description_raw = ?
+      AND NOT EXISTS (SELECT 1 FROM transactions current WHERE current.bank_account_id = ? AND current.dedup_hash = ?)
+    `) : null
     for (const row of params.rows) {
+      if (params.source === 'enablebanking' && (row.owner_id !== params.ownerId || row.bank_account_id !== params.bankAccountId)) throw new Error('Movimento fuori dal conto di importazione')
+      if (row.legacy_dedup_hash && row.legacy_dedup_hash !== row.dedup_hash) {
+        reconcile?.run(row.dedup_hash, params.ownerId, params.bankAccountId, row.legacy_dedup_hash,
+          row.booked_date, row.amount_minor, row.currency, row.description_raw, params.bankAccountId, row.dedup_hash)
+      }
       const result = insertStmt.run(
         row.owner_id, row.bank_account_id, row.booked_date, row.value_date ?? null,
         row.amount_minor, row.currency, row.description_raw, row.counterparty_raw ?? null,
         row.external_id ?? null, row.dedup_hash, batchId,
-        row.merchant_id ?? null, row.category_id ?? null, row.mcc ?? null, row.btc_sub_code ?? null,
+        row.merchant_id ?? null, row.category_id ?? null, row.mcc ?? null, row.btc_sub_code ?? null, row.category_source ?? 'automatic',
       )
       if (result.changes > 0) insertedCount++
-      else duplicateCount++
+      else {
+        duplicateCount++
+        enrichStmt?.run(
+          row.mcc ?? null, row.btc_sub_code ?? null,
+          row.merchant_id ?? null, row.category_id ?? null, row.category_source ?? 'automatic', row.category_id ?? null,
+          params.ownerId, params.bankAccountId, row.dedup_hash,
+        )
+      }
     }
 
     sqlite
@@ -167,6 +197,12 @@ export function insertBatch(params: {
   }
 }
 
+// Same-account/date/currency/amount is a review hint, never proof of duplication.
+const DUPLICATE_SQL = `EXISTS (SELECT 1 FROM transactions other
+  WHERE other.bank_account_id = t.bank_account_id AND other.owner_id = t.owner_id
+  AND other.id != t.id AND other.booked_date = t.booked_date
+  AND other.amount_minor = t.amount_minor AND other.currency = t.currency)`
+
 // ── List + details ────────────────────────────────────────────────────────────
 
 export interface TransactionRow {
@@ -178,11 +214,14 @@ export interface TransactionRow {
   category_name:   string | null
   merchant_name:   string | null
   category_id:     number | null
+  category_source?: string
+  possible_duplicate?: number
 }
 
 export interface ListTransactionsOpts {
   from?:  string   // ISO YYYY-MM-DD — incluso
   to?:    string   // ISO YYYY-MM-DD — incluso
+  review?: 'uncategorized' | 'duplicates'
   limit?: number   // default 50
 }
 
@@ -196,12 +235,15 @@ export function listTransactions(
   const args:  (string | number)[] = [userId, bankAccountId]
   if (from) { conds.push('t.booked_date >= ?'); args.push(from) }
   if (to)   { conds.push('t.booked_date <= ?'); args.push(to)   }
+  if (opts.review === 'uncategorized') conds.push('t.category_id IS NULL')
+  if (opts.review === 'duplicates') conds.push(DUPLICATE_SQL)
   args.push(limit)
 
   return sqlite
     .prepare(
       `SELECT t.id, t.booked_date, t.amount_minor, t.currency,
-              t.description_raw, t.category_id,
+              t.description_raw, t.category_id, t.category_source,
+              ${DUPLICATE_SQL} AS possible_duplicate,
               c.name AS category_name,
               m.canonical_name AS merchant_name
        FROM transactions t
@@ -217,15 +259,17 @@ export function listTransactions(
 export function countTransactions(
   userId: number,
   bankAccountId: number,
-  opts: Pick<ListTransactionsOpts, 'from' | 'to'> = {},
+  opts: Pick<ListTransactionsOpts, 'from' | 'to' | 'review'> = {},
 ): number {
   const { from, to }               = opts
-  const conds: string[]            = ['owner_id = ?', 'bank_account_id = ?']
+  const conds: string[]            = ['t.owner_id = ?', 't.bank_account_id = ?']
   const args: (string | number)[]  = [userId, bankAccountId]
   if (from) { conds.push('booked_date >= ?'); args.push(from) }
   if (to)   { conds.push('booked_date <= ?'); args.push(to)   }
+  if (opts.review === 'uncategorized') conds.push('t.category_id IS NULL')
+  if (opts.review === 'duplicates') conds.push(DUPLICATE_SQL)
   const row = sqlite
-    .prepare(`SELECT COUNT(*) AS n FROM transactions WHERE ${conds.join(' AND ')}`)
+    .prepare(`SELECT COUNT(*) AS n FROM transactions t WHERE ${conds.join(' AND ')}`)
     .get(...args) as { n: number }
   return row.n
 }
@@ -236,7 +280,7 @@ export function updateTransactionCategory(
   categoryId: number | null,
 ): void {
   sqlite
-    .prepare('UPDATE transactions SET category_id = ? WHERE id = ? AND owner_id = ?')
+    .prepare("UPDATE transactions SET category_id = ?, category_source = 'manual' WHERE id = ? AND owner_id = ?")
     .run(categoryId, txnId, userId)
 }
 

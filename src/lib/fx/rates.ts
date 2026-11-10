@@ -3,7 +3,7 @@
 import { db, sqlite } from '@/db'
 import { fxHistory } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { fetchRates } from './frankfurter'
+import { fetchRateSnapshot } from './frankfurter'
 
 // Fiat currencies we care about (subset of CURRENCY_DECIMALS, excluding crypto).
 const FIAT_CURRENCIES = ['USD', 'GBP', 'CHF', 'SEK', 'NOK', 'DKK', 'JPY']
@@ -25,20 +25,21 @@ export async function getRate(date: string, quote: string): Promise<string | nul
     .where(and(eq(fxHistory.date, date), eq(fxHistory.base, 'EUR'), eq(fxHistory.quote, q)))
     .get()
 
-  if (cached) return cached.rate
+  if (cached && date < todayIso()) return cached.rate
 
   // Cache miss — fetch from Frankfurter and store all returned rates for this date
-  const rates = await fetchRates(date === todayIso() ? 'latest' : date)
-  if (!rates) return null
+  const snapshot = await fetchRateSnapshot(date === todayIso() ? 'latest' : date)
+  if (!snapshot) return null
+  const { rates } = snapshot
 
   // Upsert all rates returned for this date
   const stmt = sqlite.prepare(`
     INSERT INTO fx_history (date, base, quote, rate)
     VALUES (?, 'EUR', ?, ?)
-    ON CONFLICT (date, base, quote) DO NOTHING
+    ON CONFLICT (date, base, quote) DO UPDATE SET rate = excluded.rate
   `)
   for (const [currency, rate] of Object.entries(rates)) {
-    stmt.run(date, currency, rate.toString())
+    stmt.run(snapshot.date, currency, rate.toString())
   }
 
   return rates[q]?.toString() ?? null
@@ -49,17 +50,18 @@ export async function getRate(date: string, quote: string): Promise<string | nul
  * Useful for the daily snapshot job to avoid per-currency API calls.
  */
 export async function refreshFxRates(date: string): Promise<void> {
-  const rates = await fetchRates(date === todayIso() ? 'latest' : date)
-  if (!rates) return
+  const snapshot = await fetchRateSnapshot(date === todayIso() ? 'latest' : date)
+  if (!snapshot) return
+  const { rates } = snapshot
 
   const stmt = sqlite.prepare(`
     INSERT INTO fx_history (date, base, quote, rate)
     VALUES (?, 'EUR', ?, ?)
-    ON CONFLICT (date, base, quote) DO NOTHING
+    ON CONFLICT (date, base, quote) DO UPDATE SET rate = excluded.rate
   `)
   for (const currency of FIAT_CURRENCIES) {
     const rate = rates[currency]
-    if (rate != null) stmt.run(date, currency, rate.toString())
+    if (rate != null) stmt.run(snapshot.date, currency, rate.toString())
   }
 }
 

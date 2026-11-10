@@ -28,6 +28,7 @@ export async function getInstitutionValueEur(
 
   for (const p of listPortfolios(userId, institutionId)) {
     const v = await getPortfolioValuationEur(userId, p.id, date)
+    stale ||= v.stale
     if (v.marketValueEurMinor === null) stale = true
     else total += v.marketValueEurMinor
   }

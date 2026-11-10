@@ -169,7 +169,7 @@ export function stampDutyAccountMinor(
  * @returns importo imposta in EUR minor units
  */
 export function wealthDutySecuritiesMinor(valueEurMinor: number): number {
-  return valueEurMinor * BOLLO_TITOLI_RATE
+  return Math.round(valueEurMinor * BOLLO_TITOLI_RATE)
 }
 
 /**

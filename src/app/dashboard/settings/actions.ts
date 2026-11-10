@@ -9,7 +9,7 @@ import {
 } from '@/lib/userSettings'
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
 import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
-import { recategorizeAll } from '@/lib/categorization'
+import { previewRecategorization, applyRecategorization } from '@/lib/categorization'
 import { createApiToken, revokeApiToken, TooManyTokensError } from '@/lib/apiTokens'
 
 type ActionState = { error?: string; success?: string } | undefined
@@ -210,10 +210,19 @@ export async function revokeApiTokenAction(id: number): Promise<void> {
   revalidatePath('/dashboard/settings', 'page')
 }
 
-export async function recategorizeAllAction(): Promise<ActionState> {
-  const user   = await requireUser()
-  const result = recategorizeAll(user.id)
-  revalidatePath('/dashboard/accounts', 'layout')
-  revalidatePath('/dashboard/reports',  'layout')
-  return { success: `${result.updated} movimenti aggiornati.` }
+export async function previewCategoriesAction() {
+  const user = await requireUser()
+  const proposals = previewRecategorization(user.id)
+  return { proposals: proposals.slice(0, 500), total: proposals.length }
+}
+
+export async function applyCategoriesAction(selection: { id: number; fingerprint: string }[]) {
+  const user = await requireUser()
+  if (!Array.isArray(selection) || selection.length > 500 || selection.some(p =>
+    !p || !Number.isSafeInteger(p.id) || typeof p.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(p.fingerprint))) {
+    throw new Error('Selezione non valida')
+  }
+  const result = applyRecategorization(user.id, selection)
+  revalidatePath('/dashboard', 'layout')
+  return result
 }

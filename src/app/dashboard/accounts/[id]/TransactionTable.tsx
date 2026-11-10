@@ -295,6 +295,7 @@ export default function TransactionTable({
                     />
                   </Td>
                   <Td>
+                    <p className="text-xs text-(--muted) mb-1">{txn.category_source === 'manual' ? 'Manuale · protetta' : txn.category_source === 'rule' ? 'Regola' : txn.category_source === 'automatic' ? 'Automatica' : 'Storica · origine non registrata'}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</p>
                     <CategorySelect
                       txnId={txn.id}
                       currentCategoryId={txn.category_id}
@@ -338,7 +339,7 @@ export default function TransactionTable({
                 <span className="tabular-nums">{formatDate(txn.booked_date)}</span>
               </DataRow>
               <div className="py-2 space-y-1.5">
-                <span className="text-xs text-(--muted)">Categoria</span>
+                <span className="text-xs text-(--muted)">Categoria · {txn.category_source === 'manual' ? 'Manuale · protetta' : txn.category_source === 'rule' ? 'Regola' : txn.category_source === 'automatic' ? 'Automatica' : 'Storica'}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</span>
                 <CategorySelect
                   txnId={txn.id}
                   currentCategoryId={txn.category_id}

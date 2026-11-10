@@ -1,11 +1,11 @@
 // src/lib/prices/index.ts — Price cache + refresh orchestration.
 // TTL lazy: refetch only if last_price_at is older than PRICE_TTL_MINUTES.
 // Returns stale data + flag if the fetch fails — never throws.
+import { sqlite } from '@/db'
 import { updateInstrumentPrice } from '@/lib/instruments'
-import { getPortfolioForUser } from '@/lib/portfolios'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { getInstrument } from '@/lib/instruments'
-import { appendPriceHistory } from '@/lib/priceHistory'
+import { recordObservation, getObservation } from '@/lib/prices/observations'
 import { yahooProvider }                     from './yahoo'
 import { coingeckoProvider, getCoinHistory } from './coingecko'
 import { alphaVantageProvider }              from './alphavantage'
@@ -19,7 +19,7 @@ const TTL_MINUTES = parseInt(process.env.PRICE_TTL_MINUTES ?? '30', 10)
 export interface RefreshResult {
   quote:  Quote | null
   stale:  boolean
-  source: Instrument['price_source']
+  source: string | null
 }
 
 /**
@@ -31,10 +31,13 @@ export async function getCryptoHistory(
   symbol: string,
   period: string,
 ): Promise<PricePoint[]> {
+  return (await getCryptoHistoryWithSource(coinId, symbol, period)).points
+}
+
+export async function getCryptoHistoryWithSource(coinId: string, symbol: string, period: string): Promise<{ points: PricePoint[]; source: string; currency: string }> {
   const points = await getCoinHistory(coinId, period)
-  if (points.length > 0) return points
-  console.info(`[crypto] CoinGecko vuoto per "${coinId}" — fallback CMC`)
-  return getCoinHistoryCMC(symbol, period)
+  if (points.length > 0) return { points, source: 'coingecko', currency: 'EUR' }
+  return { points: await getCoinHistoryCMC(symbol, period), source: 'coinmarketcap', currency: 'EUR' }
 }
 
 /**
@@ -45,29 +48,33 @@ export async function resolveQuote(instrument: Instrument): Promise<Quote | null
   const { price_source, symbol, provider_symbol } = instrument
 
   // Primary: configured source
-  const providers: Array<() => Promise<Quote | null>> = []
+  const providers: Array<{ source: string; fetch: () => Promise<Quote | null> }> = []
 
   if (price_source === 'yahoo') {
-    providers.push(() => yahooProvider.getQuote(symbol, provider_symbol))
+    providers.push({ source: 'yahoo', fetch: () => yahooProvider.getQuote(symbol, provider_symbol) })
     if (instrument.cluster === 'crypto') {
-      providers.push(() => coingeckoProvider.getQuote(symbol, provider_symbol))
+      providers.push({ source: 'coingecko', fetch: () => coingeckoProvider.getQuote(symbol, provider_symbol) })
     }
   } else if (price_source === 'coingecko') {
-    providers.push(() => coingeckoProvider.getQuote(symbol, provider_symbol))
-    providers.push(() => coinMarketCapProvider.getQuote(symbol, provider_symbol))
-    providers.push(() => yahooProvider.getQuote(symbol, provider_symbol))
+    providers.push({ source: 'coingecko', fetch: () => coingeckoProvider.getQuote(symbol, provider_symbol) })
+    providers.push({ source: 'coinmarketcap', fetch: () => coinMarketCapProvider.getQuote(symbol, provider_symbol) })
+    providers.push({ source: 'yahoo', fetch: () => yahooProvider.getQuote(symbol, provider_symbol) })
   } else if (price_source === 'alphavantage') {
-    providers.push(() => alphaVantageProvider.getQuote(symbol, provider_symbol))
-    providers.push(() => yahooProvider.getQuote(symbol, provider_symbol))
+    providers.push({ source: 'alphavantage', fetch: () => alphaVantageProvider.getQuote(symbol, provider_symbol) })
+    providers.push({ source: 'yahoo', fetch: () => yahooProvider.getQuote(symbol, provider_symbol) })
   } else {
     // 'manual' — no fetch
     return null
   }
 
-  for (const fn of providers) {
+  for (const provider of providers) {
     try {
-      const q = await fn()
-      if (q) return q
+      const q = await provider.fetch()
+      if (q && Number.isFinite(Number(q.price)) && Number(q.price) > 0
+          && q.currency === instrument.currency && Number.isFinite(q.asOf)
+          && q.asOf > 0 && q.asOf <= Date.now() / 1000 + 300) {
+        return { ...q, source: provider.source }
+      }
     } catch {
       // continue to next provider
     }
@@ -83,35 +90,43 @@ export async function refreshInstrumentPrice(
   instrument: Instrument,
   options: { force?: boolean } = {},
 ): Promise<RefreshResult> {
+  const observation = getObservation(instrument.id, instrument.last_price_at, instrument.last_price)
+  const cachedSource = observation?.source ?? null
   const nowEpoch = Math.floor(Date.now() / 1000)
   const ttlSeconds = TTL_MINUTES * 60
   const isStale =
     !instrument.last_price_at ||
     nowEpoch - instrument.last_price_at > ttlSeconds
 
-  if (!options.force && !isStale && instrument.last_price) {
+  if (!options.force && instrument.last_price && (!isStale || (observation && nowEpoch - observation.retrieved_at < ttlSeconds))) {
     return {
       quote: { price: instrument.last_price, currency: instrument.currency, asOf: instrument.last_price_at! },
-      stale: false,
-      source: instrument.price_source,
+      stale: isStale,
+      source: cachedSource,
     }
   }
 
   const quote = await resolveQuote(instrument)
   if (quote) {
-    updateInstrumentPrice(instrument.id, quote.price, quote.asOf)
-    const today = new Date().toISOString().slice(0, 10)
-    appendPriceHistory(instrument.id, today, quote.price, quote.currency, instrument.price_source)
-    return { quote, stale: false, source: instrument.price_source }
+    const accepted = sqlite.transaction(() => {
+      // Re-read after network I/O: a concurrent refresh may already have a newer quote.
+      const current = getInstrument(instrument.id)
+      if (!current || (current.last_price_at && quote.asOf < current.last_price_at)) return false
+      updateInstrumentPrice(instrument.id, quote.price, quote.asOf)
+      recordObservation(instrument.id, quote, nowEpoch)
+      return true
+    })()
+    if (accepted) return { quote, stale: nowEpoch - quote.asOf > ttlSeconds, source: quote.source ?? null }
   }
 
-  // Fetch failed — return last known price marked stale
+  const current = getInstrument(instrument.id) ?? instrument
+  const currentObservation = getObservation(current.id, current.last_price_at, current.last_price)
   return {
-    quote: instrument.last_price
-      ? { price: instrument.last_price, currency: instrument.currency, asOf: instrument.last_price_at! }
+    quote: current.last_price
+      ? { price: current.last_price, currency: current.currency, asOf: current.last_price_at! }
       : null,
     stale: true,
-    source: instrument.price_source,
+    source: currentObservation?.source ?? null,
   }
 }
 

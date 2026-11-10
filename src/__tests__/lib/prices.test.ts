@@ -155,3 +155,55 @@ describe('refreshInstrumentPrice — TTL', () => {
     expect(result.quote).toBeNull()
   })
 })
+
+describe('data quality', () => {
+  test('rejects currency mismatch and non-finite prices', async () => {
+    const { resolveQuote } = await import('@/lib/prices/index')
+    for (const quote of [
+      { price: '100', currency: 'USD', asOf: 1000 },
+      { price: 'NaN', currency: 'EUR', asOf: 1000 },
+      { price: '100', currency: 'EUR', asOf: NaN },
+    ]) {
+      mockYahooGetQuote.mockResolvedValue(quote)
+      expect(await resolveQuote(getInstrumentRow() as never)).toBeNull()
+    }
+  })
+  test('fallback is attributed to the actual source, including cache', async () => {
+    sqlite.prepare("UPDATE instruments SET price_source = 'alphavantage' WHERE id = ?").run(instrumentId)
+    mockAlphaGetQuote.mockResolvedValue(null)
+    mockYahooGetQuote.mockResolvedValue({ price: '99', currency: 'EUR', asOf: Math.floor(Date.now() / 1000) })
+    const { refreshInstrumentPrice } = await import('@/lib/prices/index')
+    expect((await refreshInstrumentPrice(getInstrumentRow() as never)).source).toBe('yahoo')
+    expect((await refreshInstrumentPrice(getInstrumentRow() as never)).source).toBe('yahoo')
+  })
+  test('old observations remain stale and keep their own date', async () => {
+    const asOf = Math.floor(Date.now() / 1000) - 86400 * 3
+    mockYahooGetQuote.mockResolvedValue({ price: '91', currency: 'EUR', asOf })
+    const { refreshInstrumentPrice } = await import('@/lib/prices/index')
+    expect((await refreshInstrumentPrice(getInstrumentRow() as never)).stale).toBe(true)
+    expect(sqlite.prepare('SELECT observed_at FROM price_observations WHERE instrument_id = ? AND price = ?').get(instrumentId, '91'))
+      .toEqual({ observed_at: asOf })
+    expect(sqlite.prepare('SELECT 1 FROM price_history WHERE instrument_id = ?').get(instrumentId)).toBeUndefined()
+  })
+  test('an older response cannot replace a newer cached observation', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    sqlite.prepare('UPDATE instruments SET last_price = ?, last_price_at = ? WHERE id = ?').run('101', now, instrumentId)
+    mockYahooGetQuote.mockResolvedValue({ price: '90', currency: 'EUR', asOf: now - 86400 })
+    const { refreshInstrumentPrice } = await import('@/lib/prices/index')
+    expect((await refreshInstrumentPrice(getInstrumentRow() as never, { force: true })).quote?.price).toBe('101')
+  })
+  test('a delayed concurrent request cannot roll back a newer observation', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    let finish!: (quote: { price: string; currency: string; asOf: number }) => void
+    mockYahooGetQuote.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+      .mockResolvedValueOnce({ price: '102', currency: 'EUR', asOf: now })
+    const { refreshInstrumentPrice } = await import('@/lib/prices/index')
+    const oldInstrument = getInstrumentRow()
+    const slow = refreshInstrumentPrice(oldInstrument as never, { force: true })
+    await refreshInstrumentPrice(oldInstrument as never, { force: true })
+    finish({ price: '99', currency: 'EUR', asOf: now - 120 })
+    expect((await slow).quote?.price).toBe('102')
+    expect(getInstrumentRow().last_price).toBe('102')
+  })
+
+})

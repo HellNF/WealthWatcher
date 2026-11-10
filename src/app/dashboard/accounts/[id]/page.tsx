@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic'
 
 interface Props {
   params:       Promise<{ id: string }>
-  searchParams: Promise<{ from?: string; to?: string; all?: string }>
+  searchParams: Promise<{ from?: string; to?: string; all?: string; review?: string }>
 }
 
 export default async function AccountPage({ params, searchParams }: Props) {
@@ -37,12 +37,13 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const sp   = await searchParams
   const from = /^\d{4}-\d{2}-\d{2}$/.test(sp.from ?? '') ? sp.from : undefined
   const to   = /^\d{4}-\d{2}-\d{2}$/.test(sp.to   ?? '') ? sp.to   : undefined
+  const review = sp.review === 'uncategorized' || sp.review === 'duplicates' ? sp.review : undefined
   const all  = sp.all === '1'
   const limit = all ? 99_999 : 50
 
   const institution  = getInstitutionForUser(user.id, account.institution_id)
-  const transactions = listTransactions(user.id, id, { from, to, limit })
-  const totalCount   = countTransactions(user.id, id, { from, to })
+  const transactions = listTransactions(user.id, id, { from, to, limit, review })
+  const totalCount   = countTransactions(user.id, id, { from, to, review })
   const categories   = listAllCategories()
 
   // Saldo: usa il saldo di riferimento manuale se impostato, altrimenti somma i
@@ -173,7 +174,14 @@ export default async function AccountPage({ params, searchParams }: Props) {
         <section className="order-2 xl:order-1 min-w-0 flex flex-col gap-4">
           <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
             <h2 className="text-base font-semibold text-(--ink)">Movimenti</h2>
-            <TxnFilters from={from} to={to} shown={transactions.length} total={totalCount} />
+<nav aria-label="Revisione movimenti" className="flex flex-wrap gap-3 text-sm mb-3">
+              {([['', 'Tutte'], ['uncategorized', 'Da categorizzare'], ['duplicates', 'Possibili duplicati']] as const).map(([value, label]) => {
+                const query = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}), ...(value ? { review: value } : {}) })
+                return <Link key={value} href={`?${query}`} aria-current={(review ?? '') === value ? 'page' : undefined} className={(review ?? '') === value ? 'font-semibold underline' : 'text-(--muted)'}>{label}</Link>
+              })}
+            </nav>
+            {review === 'duplicates' && <p className="text-xs text-(--muted) mb-3">Movimenti dello stesso conto con data, importo e valuta uguali. Possono essere pagamenti legittimi: confronta descrizioni e categorie prima di intervenire. Nessuna eliminazione automatica.</p>}
+            <TxnFilters from={from} to={to} review={review} shown={transactions.length} total={totalCount} />
           </div>
           <div className="relative xl:flex-1 xl:min-h-[32rem]">
             <div className="xl:absolute xl:inset-0 xl:overflow-y-auto xl:rounded-2xl xl:[&_thead_th]:sticky xl:[&_thead_th]:top-0 xl:[&_thead_th]:z-[1] xl:[&_thead_th]:bg-(--surface)">
@@ -187,6 +195,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
           <HeroShell innerClassName="p-5 sm:p-6 gap-5">
             <div className="space-y-3">
               <Eyebrow>Saldo</Eyebrow>
+              <p className="text-xs text-(--muted)">{account.anchor_date ? `Calcolato dal saldo di riferimento del ${account.anchor_date} e dai movimenti successivi.` : 'Ricostruito dai movimenti importati: può essere incompleto se manca lo storico o il saldo iniziale.'}</p>
               <p id="account-balance" className={`text-4xl sm:text-5xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${balanceMinor < 0 ? 'text-(--danger-text)' : 'text-(--ink)'}`}>
                 {formatMoney(balanceMinor, account.currency)}
               </p>

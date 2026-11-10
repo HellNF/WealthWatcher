@@ -33,6 +33,9 @@ export interface Position extends FifoState {
   symbol:            string
   name:              string
   providerSymbol:    string | null   // CoinGecko coin id (o altro override), null per Yahoo
+  priceSource?:      string | null
+  priceKind?:        string | null
+  priceRetrievedAt?: number | null
   lastPrice:         string | null   // decimal string or null if no price cached
   lastPriceAt:       number | null   // epoch seconds or null
   marketValueMinor:  number | null   // null if no price
