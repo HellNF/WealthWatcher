@@ -248,6 +248,7 @@ export const transactions = sqliteTable(
     // carta (Open Banking). Persistito — oltre a derivarne category_id al sync
     // — così la ricategorizzazione bulk (src/lib/categorization.ts) può
     // riapplicarlo allo storico senza dover ri-sincronizzare dalla banca.
+    category_source:  text('category_source', { enum: ['legacy', 'manual', 'rule', 'automatic'] }).notNull().default('legacy'),
     mcc:              text('mcc'),
     // Sotto-codice ISO 20022 (bank_transaction_code.sub_code) fornito
     // dall'ASPSP per le transazioni senza carta (bonifici, stipendi, SDD,
@@ -394,7 +395,9 @@ export const priceHistory = sqliteTable(
     date:          text('date').notNull(),                // ISO YYYY-MM-DD
     price:         text('price').notNull(),               // decimal string, in instrument currency
     currency:      text('currency').notNull(),
-    source:        text('source'),                        // 'yahoo' | 'coingecko' | etc.
+    source:        text('source'),                        // actual provider
+    kind:          text('kind').notNull().default('legacy'),
+    retrieved_at:  integer('retrieved_at'),
     created_at:    integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
@@ -728,3 +731,24 @@ export type CategoryRule        = InferSelectModel<typeof categoryRules>
 export type CalendarEvent       = InferSelectModel<typeof calendarEvents>
 export type MarketIndicator     = InferSelectModel<typeof marketIndicators>
 export type ApiToken            = InferSelectModel<typeof apiTokens>
+
+// Observations are separate from daily closing prices and return series.
+export const priceObservations = sqliteTable('price_observations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  instrument_id: integer('instrument_id').notNull().references(() => instruments.id, { onDelete: 'cascade' }),
+  price: text('price').notNull(),
+  currency: text('currency').notNull(),
+  source: text('source').notNull(),
+  kind: text('kind').notNull(), // quote | close; legacy prices are not promoted
+  observed_at: integer('observed_at').notNull(),
+  retrieved_at: integer('retrieved_at').notNull(),
+}, t => [uniqueIndex('price_observation_uniq').on(t.instrument_id, t.source, t.kind, t.observed_at)])
+
+// Experimental ETF information and cumulative returns, never portfolio prices.
+export const etfProfiles = sqliteTable('etf_profiles', {
+  isin: text('isin').primaryKey(),
+  source: text('source').notNull(),
+  retrieved_at: integer('retrieved_at').notNull(),
+  profile_json: text('profile_json').notNull(),
+  performance_json: text('performance_json').notNull(),
+})

@@ -34,7 +34,6 @@ export async function searchYahoo(query: string): Promise<YahooSearchHit[]> {
   try {
     const yf = await getYf()
     const r = await yf.search(query, { quotesCount: 10, newsCount: 0 })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (r?.quotes ?? [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((q: any) => q.symbol && q.quoteType)
@@ -75,13 +74,15 @@ export const yahooProvider: PriceProvider = {
       const result = await yf.quote(symbol)
       const price    = result?.regularMarketPrice as number | undefined
       const currency = result?.currency as string | undefined
-      if (!price || !currency) return null
+      const observedAt = result?.regularMarketTime
+      if (!price || !Number.isFinite(price) || price <= 0 || !currency
+          || !(observedAt instanceof Date) || !Number.isFinite(observedAt.getTime())) return null
 
       const norm = normalizeCurrencyAndPrice(currency, price)
       return {
         price:    norm.price.toFixed(6).replace(/\.?0+$/, ''),
         currency: norm.currency,
-        asOf:     Math.floor(Date.now() / 1000),
+        asOf:     Math.floor(observedAt.getTime() / 1000),
       }
     } catch {
       return null
@@ -108,6 +109,7 @@ export interface PricePoint {
 export async function getHistoricalPrices(
   symbol: string,
   period: '1m' | '3m' | '6m' | '1y' | '5y',
+  expectedCurrency?: string,
 ): Promise<PricePoint[]> {
   const now = Date.now()
   const days: Record<string, number> = { '1m': 30, '3m': 90, '6m': 180, '1y': 365, '5y': 1825 }
@@ -118,15 +120,18 @@ export async function getHistoricalPrices(
   try {
     const yf = await getYf()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows: any[] = await yf.historical(symbol, { period1, period2, interval })
-    return rows
+    const response: any = await yf.chart(symbol, { period1, period2, interval })
+    if (typeof response?.meta?.currency !== 'string') return []
+    if (expectedCurrency && normalizeCurrencyAndPrice(response.meta.currency, 1).currency !== expectedCurrency) return []
+    return (response.quotes ?? [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((r: any) => r.close != null)
+      .filter((r: any) => r?.date && Number.isFinite(r.close) && r.close > 0)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((r: any) => ({
-        date:  new Date(r.date).toISOString().slice(0, 10),
-        close: r.close as number,
+        date: new Date(r.date).toISOString().slice(0, 10),
+        close: normalizeCurrencyAndPrice(response.meta.currency, r.close).price,
       }))
+      .sort((a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date))
   } catch (e) {
     console.error('[yahoo] getHistoricalPrices', symbol, period, e)
     return []
@@ -167,7 +172,8 @@ export async function getHistoricalPricesRange(
           currency = (q.currency as string).toUpperCase()
         }
       }
-    } catch { /* non critico: factor resta 1 */ }
+    } catch { return { points: [], currency: null } }
+    if (!currency) return { points: [], currency: null }
 
     // chart() e non historical(): quest'ultima è deprecata e lancia se anche una
     // sola riga ha chiusura nulla (capita con la seduta in corso, es. ^N225).
@@ -179,13 +185,13 @@ export async function getHistoricalPricesRange(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const points: PricePoint[] = ((res?.quotes ?? []) as any[])
-      .filter((r) => r?.date && r.close != null)
+      .filter((r) => r?.date && Number.isFinite(r.close) && r.close > 0)
       .map((r) => ({
         date:  new Date(r.date).toISOString().slice(0, 10),
         close: (r.close as number) * factor,
       }))
 
-    return { points, currency }
+    return { points: points.filter(p => p.date >= fromDate && p.date <= toDate).sort((a, b) => a.date.localeCompare(b.date)), currency }
   } catch (e) {
     console.error('[yahoo] getHistoricalPricesRange', symbol, fromDate, toDate, e)
     return { points: [], currency: null }
@@ -203,12 +209,20 @@ export async function getAdjustedCloses(symbol: string, fromDate: string): Promi
     const yf = await getYf()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const res: any = await yf.chart(symbol, { period1: fromDate, period2: new Date(), interval: '1d' })
+    const rawCurrency = res?.meta?.currency
+    if (typeof rawCurrency !== 'string') return { points: [], currency: null }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const points: PricePoint[] = ((res?.quotes ?? []) as any[])
-      .filter((q) => q?.date && (q.adjclose ?? q.close) != null)
-      .map((q) => ({ date: new Date(q.date).toISOString().slice(0, 10), close: (q.adjclose ?? q.close) as number }))
-    const currency = typeof res?.meta?.currency === 'string' ? (res.meta.currency as string).toUpperCase() : null
-    return { points, currency }
+    const rows = ((res?.quotes ?? []) as any[]).filter((q) => q?.date && q.close != null)
+    const isPriceIndex = res?.meta?.instrumentType === 'INDEX'
+    if (!isPriceIndex && rows.some((q) => !Number.isFinite(q.adjclose))) {
+      return { points: [], currency: null }
+    }
+    const points: PricePoint[] = rows
+      .map((q) => ({ date: new Date(q.date).toISOString().slice(0, 10),
+        close: normalizeCurrencyAndPrice(rawCurrency, isPriceIndex ? q.close : q.adjclose).price }))
+      .filter((q) => Number.isFinite(q.close) && q.close > 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+    return { points, currency: normalizeCurrencyAndPrice(rawCurrency, 1).currency }
   } catch (e) {
     console.error('[yahoo] getAdjustedCloses', symbol, fromDate, e)
     return { points: [], currency: null }

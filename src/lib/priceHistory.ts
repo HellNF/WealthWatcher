@@ -1,5 +1,5 @@
 // Append-only price history for instruments. One row per (instrument, date).
-// "Last write wins" within the same day — preserves most recent refresh.
+// Daily prices only. Intraday observations and cumulative returns have separate storage.
 import { sqlite } from '@/db'
 
 export function appendPriceHistory(
@@ -8,11 +8,12 @@ export function appendPriceHistory(
   price: string,       // decimal string, in instrument currency
   currency: string,
   source: string | null,
+  kind: 'close' | 'daily-reference' = 'close',
 ): void {
   sqlite.prepare(`
-    INSERT INTO price_history (instrument_id, date, price, currency, source)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO price_history (instrument_id, date, price, currency, source, kind, retrieved_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (instrument_id, date)
-    DO UPDATE SET price = excluded.price, source = excluded.source
-  `).run(instrumentId, date, price, currency, source)
+    DO UPDATE SET price = excluded.price, currency = excluded.currency, source = excluded.source, kind = excluded.kind, retrieved_at = excluded.retrieved_at
+  `).run(instrumentId, date, price, currency, source, kind, Math.floor(Date.now() / 1000))
 }

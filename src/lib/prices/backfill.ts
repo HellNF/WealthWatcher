@@ -5,7 +5,7 @@ import { sqlite } from '@/db'
 import { getInstrument } from '@/lib/instruments'
 import { appendPriceHistory } from '@/lib/priceHistory'
 import { getHistoricalPricesRange } from './yahoo'
-import { getCryptoHistory } from '.'
+import { getCryptoHistoryWithSource } from '.'
 
 export interface BackfillResult {
   symbol:   string
@@ -39,22 +39,26 @@ export async function backfillInstrumentHistory(
   if (instrument.price_source === 'coingecko') {
     // CoinGecko: usa il periodo più lungo disponibile (5 anni) e filtra da fromDate.
     const coinId = (instrument.provider_symbol ?? instrument.symbol).toLowerCase()
-    const points = await getCryptoHistory(coinId, instrument.symbol, '5y')
+    const { points, source, currency } = await getCryptoHistoryWithSource(coinId, instrument.symbol, '5y')
+    if (currency !== instrument.currency) return { symbol: instrument.symbol, inserted: 0, error: 'Valuta dello storico diversa dallo strumento' }
     for (const p of points) {
-      if (p.date < fromDate) continue
+      if (p.date < fromDate || p.date >= today || !Number.isFinite(p.close) || p.close <= 0) continue
       appendPriceHistory(
         instrumentId,
         p.date,
         p.close.toFixed(8).replace(/\.?0+$/, ''),
         'EUR',
-        'coingecko',
+        source,
+        'daily-reference',
       )
     }
   } else {
     const { points, currency } = await getHistoricalPricesRange(instrument.symbol, fromDate, today)
-    const storeCurrency = currency ?? instrument.currency
+    if (!currency || currency !== instrument.currency) return { symbol: instrument.symbol, inserted: 0, error: 'Valuta dello storico non verificata' }
+    const storeCurrency = currency
 
     for (const p of points) {
+      if (p.date >= today || !Number.isFinite(p.close) || p.close <= 0) continue
       appendPriceHistory(
         instrumentId,
         p.date,

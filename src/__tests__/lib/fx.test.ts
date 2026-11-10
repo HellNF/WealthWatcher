@@ -3,9 +3,9 @@
 jest.mock('@/lib/fx/frankfurter')
 
 import { sqlite } from '@/db'
-import { fetchRates } from '@/lib/fx/frankfurter'
+import { fetchRateSnapshot } from '@/lib/fx/frankfurter'
 
-const mockFetchRates = fetchRates as jest.Mock
+const mockFetchRates = fetchRateSnapshot as jest.Mock
 
 // ── Test DB setup ─────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ describe('getRate', () => {
 
   test('cache miss → fetches and stores, returns rate', async () => {
     const { getRate } = await import('@/lib/fx/rates')
-    mockFetchRates.mockResolvedValue({ USD: 1.08, GBP: 0.85 })
+    mockFetchRates.mockResolvedValue({ date: '2024-01-15', rates: { USD: 1.08, GBP: 0.85 } })
     const rate = await getRate('2024-01-15', 'USD')
     expect(rate).toBe('1.08')
     expect(mockFetchRates).toHaveBeenCalledTimes(1)
@@ -62,7 +62,7 @@ describe('getRate', () => {
 
   test('unknown currency → returns null', async () => {
     const { getRate } = await import('@/lib/fx/rates')
-    mockFetchRates.mockResolvedValue({ USD: 1.08 })
+    mockFetchRates.mockResolvedValue({ date: '2024-01-16', rates: { USD: 1.08 } })
     const rate = await getRate('2024-01-16', 'XYZ')
     expect(rate).toBeNull()
   })
@@ -74,7 +74,7 @@ describe('refreshFxRates', () => {
   test('pre-populates all fiat currencies for a date', async () => {
     const { getRate, refreshFxRates } = await import('@/lib/fx/rates')
     sqlite.exec(`DELETE FROM fx_history WHERE date = '2024-02-01'`)
-    mockFetchRates.mockResolvedValue({ USD: 1.09, GBP: 0.86, CHF: 0.94, SEK: 11.2, NOK: 11.5, DKK: 7.46, JPY: 161 })
+    mockFetchRates.mockResolvedValue({ date: '2024-02-01', rates: { USD: 1.09, GBP: 0.86, CHF: 0.94, SEK: 11.2, NOK: 11.5, DKK: 7.46, JPY: 161 } })
     await refreshFxRates('2024-02-01')
     // All fiat currencies should now be in cache — verify JPY
     mockFetchRates.mockClear()
@@ -114,4 +114,19 @@ describe('convertToEur', () => {
     const result = await convertToEur(10000, 'USD', '2030-12-31')
     expect(result).toBeNull()
   })
+})
+
+test('weekend rate retains its observation date', async () => {
+  const { getRate } = await import('@/lib/fx/rates')
+  mockFetchRates.mockResolvedValue({ date: '2024-04-05', rates: { USD: 1.09 } })
+  expect(await getRate('2024-04-07', 'USD')).toBe('1.09')
+  expect(sqlite.prepare("SELECT rate FROM fx_history WHERE date = '2024-04-07'").get()).toBeUndefined()
+  expect(sqlite.prepare("SELECT rate FROM fx_history WHERE date = '2024-04-05' AND quote = 'USD'").get()).toEqual({ rate: '1.09' })
+})
+test('today is revalidated so a pre-publication rate cannot freeze the day', async () => {
+  const { getRate } = await import('@/lib/fx/rates')
+  const today = new Date().toISOString().slice(0, 10)
+  sqlite.prepare("INSERT OR REPLACE INTO fx_history (date, base, quote, rate) VALUES (?, 'EUR', 'USD', '1.01')").run(today)
+  mockFetchRates.mockResolvedValue({ date: today, rates: { USD: 1.12 } })
+  expect(await getRate(today, 'USD')).toBe('1.12')
 })

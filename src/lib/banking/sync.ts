@@ -31,9 +31,13 @@ import {
 
 // Ordine di preferenza dei tipi di saldo Berlin Group/NextGenPSD2: il saldo
 // contabile chiuso è il più "autorevole"; a scendere via via meno definitivo.
-const BALANCE_TYPE_PRIORITY = ['closingBooked', 'interimAvailable', 'expected', 'openingBooked']
+const BALANCE_TYPE_PRIORITY = [
+  'CLBD', 'closingBooked', 'ITBD', 'interimBooked',
+  'CLAV', 'closingAvailable', 'ITAV', 'interimAvailable',
+  'XPCD', 'expected', 'OPBD', 'openingBooked',
+]
 
-function pickBalance(balances: EbBalance[]): EbBalance | null {
+export function pickBalance(balances: EbBalance[]): EbBalance | null {
   for (const type of BALANCE_TYPE_PRIORITY) {
     const found = balances.find((b) => b.balance_type === type)
     if (found) return found
@@ -44,8 +48,8 @@ function pickBalance(balances: EbBalance[]): EbBalance | null {
 /**
  * Converte le transazioni EB in InsertableTransaction, con lo stesso schema
  * di dedup dei parser manuali (src/lib/import/intesa.ts): se l'ASPSP fornisce
- * un riferimento stabile (`entry_reference`/`transaction_id`) lo si usa come
- * base dell'hash (dedup robusto tra sync ripetuti); altrimenti si cade sui
+ * un riferimento stabile (`entry_reference`) lo si usa come
+ * base dell'hash. transaction_id può cambiare tra richieste: altrimenti si cade sui
  * campi grezzi + indice di occorrenza in-batch per preservare i duplicati
  * legittimi (es. due spese identiche nello stesso giorno).
  */
@@ -58,6 +62,8 @@ export function mapTransactions(
   const mapped: InsertableTransaction[] = []
 
   for (const t of rows) {
+    // Pending/held entries can change amount or disappear before booking.
+    if (t.status && t.status !== 'BOOK') continue
     const bookedDate = t.booking_date ?? t.value_date
     if (!bookedDate) {
       // Niente entry_reference/transaction_id nel log: sono identificativi
@@ -71,25 +77,28 @@ export function mapTransactions(
     const sign      = t.credit_debit_indicator === 'DBIT' ? -1 : 1
     const amountMinor = sign * absMinor
 
-    const descriptionRaw = t.remittance_information?.length
-      ? t.remittance_information.join(' ')
-      : (t.creditor?.name ?? t.debtor?.name ?? 'Movimento')
-    const counterpartyRaw = t.creditor?.name ?? t.debtor?.name ?? ''
+    // The other party depends on the flow; the creditor of a credit is us.
+    const counterpartyRaw = (t.credit_debit_indicator === 'DBIT'
+      ? t.creditor?.name : t.debtor?.name)?.trim() || ''
+    const descriptionRaw = t.remittance_information?.join(' ').trim()
+      || counterpartyRaw || 'Movimento'
 
     const normalized = normalizeDescription(`${descriptionRaw} ${counterpartyRaw}`)
     const merchant    = resolveMerchant(normalized)
     // Priorità: regola utente → alias merchant → MCC (transazioni carta) →
     // bank_transaction_code (transazioni senza carta, dove l'MCC non arriva mai).
-    const categoryId  = resolveCategoryRule(normalized, ownerId, absMinor)
+    const ruleCategory = resolveCategoryRule(normalized, ownerId, absMinor)
+    const categoryId  = ruleCategory
       ?? merchant?.categoryId
       ?? resolveMccCategory(t.merchant_category_code)
       ?? resolveBankTransactionCategory(t.bank_transaction_code?.code, t.bank_transaction_code?.sub_code)
       ?? null
 
     const externalId = t.entry_reference ?? t.transaction_id ?? null
+    const legacyDedupHash = t.transaction_id ? createHash('sha256').update(`eb:${t.transaction_id}`).digest('hex') : undefined
     let dedupHash: string
-    if (externalId) {
-      dedupHash = createHash('sha256').update(`eb:${externalId}`).digest('hex')
+    if (t.entry_reference) {
+      dedupHash = createHash('sha256').update(`eb:${t.entry_reference}`).digest('hex')
     } else {
       const rawKey   = `${bookedDate}|${amountMinor}|${currency}|${descriptionRaw}`
       const baseHash = createHash('sha256').update(rawKey).digest('hex')
@@ -109,8 +118,10 @@ export function mapTransactions(
       counterparty_raw: counterpartyRaw || null,
       external_id:      externalId,
       dedup_hash:       dedupHash,
+      legacy_dedup_hash: legacyDedupHash,
       merchant_id:      merchant?.merchantId ?? null,
       category_id:      categoryId,
+      category_source:  ruleCategory !== null ? 'rule' : 'automatic',
       // Persistiamo MCC e bank_transaction_code grezzi (oltre alla categoria
       // derivata) così la ricategorizzazione bulk può riapplicarli senza
       // ri-sincronizzare.
@@ -266,7 +277,8 @@ export async function syncConnection(connection: EbConnection): Promise<Connecti
     results.push(await syncAccount(creds, connection.owner_id, account, dateFrom))
   }
 
-  markConnectionSynced(connection.id)
+  // A shared cursor must not advance past a failed account/page.
+  if (results.every((result) => !result.error)) markConnectionSynced(connection.id)
   // Dopo la sync i movimenti nuovi permettono di riconoscere un conto doppio
   // nato da un rinnovo del consenso (stessi movimenti di un conto collegato a
   // una connessione scaduta): lo storico viene riunito nel conto originale.

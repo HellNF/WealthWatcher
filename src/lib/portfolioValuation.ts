@@ -2,10 +2,12 @@
 // Aggregated EUR valuation of a portfolio (value + unrealized P/L + P/L %),
 // for compact display in lists (institution page, dashboard). Reuses the FIFO
 // summary from positions.ts and converts each currency bucket to EUR.
+import { summarizePriceQuality } from './prices/quality'
 import { getPortfolioPositions } from './positions'
 import { convertToEur } from './fx/convert'
 
 export interface PortfolioValuation {
+  stale: boolean
   marketValueEurMinor:  number | null // null se qualche prezzo è stale/non convertibile
   costEurMinor:         number
   unrealizedPlEurMinor: number | null
@@ -17,7 +19,7 @@ export async function getPortfolioValuationEur(
   portfolioId: number,
   date: string,
 ): Promise<PortfolioValuation> {
-  const { summary } = getPortfolioPositions(userId, portfolioId)
+  const { summary, positions } = getPortfolioPositions(userId, portfolioId)
 
   let costEur = 0
   let marketEur: number | null = 0
@@ -49,7 +51,9 @@ export async function getPortfolioValuationEur(
       ? (plEur / costEur) * 100
       : null
 
+  const quality = summarizePriceQuality(positions)
   return {
+    stale: marketEur === null || quality.missing > 0 || quality.aged > 0 || quality.legacy > 0,
     marketValueEurMinor:  marketEur,
     costEurMinor:         costEur,
     unrealizedPlEurMinor: plEur,

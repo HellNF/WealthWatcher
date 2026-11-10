@@ -17,6 +17,7 @@ export interface NetWorthPoint {
   date: string
   /** Patrimonio netto in centesimi di euro */
   value: number
+  stale?: boolean
 }
 
 interface Props {
@@ -87,7 +88,7 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
   const [range, setRange] = useState<RangeId>('ALL')
   const [scrub, setScrub] = useState<number | null>(null)
 
-  const all = useMemo(() => points.map((p) => ({ t: toTime(p.date), value: p.value })), [points])
+  const all = useMemo(() => points.map((p) => ({ t: toTime(p.date), value: p.value, stale: p.stale ?? false })), [points])
   const latest = all.at(-1) ?? null
 
   // Punti del periodo. Se il periodo parte "in mezzo" a due rilevazioni, tiene
@@ -156,7 +157,7 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
             </p>
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-h-6 text-sm text-(--muted)">
               {data.length >= 2 && !atBase && (
-                delta === 0 ? (
+                shown.stale || base.stale ? (<span className="text-(--muted)">Variazione non confrontabile: dati incompleti o da verificare</span>) : delta === 0 ? (
                   <span>Invariato</span>
                 ) : (
                   <Badge variant={delta > 0 ? 'gain' : 'loss'} className="font-mono tabular-nums">
@@ -177,7 +178,7 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
               <span aria-hidden className="text-(--faint)">·</span>
               <span className={cn('inline-flex items-center gap-1.5', stale && 'text-(--warning-text)')}>
                 {stale && <Info className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />}
-                {stale ? 'Dati parziali, aggiornato' : 'Aggiornato'} il {fmtDay(latest.t, true)}
+                {stale || shown.stale ? 'Dati incompleti o da verificare · calcolo' : 'Calcolo'} il {fmtDay(latest.t, true)}
                 {refresh}
               </span>
             </div>

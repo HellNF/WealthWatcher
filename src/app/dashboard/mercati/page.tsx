@@ -260,9 +260,10 @@ export default async function MercatiPage() {
             <p>
               <strong className="text-(--ink)">Il calcolo.</strong> Ogni indicatore viene trasformato in un punteggio tra
               −1 e +1 con una regola fissa (ad esempio: più il prezzo è alto rispetto agli ultimi 10 anni, più il punteggio
-              è negativo). I punteggi vengono mediati con pesi dichiarati. Non c’è nessun modello opaco né alcuna opinione:
-              gli stessi dati producono sempre la stessa valutazione. Se un dato manca, l’indicatore viene escluso e la
-              «confidenza» scende.
+              è negativo). I punteggi vengono mediati con pesi dichiarati. Soglie e pesi sono scelte metodologiche:
+              gli stessi dati producono la stessa sintesi, ma non una previsione certa. Se un dato manca,
+              l’indicatore viene escluso e il peso degli altri cambia. La copertura dati misura quanti indicatori
+              sono disponibili, non la probabilità di guadagno né l’accuratezza della previsione.
             </p>
             <p>
               <strong className="text-(--ink)">I limiti.</strong> Un mercato caro può restare caro, o diventarlo di più, per

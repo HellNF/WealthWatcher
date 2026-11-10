@@ -2,7 +2,8 @@
 import { useTransition } from 'react'
 import { RefreshCw, TrendingUp } from 'lucide-react'
 import { refreshPricesAction } from './actions'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, fromMinor } from '@/lib/money'
+import { PriceQuality } from '@/components/dashboard/PriceQuality'
 import { formatDateTimeIt } from '@/lib/formatDate'
 import type { Position } from '@/lib/investments/fifo'
 import {
@@ -16,12 +17,12 @@ function fmtDate(epoch: number | null): string {
   return formatDateTimeIt(epoch, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-function PlCell({ minor, pct }: { minor: number | null; pct: string | null }) {
+function PlCell({ minor, pct, currency }: { minor: number | null; pct: string | null; currency: string }) {
   if (minor === null) return <span className="text-(--faint) text-xs">—</span>
   const positive = minor >= 0
   return (
     <Badge variant={positive ? 'gain' : 'loss'}>
-      {positive ? '+' : ''}{formatMoney(minor, 'EUR')}
+      {positive ? '+' : ''}{formatMoney(minor, currency)}
       {pct && <span className="ml-1 opacity-75">({positive ? '+' : ''}{pct}%)</span>}
     </Badge>
   )
@@ -83,8 +84,7 @@ export default function PositionsTable({
             </TableHead>
             <TableBody>
               {activePositions.map((pos) => {
-                const avgCost = pos.costBasisMinor /
-                  Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+                const avgCost = Number(fromMinor(pos.costBasisMinor, pos.currency)) / Math.max(parseFloat(pos.remainingQty), 0.00000001)
                 return (
                   <Tr key={pos.symbol}>
                     <Td>
@@ -114,7 +114,7 @@ export default function PositionsTable({
                               minimumFractionDigits: 2,
                             })}
                           </span>
-                          <p className="text-[10px] text-(--faint)">{fmtDate(pos.lastPriceAt)}</p>
+                          <p className="text-[10px] text-(--faint)">{fmtDate(pos.lastPriceAt)}<PriceQuality position={pos} /></p>
                         </div>
                       ) : (
                         <Badge variant="warning">stale</Badge>
@@ -128,7 +128,7 @@ export default function PositionsTable({
                       </span>
                     </Td>
                     <Td numeric>
-                      <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
+                      <PlCell currency={pos.currency} minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
                     </Td>
                   </Tr>
                 )
@@ -141,8 +141,7 @@ export default function PositionsTable({
       {/* ── Mobile: card impilate ─────────────────────────────────────────── */}
       <div className="sm:hidden space-y-2">
         {activePositions.map((pos) => {
-          const avgCost = pos.costBasisMinor /
-            Math.max(parseFloat(pos.remainingQty), 0.00000001) / 100
+          const avgCost = Number(fromMinor(pos.costBasisMinor, pos.currency)) / Math.max(parseFloat(pos.remainingQty), 0.00000001)
           return (
             <DataCard key={pos.symbol}>
               <DataCardHeader
@@ -157,7 +156,7 @@ export default function PositionsTable({
                     : '—'}
                 </DataRow>
                 <DataRow label="P/L non real.">
-                  <PlCell minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
+                  <PlCell currency={pos.currency} minor={pos.unrealizedPlMinor} pct={pos.unrealizedPlPct} />
                 </DataRow>
                 <DataRow label="Quantità">
                   {parseFloat(pos.remainingQty).toLocaleString('it-IT', {
@@ -179,7 +178,7 @@ export default function PositionsTable({
                         minimumFractionDigits: 2,
                       })}
                       {pos.lastPriceAt && (
-                        <span className="text-(--faint) ml-1">· {fmtDate(pos.lastPriceAt)}</span>
+                        <span className="text-(--faint) ml-1">· {fmtDate(pos.lastPriceAt)}<PriceQuality position={pos} /></span>
                       )}
                     </span>
                   </DataRow>

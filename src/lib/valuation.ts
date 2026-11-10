@@ -9,6 +9,7 @@ import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
 import { listAssets } from '@/lib/assets'
 import { convertToEur } from '@/lib/fx/convert'
+import { summarizePriceQuality } from '@/lib/prices/quality'
 import { refreshFxRates } from '@/lib/fx/rates'
 
 export type { ValuationSnapshot }
@@ -52,11 +53,13 @@ export interface NetWorthResult {
   accountsEurMinor:    number
   otherAssetsEurMinor: number
   breakdown: {
+    priceQuality?: ReturnType<typeof summarizePriceQuality>
     portfolios: { portfolioId: number; name: string; currency: string; eurMinor: number | null; originalMinor: number | null }[]
     accounts:   { accountId: number; name: string; currency: string; eurMinor: number | null; originalMinor: number }[]
     otherAssets: { assetId: number; name: string; kind: string; currency: string; eurMinor: number | null; originalMinor: number }[]
   }
   stale: boolean
+  priceQuality?: ReturnType<typeof summarizePriceQuality>
 }
 
 export async function computeNetWorth(userId: number, date: string): Promise<NetWorthResult> {
@@ -65,6 +68,7 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
   let otherAssetsEurMinor = 0
   let stale               = false
 
+  const allPositions: import('@/lib/positions').Position[] = []
   const portfolioBreakdown: NetWorthResult['breakdown']['portfolios'] = []
   const accountBreakdown:   NetWorthResult['breakdown']['accounts']   = []
   const otherAssetsBreakdown: NetWorthResult['breakdown']['otherAssets'] = []
@@ -72,7 +76,8 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
   // ── Investments ──
   const portfolios = listPortfolios(userId)
   for (const portfolio of portfolios) {
-    const { summary } = getPortfolioPositions(userId, portfolio.id)
+    const { summary, positions } = getPortfolioPositions(userId, portfolio.id)
+    allPositions.push(...positions)
     let portfolioEurMinor: number | null = 0
 
     for (const bucket of summary.byCurrency) {
@@ -84,7 +89,7 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
       const eur = await convertToEur(bucket.totalMarketMinor, bucket.currency, date)
       if (eur === null) {
         stale = true
-        // skip this bucket but don't nullify the whole portfolio
+        portfolioEurMinor = null // Never present a partial sum as a complete portfolio.
       } else {
         if (portfolioEurMinor !== null) portfolioEurMinor += eur
         investmentsEurMinor += eur
@@ -141,12 +146,15 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
     })
   }
 
+  const priceQuality = summarizePriceQuality(allPositions)
+  stale ||= priceQuality.missing > 0 || priceQuality.aged > 0 || priceQuality.legacy > 0
   return {
+    priceQuality,
     netWorthEurMinor:    investmentsEurMinor + accountsEurMinor + otherAssetsEurMinor,
     investmentsEurMinor,
     accountsEurMinor,
     otherAssetsEurMinor,
-    breakdown: { portfolios: portfolioBreakdown, accounts: accountBreakdown, otherAssets: otherAssetsBreakdown },
+    breakdown: { priceQuality, portfolios: portfolioBreakdown, accounts: accountBreakdown, otherAssets: otherAssetsBreakdown },
     stale,
   }
 }

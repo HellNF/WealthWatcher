@@ -56,7 +56,7 @@ export interface EbAmount {
 
 export interface EbBalance {
   balance_amount: EbAmount
-  balance_type:   string   // es. 'interimAvailable', 'closingBooked'
+  balance_type:   string   // Enable Banking ISO codes: CLBD, ITBD, ITAV, ...
   reference_date?: string
 }
 
@@ -64,6 +64,7 @@ export type CreditDebitIndicator = 'CRDT' | 'DBIT'
 
 // Rappresentazione Berlin Group/NextGenPSD2 di una transazione.
 export interface EbTransaction {
+  status?: 'BOOK' | 'CNCL' | 'HOLD' | 'OTHR' | 'PDNG' | 'RJCT' | 'SCHD'
   entry_reference?:    string
   transaction_id?:     string
   booking_date?:        string   // ISO YYYY-MM-DD

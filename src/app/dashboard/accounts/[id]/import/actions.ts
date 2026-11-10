@@ -52,6 +52,7 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
       dedup_hash:       p.dedupHash,
       merchant_id:      merchant?.merchantId ?? null,
       category_id:      categoryId,
+      category_source:  ruleCategory !== null ? 'rule' : 'automatic',
     }
   })
 

@@ -1,4 +1,5 @@
 // src/lib/positions.ts — Compute portfolio positions via FIFO engine.
+import { getObservation } from '@/lib/prices/observations'
 import { getInstrument } from '@/lib/instruments'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { runFifo, computePosition } from '@/lib/investments/fifo'
@@ -39,6 +40,10 @@ export function getPortfolioPositions(
 
     const state = runFifo(instrTxns, instrument.currency)
     const position = computePosition(instrument, state)
+    const observation = getObservation(instrument.id, instrument.last_price_at, instrument.last_price)
+    position.priceSource = observation?.source ?? (instrument.price_source === 'manual' ? 'manual' : null)
+    position.priceKind = observation?.kind ?? (instrument.price_source === 'manual' ? 'manual' : 'legacy')
+    position.priceRetrievedAt = observation?.retrieved_at ?? null
     positions.push(position)
   }
 

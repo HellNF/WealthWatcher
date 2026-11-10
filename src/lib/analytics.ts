@@ -1516,10 +1516,10 @@ export function dcaCounterfactualStats(userId: number): DCAStats {
       .prepare(
         `SELECT date, CAST(price AS REAL) AS price
          FROM price_history
-         WHERE instrument_id = ? AND date >= ? AND date <= ?
+         WHERE instrument_id = ? AND date >= ? AND date <= ? AND currency = ? AND kind != 'legacy'
          ORDER BY date ASC`,
       )
-      .all(instr.instrument_id, instr.first_date, today) as Array<{ date: string; price: number }>
+      .all(instr.instrument_id, instr.first_date, today, instr.currency) as Array<{ date: string; price: number }>
 
     const currentPrice  = instr.last_price ? parseFloat(instr.last_price) : null
     const totalCostMinor = Math.round(instr.total_cost_minor)

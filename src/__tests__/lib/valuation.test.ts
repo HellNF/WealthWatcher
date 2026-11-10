@@ -7,9 +7,9 @@ jest.mock('@/lib/prices/coingecko',   () => ({ coingeckoProvider:   { getQuote: 
 jest.mock('@/lib/prices/alphavantage',() => ({ alphaVantageProvider:{ getQuote: jest.fn() } }))
 
 import { sqlite } from '@/db'
-import { fetchRates } from '@/lib/fx/frankfurter'
+import { fetchRateSnapshot } from '@/lib/fx/frankfurter'
 
-const mockFetchRates = fetchRates as jest.Mock
+const mockFetchRates = fetchRateSnapshot as jest.Mock
 
 // ── Fixture IDs (set in beforeAll) ───────────────────────────────────────────
 
@@ -21,7 +21,7 @@ let accountId: number
 const TEST_DATE = '2024-03-01'
 
 beforeAll(() => {
-  mockFetchRates.mockResolvedValue({ USD: 1.08 })
+  mockFetchRates.mockResolvedValue({ date: TEST_DATE, rates: { USD: 1.08 } })
 
   // User
   sqlite.prepare(`INSERT INTO users (email, name, role) VALUES ('valtest@example.com', 'Val Test', 'user')`).run()
@@ -47,6 +47,8 @@ beforeAll(() => {
   sqlite.prepare(`INSERT INTO instruments (symbol, name, cluster, currency, price_source, last_price, last_price_at) VALUES ('TEST.US', 'Test Stock', 'stock', 'USD', 'yahoo', '100.00', ${Math.floor(Date.now() / 1000)})`).run()
   const instr = sqlite.prepare(`SELECT id FROM instruments WHERE symbol = 'TEST.US'`).get() as { id: number }
   instrumentId = instr.id
+  sqlite.prepare(`INSERT INTO price_observations (instrument_id, price, currency, source, kind, observed_at, retrieved_at)
+    SELECT id, last_price, currency, 'yahoo', 'quote', last_price_at, last_price_at FROM instruments WHERE id = ?`).run(instrumentId)
 
   // Buy 1 share at $100
   sqlite.prepare(`
@@ -72,7 +74,7 @@ afterEach(() => {
   sqlite.prepare(`DELETE FROM valuation_snapshots WHERE owner_id = ?`).run(userId)
   sqlite.prepare(`DELETE FROM fx_history`).run()
   jest.clearAllMocks()
-  mockFetchRates.mockResolvedValue({ USD: 1.08 })
+  mockFetchRates.mockResolvedValue({ date: TEST_DATE, rates: { USD: 1.08 } })
 })
 
 // ── computeNetWorth ───────────────────────────────────────────────────────────

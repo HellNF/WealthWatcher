@@ -87,7 +87,7 @@ export const coinMarketCapProvider: PriceProvider = {
       const lastUpdated = entry?.quote?.EUR?.last_updated
       const asOf = lastUpdated
         ? Math.floor(new Date(lastUpdated).getTime() / 1000)
-        : Math.floor(Date.now() / 1000)
+        : NaN
 
       return {
         price:    price.toString(),

@@ -135,6 +135,7 @@ const MCC_RANGE_MAP: { from: number; to: number; category: string }[] = [
 export function resolveMccCategory(mcc: string | undefined | null): number | null {
   if (!mcc) return null
   const clean = mcc.trim()
+  if (!/^\d{4}$/.test(clean)) return null
   let myName = MCC_CATEGORY_MAP[clean]
   if (!myName) {
     const numeric = Number(clean)
@@ -186,22 +187,26 @@ export interface ResolvedMerchant {
 
 /**
  * Match a normalised description against seeded alias patterns (substring).
- * Uses a SQL LIKE query so the match runs in the database layer.
+ * Prefer the longest literal alias; short names must match complete tokens.
  * Returns null if no alias matches.
  */
 export function resolveMerchant(normalizedDesc: string): ResolvedMerchant | null {
-  const row = sqlite
+  const candidates = sqlite
     .prepare(
-      `SELECT ma.merchant_id, m.default_category_id
+      `SELECT ma.pattern, ma.merchant_id, m.default_category_id
        FROM merchant_aliases ma
        JOIN merchants m ON m.id = ma.merchant_id
-       WHERE ? LIKE '%' || ma.pattern || '%'
-       LIMIT 1`,
+       WHERE length(trim(ma.pattern)) > 0 AND instr(?, lower(ma.pattern)) > 0
+       ORDER BY length(ma.pattern) DESC, ma.id ASC`,
     )
-    .get(normalizedDesc) as
-    | { merchant_id: number; default_category_id: number | null }
-    | undefined
+    .all(normalizedDesc) as { pattern: string; merchant_id: number; default_category_id: number | null }[]
 
+  const row = candidates.find(({ pattern }) => {
+    // e.g. COOP is a supermarket, but COOPERATIVA is not evidence of one.
+    if (pattern.length > 4) return true
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'iu').test(normalizedDesc)
+  })
   if (!row) return null
   return { merchantId: row.merchant_id, categoryId: row.default_category_id }
 }
@@ -236,13 +241,13 @@ export function resolveCategoryRule(
       `SELECT cr.category_id
        FROM category_rules cr
        WHERE cr.owner_id = ?
-         AND ? LIKE '%' || cr.pattern || '%'
+         AND instr(?, cr.pattern) > 0
          AND (cr.amount_minor_min IS NULL OR ? >= cr.amount_minor_min)
          AND (cr.amount_minor_max IS NULL OR ? <= cr.amount_minor_max)
        ORDER BY
          cr.priority DESC,
          (cr.amount_minor_min IS NOT NULL OR cr.amount_minor_max IS NOT NULL) DESC,
-         length(cr.pattern) DESC
+         length(cr.pattern) DESC, cr.id ASC
        LIMIT 1`,
     )
     .get(ownerId, normalizedDesc, amt, amt) as { category_id: number } | undefined

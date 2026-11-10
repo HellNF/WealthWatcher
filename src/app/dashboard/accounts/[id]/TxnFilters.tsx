@@ -3,17 +3,19 @@ import { useRouter, usePathname } from 'next/navigation'
 
 interface Props {
   from?:  string
+  review?: string
   to?:    string
   shown:  number
   total:  number
 }
 
-export default function TxnFilters({ from, to, shown, total }: Props) {
+export default function TxnFilters({ from, to, shown, total, review }: Props) {
   const router   = useRouter()
   const pathname = usePathname()
 
   function navigate(newFrom?: string, newTo?: string, all?: boolean) {
     const params = new URLSearchParams()
+    if (review) params.set('review', review)
     if (newFrom) params.set('from', newFrom)
     if (newTo)   params.set('to',   newTo)
     if (all)     params.set('all',  '1')

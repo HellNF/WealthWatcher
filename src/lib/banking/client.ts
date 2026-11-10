@@ -147,9 +147,10 @@ export async function getTransactions(
   const all: EbTransaction[] = []
   let continuationKey: string | undefined
   let page = 0
+  const seenKeys = new Set<string>()
 
   do {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams({ transaction_status: 'BOOK' })
     if (dateFrom) params.set('date_from', dateFrom)
     if (continuationKey) params.set('continuation_key', continuationKey)
     const qs = params.toString() ? `?${params.toString()}` : ''
@@ -158,12 +159,17 @@ export async function getTransactions(
       creds,
       `/accounts/${encodeURIComponent(accountUid)}/transactions${qs}`,
     )
-    if (!res) return page === 0 ? null : all // prima pagina fallita → errore; pagine successive → best-effort
+    if (!res || !Array.isArray(res.transactions)) return null
 
     all.push(...res.transactions)
     continuationKey = res.continuation_key
+    if (continuationKey) {
+      if (seenKeys.has(continuationKey)) return null
+      seenKeys.add(continuationKey)
+    }
     page++
   } while (continuationKey && page < MAX_TRANSACTION_PAGES)
 
-  return all
+  // Never treat a truncated history as a successful sync.
+  return continuationKey ? null : all
 }

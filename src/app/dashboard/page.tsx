@@ -10,6 +10,8 @@ import { estimatedWealthTaxes } from '@/lib/tax/wealth'
 import AddInstitutionForm from './AddInstitutionForm'
 import AddAssetForm from './AddAssetForm'
 import AssetRow from './AssetRow'
+import { ValuationQuality } from '@/components/dashboard/PriceQuality'
+import type { summarizePriceQuality } from '@/lib/prices/quality'
 import NetWorthHero from './NetWorthHero'
 import CompositionBar from './CompositionBar'
 import RefreshNetWorthButton from './RefreshNetWorthButton'
@@ -99,6 +101,7 @@ function RailSection({ title, children }: { title: string; children: React.React
 }
 
 interface BreakdownEntry {
+  priceQuality?: ReturnType<typeof summarizePriceQuality>
   portfolios: { portfolioId: number; eurMinor: number | null }[]
   accounts:   { accountId: number; eurMinor: number }[]
 }
@@ -111,6 +114,8 @@ export default async function DashboardPage() {
 
   const snapshots = listSnapshots(user.id)
   const latest  = snapshots.at(-1) ?? null
+  let priceQuality: ReturnType<typeof summarizePriceQuality> | undefined
+  try { priceQuality = JSON.parse(latest?.breakdown ?? '{}').priceQuality } catch { /* Older snapshots may have no metadata. */ }
 
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
@@ -252,7 +257,7 @@ export default async function DashboardPage() {
         <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">{formatEur(latest.net_worth_eur_minor)}</span>
         {estimatedTaxMinor > 0 && (
           <span className="text-xs text-(--muted) ml-auto font-mono tabular-nums">
-            Netto reale {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
+            Netto stimato {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
           </span>
         )}
       </StickyBar>
@@ -290,12 +295,14 @@ export default async function DashboardPage() {
           {/* ── Net worth hero ──────────────────────────────────────────── */}
           <NetWorthHero
             valueId="networth-value"
-            points={snapshots.map((snap) => ({ date: snap.date, value: snap.net_worth_eur_minor }))}
+            points={snapshots.map((snap) => ({ date: snap.date, value: snap.net_worth_eur_minor, stale: snap.stale === 1 }))}
             stale={latest?.stale === 1}
             refresh={<RefreshNetWorthButton />}
             aside={<CompositionBar parts={composition} className="xl:hidden" />}
             footer={
               <div className="flex items-center gap-x-8 gap-y-3 flex-wrap border-t border-(--border) px-6 sm:px-8 py-4 text-sm">
+                {priceQuality && <ValuationQuality quality={priceQuality} />}
+                {!priceQuality && latest && <p className="text-xs text-(--muted)">Snapshot storico senza dettaglio delle fonti: ricalcola il patrimonio.</p>}
                 {latest && (latentTax || wealthTaxes) && (
                   <>
                     <p className="text-(--muted)">
@@ -305,7 +312,7 @@ export default async function DashboardPage() {
                       </span>
                     </p>
                     <p className="text-(--muted)">
-                      Netto reale{' '}
+                      Netto stimato{' '}
                       <span className="ml-1 font-mono tabular-nums font-medium text-(--ink)">
                         {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
                       </span>

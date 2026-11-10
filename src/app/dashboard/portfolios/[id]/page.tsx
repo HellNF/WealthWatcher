@@ -8,6 +8,9 @@ import { refreshPortfolioPrices } from '@/lib/prices'
 import { getInstrument } from '@/lib/instruments'
 import { formatMoney } from '@/lib/money'
 import { convertToEur } from '@/lib/fx/convert'
+import { PortfolioQuality } from '@/components/dashboard/PriceQuality'
+import EtfDetails from './EtfDetails'
+import { getCachedEtf, validIsin } from '@/lib/prices/justetf'
 import PositionsTable from './PositionsTable'
 import TxnList from './TxnList'
 import AddTxnForm, { type KnownInstrument } from './AddTxnForm'
@@ -83,6 +86,12 @@ export default async function PortfolioPage({ params }: Props) {
 
   const openPositions = positions.filter(p => parseFloat(p.remainingQty) > 0)
 
+  const etfs = new Map(openPositions.flatMap(p => {
+    const instrument = getInstrument(p.instrumentId)
+    const isin = instrument?.isin?.toUpperCase()
+    return instrument?.cluster === 'etf' && isin && validIsin(isin) ? [[p.instrumentId, { isin, profile: getCachedEtf(isin) }] as const] : []
+  }))
+
   // ── Sintesi dell'hero: valore complessivo in euro ──────────────────────────
   const single     = summary.byCurrency.length === 1 ? summary.byCurrency[0] : null
   let totalEurMinor: number | null = summary.byCurrency.length > 0 ? 0 : null
@@ -138,6 +147,7 @@ export default async function PortfolioPage({ params }: Props) {
                       name={pos.name}
                       currency={pos.currency}
                     />
+                    {etfs.has(pos.instrumentId) && <EtfDetails portfolioId={id} instrumentId={pos.instrumentId} isin={etfs.get(pos.instrumentId)!.isin} initial={etfs.get(pos.instrumentId)!.profile ?? null} />}
                   </div>
                 ))}
               </div>
@@ -168,7 +178,8 @@ export default async function PortfolioPage({ params }: Props) {
         <aside className="order-1 xl:order-2 min-w-0 flex flex-col gap-6 xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)] xl:overflow-y-auto xl:pb-1">
           <HeroShell innerClassName="p-5 sm:p-6 gap-5">
             <div className="space-y-3">
-              <Eyebrow>Valore attuale</Eyebrow>
+              <Eyebrow>Valutazione ai prezzi disponibili</Eyebrow>
+              <PortfolioQuality positions={positions} />
               <p id="portfolio-value" className="text-4xl sm:text-5xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
                 {heroValue}
               </p>
@@ -182,7 +193,7 @@ export default async function PortfolioPage({ params }: Props) {
                 </p>
               )}
               {!single && summary.byCurrency.length > 1 && (
-                <p className="text-xs text-(--muted)">Somma delle valute convertite in euro al cambio di oggi.</p>
+                <p className="text-xs text-(--muted)">Somma delle valute convertite in euro all’ultimo cambio disponibile.</p>
               )}
             </div>
 

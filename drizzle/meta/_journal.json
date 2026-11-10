@@ -211,6 +211,20 @@
       "when": 1793019254940,
       "tag": "0029_sleepy_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1794339680657,
+      "tag": "0030_fancy_talkback",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1794340026188,
+      "tag": "0031_new_ultron",
+      "breakpoints": true
     }
   ]
 }

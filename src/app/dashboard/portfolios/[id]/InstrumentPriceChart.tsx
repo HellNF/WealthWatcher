@@ -44,26 +44,22 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
   const pillGroupId = useId()
 
   const [period, setPeriod]          = useState<string>('3m')
-  const [data, setData]              = useState<PricePoint[]>([])
   const [isPending, startTransition] = useTransition()
-  const [hasData, setHasData]        = useState<boolean | null>(null) // null = mai caricato
-  const [retryKey, setRetryKey]      = useState(0)
+  const [retryKey, setRetryKey] = useState(0)
+  const requestKey = `${symbol}:${period}:${retryKey}`
+  const [loaded, setLoaded] = useState<{ key: string; points: PricePoint[]; source: string | null } | null>(null)
+  const data = loaded?.key === requestKey ? loaded.points : []
+  const source = loaded?.key === requestKey ? loaded.source : null
+  const hasData = loaded?.key === requestKey ? loaded.points.length > 1 : null
 
   useEffect(() => {
-    // Svuota subito i dati precedenti: il periodo è cambiato, non vogliamo
-    // mostrare dati di un periodo diverso mentre il nuovo carica.
-    setData([])
-    setHasData(null)
+    let cancelled = false
     startTransition(async () => {
-      const rows = await fetchHistoryAction(symbol, period)
-      if (rows.length > 1) {
-        setData(rows)
-        setHasData(true)
-      } else {
-        setHasData(false)
-      }
+      const result = await fetchHistoryAction(symbol, period).catch(() => ({ points: [], source: null }))
+      if (!cancelled) setLoaded({ key: requestKey, points: result.points, source: result.source })
     })
-  }, [symbol, period, retryKey])
+    return () => { cancelled = true }
+  }, [symbol, period, requestKey])
 
   // Calcola delta % dal primo all'ultimo punto
   const first = data[0]?.close
@@ -96,6 +92,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
 
   return (
     <div className="space-y-3">
+      {data.length > 0 && <p className="text-xs text-(--muted)">Prezzi in {currency} · Fonte: {source ?? 'non verificata'} · Periodo disponibile: {data[0].date} – {data.at(-1)?.date}. Quotazioni non rettificate per dividendi; non rappresentano il rendimento totale.</p>}
       {/* Header: nome + delta */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
@@ -156,7 +153,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
           <div className="h-full flex flex-col items-center justify-center gap-2">
             <span className="text-xs text-(--faint)">Dati non disponibili per questo strumento</span>
             <button
-              onClick={() => { setHasData(null); setRetryKey(k => k + 1) }}
+              onClick={() => { setRetryKey(k => k + 1) }}
               className="text-xs text-(--brand-text) hover:underline"
             >
               Riprova
