@@ -69,7 +69,7 @@ function NavLinks({ isActive }: { isActive: (item: NavItem) => boolean }) {
   const activeHref = NAV_GROUPS.flatMap((g) => g.items).find(isActive)?.href ?? null
   const { containerRef, pillRef } = useSlidingPill<HTMLElement>(activeHref)
   return (
-    <nav ref={containerRef} className="relative flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Navigazione principale">
+    <nav ref={containerRef} className="relative flex-1 px-3 py-3 space-y-4 overflow-y-auto overscroll-contain" aria-label="Navigazione principale">
       {/* Pillola della voce attiva: scivola in CSS (transform) anche mentre la pagina nuova si carica */}
       <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-lg bg-(--brand-subtle) opacity-0" />
       {NAV_GROUPS.map((group) => (
@@ -123,6 +123,16 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
+
+  // Menu aperto: la pagina sotto non scorre (trascinando sul fondale o ai bordi
+  // della lista si muoverebbe il contenuto dietro, come in un sito e non in un'app)
+  useEffect(() => {
+    if (!mobileOpen) return
+    const root = document.documentElement
+    const prev = root.style.overflow
+    root.style.overflow = 'hidden'
+    return () => { root.style.overflow = prev }
+  }, [mobileOpen])
 
   // Close on Escape
   useEffect(() => {
@@ -183,7 +193,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     <>
       {/* ── Desktop sidebar ─────────────────────────────────────────────────── */}
       <aside
-        className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 border-r border-(--border) bg-(--surface)"
+        className="hidden lg:flex flex-col w-60 shrink-0 h-dvh sticky top-0 border-r border-(--border) bg-(--surface)"
         aria-label="Barra laterale"
       >
         {/* Brand */}
@@ -202,7 +212,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       </aside>
 
       {/* ── Mobile top bar ──────────────────────────────────────────────────── */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-(--border) bg-(--surface)/90 backdrop-blur-md shadow-(--shadow-sm)">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] border-b border-(--border) bg-(--surface)/90 backdrop-blur-md shadow-(--shadow-sm)">
         <button
           onClick={() => setMobileOpen((o) => !o)}
           className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)]"
@@ -248,7 +258,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       {/* Overlay */}
       <div
         className={cn(
-          'fixed inset-0 z-[30] bg-black/40 backdrop-blur-sm lg:hidden',
+          'fixed inset-0 z-[30] bg-black/40 backdrop-blur-sm lg:hidden touch-none',
           'transition-opacity duration-300 [transition-timing-function:var(--ease-spring)]',
           mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
         )}
@@ -258,7 +268,10 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       {/* Drawer */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-[31] w-72 flex flex-col',
+          'fixed inset-y-0 left-0 z-[31] max-w-[85vw] flex flex-col overscroll-contain',
+          // Aree sicure: notch in alto/a sinistra (orizzontale), barra home in basso
+          'pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)]',
+          'w-[calc(18rem+env(safe-area-inset-left,0px))]',
           'bg-(--surface) border-r border-(--border) lg:hidden',
           'transition-transform duration-300 [transition-timing-function:var(--ease-spring)]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',

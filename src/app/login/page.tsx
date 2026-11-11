@@ -36,7 +36,7 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-(--bg) px-4 overflow-hidden">
+    <div className="relative min-h-svh flex items-center justify-center bg-(--bg) px-4 overflow-hidden">
       {/* glow ambientale, fisso e non interattivo */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] rounded-full bg-(--brand)/[0.07] blur-[100px]" />
@@ -74,6 +74,11 @@ export default async function LoginPage({
                   name="email"
                   type="email"
                   required
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="go"
                   placeholder="La tua email"
                   className="w-full h-10 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
                 />

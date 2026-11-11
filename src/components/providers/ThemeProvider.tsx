@@ -27,6 +27,20 @@ function applyTheme(resolved: ResolvedTheme) {
   } else {
     root.classList.remove('dark')
   }
+  syncThemeColor(resolved)
+}
+
+/**
+ * I <meta name="theme-color"> (colore della barra di stato su mobile) seguono
+ * prefers-color-scheme del sistema. Se nell'app è scelto l'altro tema, attiva
+ * solo quello del tema scelto. Le pagine con un colore unico (senza `media`)
+ * restano come sono.
+ */
+function syncThemeColor(resolved: ResolvedTheme) {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"][media]').forEach((m) => {
+    const original = (m.dataset.media ??= m.media)
+    m.media = original.includes('dark') === (resolved === 'dark') ? 'all' : 'not all'
+  })
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

@@ -91,7 +91,7 @@ export default function AssetRow({
                 <Input id={`a-vmodel-${asset.id}`} name="vehicle_model" defaultValue={vehicleDetails?.model} required maxLength={50} />
               </Field>
               <Field label="Anno" htmlFor={`a-vyear-${asset.id}`}>
-                <Input id={`a-vyear-${asset.id}`} name="vehicle_year" type="number" defaultValue={vehicleDetails?.year} required className="max-w-24" />
+                <Input id={`a-vyear-${asset.id}`} name="vehicle_year" type="number" min="0" defaultValue={vehicleDetails?.year} required className="max-w-24" />
               </Field>
               <Field label="Alimentazione" htmlFor={`a-vfuel-${asset.id}`}>
                 <Select id={`a-vfuel-${asset.id}`} name="vehicle_fuel" defaultValue={vehicleDetails?.fuel ?? ''}>
@@ -110,16 +110,16 @@ export default function AssetRow({
                 </Select>
               </Field>
               <Field label="Potenza CV (opz.)" htmlFor={`a-vpower-${asset.id}`}>
-                <Input id={`a-vpower-${asset.id}`} name="vehicle_power_hp" type="number" defaultValue={vehicleDetails?.power_hp ?? undefined} className="max-w-28" />
+                <Input id={`a-vpower-${asset.id}`} name="vehicle_power_hp" type="number" min="0" defaultValue={vehicleDetails?.power_hp ?? undefined} className="max-w-28" />
               </Field>
               <Field label="Cilindrata cc (opz.)" htmlFor={`a-vdisp-${asset.id}`}>
-                <Input id={`a-vdisp-${asset.id}`} name="vehicle_displacement_cc" type="number" defaultValue={vehicleDetails?.displacement_cc ?? undefined} className="max-w-28" />
+                <Input id={`a-vdisp-${asset.id}`} name="vehicle_displacement_cc" type="number" min="0" defaultValue={vehicleDetails?.displacement_cc ?? undefined} className="max-w-28" />
               </Field>
               <Field label="Km attuali" htmlFor={`a-vkm-${asset.id}`}>
-                <Input id={`a-vkm-${asset.id}`} name="vehicle_mileage" type="number" defaultValue={vehicleDetails?.mileage_km} required className="max-w-28" />
+                <Input id={`a-vkm-${asset.id}`} name="vehicle_mileage" type="number" min="0" defaultValue={vehicleDetails?.mileage_km} required className="max-w-28" />
               </Field>
               <Field label="Km/anno (opz.)" htmlFor={`a-vakm-${asset.id}`}>
-                <Input id={`a-vakm-${asset.id}`} name="vehicle_annual_km" type="number" defaultValue={vehicleDetails?.annual_km ?? undefined} className="max-w-28" />
+                <Input id={`a-vakm-${asset.id}`} name="vehicle_annual_km" type="number" min="0" defaultValue={vehicleDetails?.annual_km ?? undefined} className="max-w-28" />
               </Field>
               <Field label="Prezzo pagato (opz.)" htmlFor={`a-vprice-${asset.id}`}>
                 <Input

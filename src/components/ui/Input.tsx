@@ -59,16 +59,26 @@ const inputBase = [
   'aria-[invalid=true]:border-(--danger) aria-[invalid=true]:ring-(--danger)/30',
 ].join(' ')
 
+function isPlainCount(p: React.InputHTMLAttributes<HTMLInputElement>): boolean {
+  if (p.type !== 'number') return false
+  const step = p.step === undefined ? 1 : Number(p.step)
+  return Number.isInteger(step) && p.min !== undefined && Number(p.min) >= 0
+}
+
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, ...props }, ref) => {
+  ({ className, error, inputMode, ...props }, ref) => {
     return (
       <input
         ref={ref}
         aria-invalid={error ? true : undefined}
+        // Su mobile: tastierino numerico per i numeri interi non negativi
+        // (anni, km, cavalli). Importi decimali e valori che possono essere
+        // negativi restano sulla tastiera di type="number", che ha segno e virgola.
+        inputMode={inputMode ?? (isPlainCount(props) ? 'numeric' : undefined)}
         className={cn(inputBase, className)}
         {...props}
       />

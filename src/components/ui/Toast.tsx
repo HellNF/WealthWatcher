@@ -26,6 +26,9 @@ export function Toaster() {
     <SonnerToaster
       theme={resolvedTheme}
       position="bottom-right"
+      // Sopra la barra home dell'iPhone (viewport-fit=cover)
+      offset={{ bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
+      mobileOffset={{ bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
       closeButton
       gap={8}
       icons={{

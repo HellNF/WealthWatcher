@@ -32,7 +32,7 @@ export default function SpecSidebar({ headings }: Props) {
   const filtered = headings.filter((h) => h.level <= 3)
 
   return (
-    <nav className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
+    <nav className="sticky top-6 max-h-[calc(100dvh-3rem)] overflow-y-auto">
       <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-3">
         Indice
       </p>
