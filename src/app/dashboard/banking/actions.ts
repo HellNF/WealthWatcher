@@ -15,7 +15,7 @@ import {
   decryptSessionId,
   setConnectionStatus,
 } from '@/lib/banking/connections'
-import { syncConnection } from '@/lib/banking/sync'
+import { runConnectionSync } from '@/lib/banking/syncRuns'
 import { checkRateLimit } from '@/lib/rateLimit'
 
 export type ActionState = { error?: string } | undefined
@@ -125,7 +125,7 @@ export async function syncConnectionAction(connectionId: number): Promise<SyncAc
     }
   }
 
-  const result = await syncConnection(connection)
+  const result = await runConnectionSync(connection, 'manual')
   if (result.status === 'synced') await refreshNetWorth(user.id)
   revalidatePath(`/dashboard/institutions/${connection.institution_id}`)
   // Il sync può essere avviato dalla pagina di un singolo conto (AccountSyncButton):

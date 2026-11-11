@@ -10,7 +10,7 @@
 // Required to boot the DB and run migrations
 import '@/db'
 import { listActiveConnections } from '@/lib/banking/connections'
-import { syncConnection } from '@/lib/banking/sync'
+import { runConnectionSync } from '@/lib/banking/syncRuns'
 import { refreshNetWorth } from '@/lib/valuation'
 
 async function main() {
@@ -27,7 +27,8 @@ async function main() {
   for (const connection of connections) {
     console.log(`\nConnessione #${connection.id} (${connection.aspsp_name}, utente ${connection.owner_id})...`)
     try {
-      const result = await syncConnection(connection)
+      // Registra l'esito in sync_runs: visibile in app anche se la sync fallisce.
+      const result = await runConnectionSync(connection, 'scheduled')
       if (result.status === 'expired') {
         console.log('  ⚠ sessione scaduta — serve riconnessione manuale dall\'app')
         continue

@@ -6,6 +6,7 @@ import { syncConnectionAction, disconnectAction, startConnectAction } from './ac
 import { Button, Badge } from '@/components/ui'
 import { RefreshCw, Unlink } from 'lucide-react'
 import type { AspspOption } from './ConnectBankButton'
+import type { SyncRunSummary } from '@/lib/banking/syncRuns'
 
 type Result = {
   insertedCount:  number
@@ -22,13 +23,17 @@ export default function SyncButton({
   status,
   aspsp,
   lastSyncedAt,
+  runs = [],
 }: {
   institutionId: number
   connectionId:  number
   status:        'active' | 'expired' | 'revoked' | 'pending'
   aspsp:         AspspOption
   lastSyncedAt:  string | null   // già formattata dal server, o null
+  /** Ultime sincronizzazioni, più recenti prima (già formattate dal server). */
+  runs?:         SyncRunSummary[]
 }) {
+  const last = runs[0]
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<Result>(null)
 
@@ -63,7 +68,11 @@ export default function SyncButton({
         <Badge variant={status === 'active' ? 'success' : 'warning'}>
           {status === 'active' ? 'Collegata' : status === 'expired' ? 'Scaduta' : 'In attesa'}
         </Badge>
-        {lastSyncedAt && (
+        {last ? (
+          <span className={`text-xs ${last.outcome === 'ok' ? 'text-(--faint)' : 'text-(--warning-text)'}`}>
+            ultima sync {last.when} · {last.label}
+          </span>
+        ) : lastSyncedAt && (
           <span className="text-xs text-(--faint)">ultima sync {lastSyncedAt}</span>
         )}
       </div>
@@ -84,6 +93,12 @@ export default function SyncButton({
         Scollega
       </Button>
 
+      {!result && last && last.outcome !== 'ok' && (
+        <p className="w-full text-xs text-(--warning-text)">
+          {last.error ?? last.label}
+          {lastSyncedAt && ` · movimenti completi fino alla sync del ${lastSyncedAt}`}
+        </p>
+      )}
       {result?.error && (
         <p className="w-full text-xs text-(--danger)">{result.error}</p>
       )}
@@ -104,6 +119,22 @@ export default function SyncButton({
             </p>
           )}
         </div>
+      )}
+      {runs.length > 0 && (
+        <details className="w-full text-xs text-(--muted)">
+          <summary className="cursor-pointer select-none w-fit hover:text-(--ink)">Ultime sincronizzazioni</summary>
+          <ul className="mt-2 space-y-1">
+            {runs.map((r) => (
+              <li key={r.id} className="flex flex-wrap gap-x-2">
+                <span className="tabular-nums">{r.when}</span>
+                <span>· {r.trigger}</span>
+                <span className={r.outcome === 'ok' ? 'text-(--ink)' : 'text-(--warning-text)'}>· {r.label}</span>
+                {r.detail && <span>· {r.detail}</span>}
+                {r.outcome !== 'ok' && r.error && <span className="basis-full text-(--faint)">{r.error}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   )
