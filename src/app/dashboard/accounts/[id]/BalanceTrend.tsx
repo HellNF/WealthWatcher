@@ -4,13 +4,13 @@
 import { useId, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useReducedMotion } from '@/components/ui/useReducedMotion'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 import { fmtIsoDay } from '@/lib/format'
 
 export interface BalancePoint { date: string; value: number }
 
 export default function BalanceTrend({ points, currency }: { points: BalancePoint[]; currency: string }) {
-  const { resolvedTheme } = useTheme()
+  const t = useChartTheme()
   const reduceMotion = useReducedMotion()
   const gradId = useId()
   const [active, setActive] = useState<number | null>(null)
@@ -20,7 +20,7 @@ export default function BalanceTrend({ points, currency }: { points: BalancePoin
   const data  = points.map((p) => ({ t: Date.parse(`${p.date}T12:00:00Z`), value: p.value, date: p.date }))
   const first = data[0]
   const shown = active !== null && data[active] ? data[active] : null
-  const stroke = resolvedTheme === 'dark' ? 'oklch(0.92 0.01 160)' : 'oklch(0.25 0.01 160)'
+  const stroke = t.strong
   const fmt = (minor: number) =>
     (minor / 100).toLocaleString('it-IT', { style: 'currency', currency, useGrouping: 'always' })
 

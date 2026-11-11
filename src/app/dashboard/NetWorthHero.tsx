@@ -11,7 +11,7 @@ import { Segmented } from '@/components/ui/Segmented'
 import { useReducedMotion } from '@/components/ui/useReducedMotion'
 import { Info } from 'lucide-react'
 import NumberFlow from '@number-flow/react'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 import { Badge, Eyebrow, HeroShell, HeroFigure } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
@@ -73,8 +73,7 @@ function niceTicks(lo: number, hi: number, count = 4): number[] {
 }
 
 export default function NetWorthHero({ points, stale, refresh, headerAction, aside, footer, valueId }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const t = useChartTheme()
   const reduceMotion = useReducedMotion()
   const groupId = useId()
 
@@ -142,9 +141,6 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
   // Colonna dell'asse larga quanto l'etichetta più lunga (≈7px a carattere a 11px, più margine): mai etichette su due righe.
   const yAxisWidth = Math.max(48, Math.max(...yTicks.map((t) => formatAxisMoney(t).length)) * 7 + 12)
 
-  const colors = isDark
-    ? { brand: '#34d399', grid: 'oklch(0.28 0.01 160)', axis: 'oklch(0.72 0.01 160)' }
-    : { brand: '#059669', grid: 'oklch(0.90 0.005 160)', axis: 'oklch(0.45 0.01 160)' }
 
   return (
     // Un'unica card: numero, variazione, periodo e grafico leggono come un blocco solo.
@@ -232,11 +228,11 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
               >
                 <defs>
                   <linearGradient id={`${groupId}-grad`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor={colors.brand} stopOpacity={isDark ? 0.3 : 0.2} />
-                    <stop offset="100%" stopColor={colors.brand} stopOpacity={0} />
+                    <stop offset="0%"   stopColor={t.brand} stopOpacity={t.dark ? 0.3 : 0.2} />
+                    <stop offset="100%" stopColor={t.brand} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
                 <XAxis
                   dataKey="t"
                   type="number"
@@ -244,7 +240,7 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
                   domain={[first, last]}
                   ticks={xTicks}
                   tickFormatter={(t) => fmtDay(Number(t))}
-                  tick={{ fill: colors.axis, fontSize: 11 }}
+                  tick={t.tick}
                   tickLine={false}
                   axisLine={false}
                   tickMargin={6}
@@ -252,7 +248,7 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
                 />
                 <YAxis
                   tickFormatter={(v) => formatAxisMoney(Number(v))}
-                  tick={{ fill: colors.axis, fontSize: 11 }}
+                  tick={t.tick}
                   tickLine={false}
                   axisLine={false}
                   ticks={yTicks}
@@ -263,20 +259,20 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
                 {/* Nessun riquadro: il valore vive nel numero grande in alto */}
                 <Tooltip
                   content={() => null}
-                  cursor={{ stroke: colors.axis, strokeWidth: 1, strokeOpacity: 0.6 }}
+                  cursor={{ stroke: t.axis, strokeWidth: 1, strokeOpacity: 0.6 }}
                   isAnimationActive={false}
                 />
                 <Area
                   type="monotoneX"
                   dataKey="estimated"
-                  stroke={colors.brand}
+                  stroke={t.brand}
                   strokeWidth={1.5}
                   strokeDasharray="4 4"
                   strokeOpacity={0.7}
                   fill={`url(#${groupId}-grad)`}
                   fillOpacity={0.45}
                   dot={false}
-                  activeDot={{ r: 4.5, fill: colors.brand, stroke: isDark ? 'oklch(0.17 0.007 160)' : '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 4.5, fill: t.brand, stroke: t.dark ? 'oklch(0.17 0.007 160)' : '#fff', strokeWidth: 2 }}
                   isAnimationActive={!reduceMotion}
                   animationDuration={350}
                   animationEasing="ease-out"
@@ -284,11 +280,11 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
                 <Area
                   type="monotoneX"
                   dataKey="observed"
-                  stroke={colors.brand}
+                  stroke={t.brand}
                   strokeWidth={2}
                   fill={`url(#${groupId}-grad)`}
                   dot={false}
-                  activeDot={{ r: 4.5, fill: colors.brand, stroke: isDark ? 'oklch(0.17 0.007 160)' : '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 4.5, fill: t.brand, stroke: t.dark ? 'oklch(0.17 0.007 160)' : '#fff', strokeWidth: 2 }}
                   isAnimationActive={!reduceMotion}
                   animationDuration={350}
                   animationEasing="ease-out"
