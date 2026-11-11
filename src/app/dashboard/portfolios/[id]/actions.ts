@@ -246,6 +246,9 @@ export async function refreshPricesAction(portfolioId: number): Promise<void> {
 
 const VALID_PERIODS = ['1m', '3m', '6m', '1y', '5y'] as const
 type Period = typeof VALID_PERIODS[number]
+const SOURCE_LABELS: Record<string, string> = {
+  coingecko: 'CoinGecko', coinmarketcap: 'CoinMarketCap', yahoo: 'Yahoo Finance',
+}
 
 export async function fetchHistoryAction(symbol: string, period: string): Promise<{ points: PricePoint[]; source: string | null; currency: string | null }> {
   await requireUser()
@@ -255,8 +258,10 @@ export async function fetchHistoryAction(symbol: string, period: string): Promis
   if (!instr) return empty
   if (instr.price_source === 'coingecko') {
     const coinId = (instr.provider_symbol ?? symbol).toLowerCase()
-    const result = await getCryptoHistoryWithSource(coinId, symbol, period as Period)
-    return result.currency === instr.currency ? result : empty
+    const refPrice = instr.last_price ? Number(instr.last_price) : null
+    const result = await getCryptoHistoryWithSource(coinId, symbol, period as Period, refPrice)
+    if (result.currency !== instr.currency || result.points.length === 0) return empty
+    return { ...result, source: SOURCE_LABELS[result.source] ?? result.source }
   }
   const points = await getHistoricalPrices(symbol, period as Period, instr.currency)
   return { points, source: points.length ? 'Yahoo Finance' : null, currency: instr.currency }

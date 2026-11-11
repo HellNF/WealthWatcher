@@ -13,6 +13,22 @@ interface Props {
   symbol:   string
   name:     string
   currency: string
+  isCrypto?: boolean
+}
+
+function itDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+/** Decimali dell'asse Y in base all'escursione: evita etichette duplicate sulle monete da pochi centesimi. */
+function axisDecimals(values: number[]): number {
+  if (values.length === 0) return 2
+  const span = Math.max(...values) - Math.min(...values)
+  if (span >= 100) return 0
+  if (span >= 1) return 2
+  if (span <= 0) return 2
+  return Math.min(6, Math.ceil(-Math.log10(span)) + 2)
 }
 
 const PERIODS = [
@@ -38,7 +54,7 @@ function formatPrice(value: number, currency: string): string {
   })
 }
 
-export default function InstrumentPriceChart({ symbol, name, currency }: Props) {
+export default function InstrumentPriceChart({ symbol, name, currency, isCrypto = false }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const pillGroupId = useId()
@@ -85,6 +101,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
       }
 
   const chartData = data.map((p) => ({ date: shortDate(p.date, period), close: p.close }))
+  const yDecimals = axisDecimals(data.map((p) => p.close))
 
   const deltaPct = first && last && first !== 0
     ? (((last - first) / first) * 100).toFixed(2)
@@ -92,7 +109,6 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
 
   return (
     <div className="space-y-3">
-      {data.length > 0 && <p className="text-xs text-(--muted)">Prezzi in {currency} · Fonte: {source ?? 'non verificata'} · Periodo disponibile: {data[0].date} – {data.at(-1)?.date}. Quotazioni non rettificate per dividendi; non rappresentano il rendimento totale.</p>}
       {/* Header: nome + delta */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
@@ -175,10 +191,11 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
+                minTickGap={28}
               />
               <YAxis
                 domain={['auto', 'auto']}
-                tickFormatter={(v) => v.toLocaleString('it-IT', { maximumFractionDigits: 2 })}
+                tickFormatter={(v) => v.toLocaleString('it-IT', { minimumFractionDigits: yDecimals, maximumFractionDigits: yDecimals })}
                 tick={{ fill: colors.axis, fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
@@ -211,6 +228,12 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
           </ResponsiveContainer>
         )}
       </div>
+      {data.length > 0 && (
+        <p className="text-xs text-(--faint)">
+          Fonte: {source ?? 'non verificata'} · dal {itDate(data[0].date)} al {itDate(data.at(-1)!.date)}
+          {!isCrypto && ' · Quotazioni non rettificate per dividendi; non rappresentano il rendimento totale.'}
+        </p>
+      )}
     </div>
   )
 }

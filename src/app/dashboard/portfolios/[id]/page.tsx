@@ -103,7 +103,8 @@ export default async function PortfolioPage({ params }: Props) {
   const heroValue = single
     ? (single.totalMarketMinor !== null ? formatMoney(single.totalMarketMinor, single.currency) : '—')
     : (totalEurMinor !== null ? formatMoney(totalEurMinor, 'EUR') : '—')
-  const heroPl    = single?.totalUnrealizedPlMinor ?? null
+  // Il P/L ha senso solo se almeno una posizione ha un costo di carico noto.
+  const heroPl    = single && single.totalCostMinor > 0 ? single.totalUnrealizedPlMinor : null
   const heroPlPct = single && heroPl !== null && single.totalCostMinor > 0 ? (heroPl / single.totalCostMinor) * 100 : null
 
   return (
@@ -146,6 +147,7 @@ export default async function PortfolioPage({ params }: Props) {
                       symbol={pos.symbol}
                       name={pos.name}
                       currency={pos.currency}
+                      isCrypto={getInstrument(pos.instrumentId)?.cluster === 'crypto'}
                     />
                     {etfs.has(pos.instrumentId) && <EtfDetails portfolioId={id} instrumentId={pos.instrumentId} isin={etfs.get(pos.instrumentId)!.isin} initial={etfs.get(pos.instrumentId)!.profile ?? null} />}
                   </div>
@@ -205,7 +207,9 @@ export default async function PortfolioPage({ params }: Props) {
                       {!single && <dt className="text-xs font-semibold text-(--muted)">{cur.currency}</dt>}
                       <dd className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <span className="text-(--muted)">Investito</span>
-                        <span className="text-right font-mono tabular-nums text-(--ink)">{formatMoney(cur.totalCostMinor, cur.currency)}</span>
+                        {cur.totalCostMinor > 0 || !isHoldings
+                          ? <span className="text-right font-mono tabular-nums text-(--ink)">{formatMoney(cur.totalCostMinor, cur.currency)}</span>
+                          : <span className="text-right text-(--muted)">Non indicato</span>}
                         {!single && (
                           <>
                             <span className="text-(--muted)">Valore</span>

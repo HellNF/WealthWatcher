@@ -6,7 +6,7 @@ import { updateInstrumentPrice } from '@/lib/instruments'
 import { listTxns, txnsByInstrument } from '@/lib/investmentTxns'
 import { getInstrument } from '@/lib/instruments'
 import { recordObservation, getObservation } from '@/lib/prices/observations'
-import { yahooProvider }                     from './yahoo'
+import { yahooProvider, getHistoricalPrices } from './yahoo'
 import { coingeckoProvider, getCoinHistory } from './coingecko'
 import { alphaVantageProvider }              from './alphavantage'
 import { coinMarketCapProvider, getCoinHistoryCMC } from './coinmarketcap'
@@ -34,10 +34,51 @@ export async function getCryptoHistory(
   return (await getCryptoHistoryWithSource(coinId, symbol, period)).points
 }
 
-export async function getCryptoHistoryWithSource(coinId: string, symbol: string, period: string): Promise<{ points: PricePoint[]; source: string; currency: string }> {
+/**
+ * Ticker Yahoo della coppia in euro (es. BTC → "BTC-EUR").
+ * Lo stesso ticker può appartenere a monete diverse: se è noto un prezzo di
+ * riferimento, la serie viene accettata solo se l'ultimo valore gli è vicino.
+ */
+export function yahooCryptoTicker(symbol: string): string {
+  return `${symbol.toUpperCase()}-EUR`
+}
+
+export function matchesReferencePrice(points: PricePoint[], refPrice?: number | null): boolean {
+  if (points.length === 0) return false
+  if (!refPrice || !Number.isFinite(refPrice) || refPrice <= 0) return true
+  const last = points[points.length - 1].close
+  return Math.abs(last - refPrice) / refPrice <= 0.25
+}
+
+async function getYahooCryptoHistory(symbol: string, period: string, refPrice?: number | null): Promise<PricePoint[]> {
+  const points = await getHistoricalPrices(yahooCryptoTicker(symbol), period as '1m' | '3m' | '6m' | '1y' | '5y', 'EUR')
+  return matchesReferencePrice(points, refPrice) ? points : []
+}
+
+/**
+ * Storico crypto in EUR. CoinGecko (gratuito) arriva solo a 365 giorni: per i
+ * 5 anni la fonte primaria è Yahoo (coppia SYM-EUR), con CoinGecko a un anno come
+ * ripiego. Per gli altri periodi: CoinGecko → CoinMarketCap → Yahoo.
+ */
+export async function getCryptoHistoryWithSource(
+  coinId: string,
+  symbol: string,
+  period: string,
+  refPrice?: number | null,
+): Promise<{ points: PricePoint[]; source: string; currency: string }> {
+  if (period === '5y') {
+    const yahoo = await getYahooCryptoHistory(symbol, period, refPrice)
+    if (yahoo.length > 1) return { points: yahoo, source: 'yahoo', currency: 'EUR' }
+  }
   const points = await getCoinHistory(coinId, period)
   if (points.length > 0) return { points, source: 'coingecko', currency: 'EUR' }
-  return { points: await getCoinHistoryCMC(symbol, period), source: 'coinmarketcap', currency: 'EUR' }
+  const cmc = await getCoinHistoryCMC(symbol, period)
+  if (cmc.length > 0) return { points: cmc, source: 'coinmarketcap', currency: 'EUR' }
+  if (period !== '5y') {
+    const yahoo = await getYahooCryptoHistory(symbol, period, refPrice)
+    if (yahoo.length > 0) return { points: yahoo, source: 'yahoo', currency: 'EUR' }
+  }
+  return { points: [], source: 'coingecko', currency: 'EUR' }
 }
 
 /**

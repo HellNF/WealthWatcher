@@ -35,9 +35,9 @@ export default function PriceHistoryBackfillButton({ portfolioId }: Props) {
         <div className="space-y-1">
           <p className="text-sm font-medium text-(--ink)">Storico prezzi</p>
           <p className="text-xs text-(--muted)">
-            Scarica i prezzi giornalieri storici da Yahoo Finance per tutti gli strumenti
-            del portafoglio, a partire dalla prima operazione registrata. Necessario per
-            il calcolo del DCA Counterfactual nelle statistiche.
+            Scarica i prezzi giornalieri storici (Yahoo Finance, CoinGecko per le crypto) di
+            tutti gli strumenti del portafoglio, a partire dalla prima operazione registrata.
+            Necessario per il calcolo del DCA Counterfactual nelle statistiche.
           </p>
         </div>
         <button
