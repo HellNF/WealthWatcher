@@ -752,3 +752,20 @@ export const etfProfiles = sqliteTable('etf_profiles', {
   profile_json: text('profile_json').notNull(),
   performance_json: text('performance_json').notNull(),
 })
+
+// Coppie di giroconto decise dall'utente: 'confirmed' (i due movimenti sono un
+// trasferimento tra conti propri) o 'rejected' (coincidenza: non riproporla).
+// Le proposte non ancora decise non si salvano: si ricalcolano dai movimenti.
+export const transferLinks = sqliteTable('transfer_links', {
+  id:          integer('id').primaryKey({ autoIncrement: true }),
+  owner_id:    integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  outflow_id:  integer('outflow_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  inflow_id:   integer('inflow_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  status:      text('status', { enum: ['confirmed', 'rejected'] as const }).notNull(),
+  created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
+}, (t) => [
+  uniqueIndex('transfer_links_pair_uniq').on(t.outflow_id, t.inflow_id),
+  index('idx_transfer_links_owner').on(t.owner_id),
+  index('idx_transfer_links_inflow').on(t.inflow_id),
+])
+export type TransferLink = InferSelectModel<typeof transferLinks>
