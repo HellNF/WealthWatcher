@@ -1,4 +1,6 @@
 import { requireUser } from '@/lib/dal'
+import { listRecurringDecisions } from '@/lib/recurringDecisions'
+import { RecurringDecision, DismissedRecurring } from './RecurringDecision'
 import {
   netWorthStats,
   transactionStats,
@@ -144,6 +146,8 @@ export default async function StatistichePage() {
   const user    = await requireUser()
   const nwStats = netWorthStats(user.id)
   const txStats = transactionStats(user.id)
+  const dismissedRecurring = [...listRecurringDecisions(user.id)]
+    .filter(([, d]) => d.status === 'dismissed').map(([key, d]) => ({ key, label: d.label }))
   const ctx     = txStats.ctx
 
   // Dati derivati dal patrimonio
@@ -945,7 +949,7 @@ export default async function StatistichePage() {
             {/* Riga a due card: stessa altezza, la card sola occupa tutta la riga */}
             <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6 2xl:items-stretch [&>*:only-child]:2xl:col-span-2">
             {/* Pagamenti ricorrenti */}
-            {hasRecurring && (() => {
+            {(hasRecurring || dismissedRecurring.length > 0) && (() => {
               const subsAndBills = recurringCost.filter((r) => r.kind !== 'habit')
               const habits       = recurringCost.filter((r) => r.kind === 'habit')
               const activeSubs   = subsAndBills.filter((r) => r.status === 'active')
@@ -992,6 +996,9 @@ export default async function StatistichePage() {
                               ? ` · risparmio ${fmtEur(r.yearlyMinor)}/anno`
                               : r.nextExpectedDate ? ` · prossimo ~${fmtShortDate(r.nextExpectedDate)}` : ''}
                           </p>
+                          <div className="mt-1">
+                            <RecurringDecision itemKey={r.key} label={r.merchant_name ?? r.description} confirmed={r.confirmed} />
+                          </div>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
                           <p className="text-sm font-medium tabular-nums text-(--ink)">
@@ -1020,6 +1027,9 @@ export default async function StatistichePage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-(--ink) truncate">{r.merchant_name ?? r.description}</p>
                             <p className="text-xs text-(--muted)">{r.occurrences} acquisti in {r.months} mesi</p>
+                            <div className="mt-1">
+                              <RecurringDecision itemKey={r.key} label={r.merchant_name ?? r.description} confirmed={r.confirmed} />
+                            </div>
                           </div>
                           <p className="text-sm font-medium tabular-nums text-(--ink) shrink-0">
                             {fmtEur(r.monthlyEquivalentMinor)}<span className="text-(--faint) font-normal">/mese</span>
@@ -1029,6 +1039,7 @@ export default async function StatistichePage() {
                     </div>
                   </div>
                 )}
+                <DismissedRecurring items={dismissedRecurring} />
               </Card>
               )
             })()}
