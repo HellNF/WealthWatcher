@@ -106,3 +106,18 @@ export function dec(value: string | number): Decimal {
 }
 
 export { Decimal }
+
+/**
+ * Importo compatto per le etichette degli assi dei grafici: lo spazio è poco e
+ * un "1.234.567 €" verrebbe tagliato o accavallato. Es. 8 Mrd €, 1,5 Mln €, 12k €.
+ */
+export function formatAxisMoney(minor: number, currency = 'EUR'): string {
+  const v = minor / 100
+  const abs = Math.abs(v)
+  const symbol = currency === 'EUR' ? '€' : currency
+  const n = (x: number) => x.toLocaleString('it-IT', { maximumFractionDigits: 1 })
+  if (abs >= 1e9)  return `${n(v / 1e9)} Mrd ${symbol}`
+  if (abs >= 1e6)  return `${n(v / 1e6)} Mln ${symbol}`
+  if (abs >= 1e4)  return `${n(v / 1e3)}k ${symbol}`
+  return `${Math.round(v).toLocaleString('it-IT', { useGrouping: 'always' })} ${symbol}`
+}

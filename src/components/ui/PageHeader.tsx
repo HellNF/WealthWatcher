@@ -24,14 +24,14 @@ export function PageHeader({ title, description, breadcrumb, meta, actions, titl
       {breadcrumb && <Breadcrumb items={breadcrumb} />}
       <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 id={titleId} className="text-3xl font-extrabold font-display tracking-[-0.02em] text-(--ink) [text-wrap:balance]">
+          <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+            <h1 id={titleId} className="min-w-0 max-w-full text-3xl font-extrabold font-display tracking-[-0.02em] text-(--ink) [text-wrap:balance] [overflow-wrap:anywhere]">
               {title}
             </h1>
             {meta}
           </div>
           {description && (
-            <p className="text-sm text-(--muted) max-w-[65ch] [text-wrap:pretty]">{description}</p>
+            <p className="text-sm text-(--muted) max-w-[65ch] [text-wrap:pretty] [overflow-wrap:anywhere]">{description}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap min-w-0 max-w-full sm:shrink-0">{actions}</div>}

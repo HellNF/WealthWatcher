@@ -5,8 +5,7 @@ import GoalForm from './GoalForm'
 import GoalAllocateForm from './GoalAllocateForm'
 import { deleteGoalAction } from './actions'
 import {
-  Card, Badge, ConfirmDelete, ProgressBar, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
-} from '@/components/ui'
+  Card, Badge, ConfirmDelete, ProgressBar, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AddSection } from '@/components/dashboard/AddSection'
 import { PiggyBank, Target, Wallet, CalendarClock } from 'lucide-react'
 
@@ -114,12 +113,11 @@ export default async function ObiettiviPage() {
       <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
         <div className="space-y-5 min-w-0">
           <Eyebrow>Liquidità libera</Eyebrow>
-          <p
+          <HeroFigure
             id="goals-free"
-            className={`text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${overAllocated ? 'text-(--danger-text)' : 'text-(--ink)'}`}
-          >
-            {fmtEur(summary.freeOperatingCashMinor)}
-          </p>
+            value={fmtEur(summary.freeOperatingCashMinor)}
+            className={overAllocated ? 'text-(--danger-text)' : 'text-(--ink)'}
+          />
 
           {/* Come si divide la liquidità: una fetta per obiettivo, il resto è libero */}
           <div className="space-y-2 max-w-2xl">

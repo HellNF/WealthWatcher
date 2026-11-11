@@ -37,7 +37,7 @@ import {
   Activity, Link2, Clock, Gauge, Shuffle,
   ArrowRight, Wallet, Lightbulb, Scale,
 } from 'lucide-react'
-import { Card, Stat, Badge, EmptyState, InsightCard, PageHeader, SectionNav, StickyBar, Eyebrow, HeroShell, PAGE_SHELL } from '@/components/ui'
+import { Card, Stat, Badge, EmptyState, InsightCard, PageHeader, SectionNav, StickyBar, Eyebrow, HeroShell, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import Link from 'next/link'
 import AllocationOverTime   from './AllocationOverTime'
 import CashflowChart        from './CashflowChart'
@@ -103,7 +103,7 @@ const SECTIONS = [
 function KeyFigure({ href, label, value, sub, tone = 'ink' }: {
   href:  string
   label: string
-  value: React.ReactNode
+  value: string
   sub?:  React.ReactNode
   tone?: 'ink' | 'gain' | 'loss'
 }) {
@@ -117,7 +117,7 @@ function KeyFigure({ href, label, value, sub, tone = 'ink' }: {
         {label}
         <ArrowRight className="size-3.5 text-(--faint) transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
       </span>
-      <span className={`text-3xl sm:text-5xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${toneClass}`}>{value}</span>
+      <HeroFigure value={value} size="sm" as="span" className={toneClass} />
       {sub && <span className="text-xs text-(--muted)">{sub}</span>}
     </a>
   )
@@ -808,7 +808,7 @@ export default async function StatistichePage() {
                   {bridge.monthsInBaseline} mesi completi: la risposta alla domanda
                   &ldquo;perché questo mese ho speso {bridge.totalDeltaMinor >= 0 ? 'di più' : 'di meno'}?&rdquo;.
                 </p>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-6">
                   <Stat label="Speso nel mese" value={fmtEur(bridge.totalActualMinor)} size="sm" />
                   <Stat label="Mese tipico" value={fmtEur(bridge.totalTypicalMinor)} size="sm" />
                   <div className="space-y-1">

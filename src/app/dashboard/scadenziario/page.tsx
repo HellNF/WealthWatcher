@@ -1,7 +1,7 @@
 import { requireUser } from '@/lib/dal'
 import { buildScadenziario } from '@/lib/calendar'
 import { formatMoney } from '@/lib/money'
-import { Card, Badge, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL } from '@/components/ui'
+import { Card, Badge, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AlertTriangle } from 'lucide-react'
 import ScadenziarioView from './ScadenziarioView'
 import { metaFor, countdownLabel, fmtEur as fmtEvt } from './eventMeta'
@@ -82,12 +82,7 @@ export default async function ScadenziarioPage() {
                   )}
               </div>
               <div className="space-y-2">
-                <p
-                  id="scad-min-balance"
-                  className={`text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${statusTone}`}
-                >
-                  {fmtEur(summary.minBalanceMinor)}
-                </p>
+                <HeroFigure id="scad-min-balance" value={fmtEur(summary.minBalanceMinor)} className={statusTone} />
                 <p className="text-sm text-(--muted) max-w-[60ch]">
                   {summary.status === 'CRITICAL_SHORTAGE' ? (
                     <>

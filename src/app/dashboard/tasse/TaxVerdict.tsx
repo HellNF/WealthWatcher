@@ -2,7 +2,7 @@
 // Carico totale in grande + frase in linguaggio naturale + 4 metriche di contorno.
 // Componente presentazionale: tutta la logica (headline, leva principale) è calcolata a monte.
 // Le imposte sono mostrate in tono neutro: sono un dato, non un allarme.
-import { Eyebrow, HeroShell } from '@/components/ui'
+import { Eyebrow, HeroShell, HeroFigure } from '@/components/ui'
 
 export interface VerdictStat {
   label: string
@@ -27,12 +27,7 @@ export default function TaxVerdict({ headline, detail, totalLabel, totalValue, v
     <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center p-6 sm:p-8">
       <div className="space-y-4 min-w-0">
         <Eyebrow>{totalLabel}</Eyebrow>
-        <p
-          id={valueId}
-          className="text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)"
-        >
-          {totalValue}
-        </p>
+        <HeroFigure id={valueId} value={totalValue} className="text-(--ink)" />
         <div className="space-y-1.5">
           <p className="text-base font-medium leading-snug text-(--ink) [text-wrap:balance] max-w-[68ch]">
             {headline}

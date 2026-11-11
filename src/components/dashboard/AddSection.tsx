@@ -16,8 +16,8 @@ export function AddSection({ title, subtitle, addLabel = 'Aggiungi', icon, form,
   const [open, setOpen] = useState(false)
   return (
     <section className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-base font-semibold text-(--ink)">
             {icon}
             {title}

@@ -87,7 +87,7 @@ export function WidgetShell({
       </div>
 
       {/* Content — occupa lo spazio residuo, scorribile se overflow */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {children}
       </div>
     </Card>

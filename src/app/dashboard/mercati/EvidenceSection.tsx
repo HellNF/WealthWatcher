@@ -36,7 +36,7 @@ function RangeBar({ d, highlight }: { d: Distribution; highlight: boolean }) {
 
 function BucketRow({ b }: { b: CapeBucket }) {
   return (
-    <li className={`grid grid-cols-[5.5rem_1fr_4.5rem] sm:grid-cols-[7rem_1fr_5rem_6.5rem] items-center gap-3 px-3 py-2 rounded-lg ${b.current ? 'bg-(--brand-subtle)' : ''}`}>
+    <li className={`grid grid-cols-[5.5rem_minmax(0,1fr)_4.5rem] sm:grid-cols-[7rem_minmax(0,1fr)_5rem_6.5rem] items-center gap-3 px-3 py-2 rounded-lg ${b.current ? 'bg-(--brand-subtle)' : ''}`}>
       <span className="text-sm text-(--ink)">
         {b.label}
         {b.current && <span className="block text-xs font-semibold text-(--brand-text)">oggi siamo qui</span>}
@@ -76,9 +76,9 @@ export function EvidenceSection({ evidence }: { evidence: StoredEquityEvidence }
           la tacca è il caso tipico, la barra copre 8 casi su 10.
         </p>
         <div>
-          <div className="grid grid-cols-[5.5rem_1fr_4.5rem] sm:grid-cols-[7rem_1fr_5rem_6.5rem] gap-3 px-3 pb-1 text-xs font-medium text-(--muted)">
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_4.5rem] sm:grid-cols-[7rem_minmax(0,1fr)_5rem_6.5rem] gap-3 px-3 pb-1 text-xs font-medium text-(--muted)">
             <span>CAPE</span>
-            <span className="flex justify-between"><span>{LO}%</span><span>rendimento annuo nei 10 anni dopo</span><span>+{HI}%</span></span>
+            <span className="flex justify-between gap-1 min-w-0"><span>{LO}%</span><span className="hidden min-[400px]:inline truncate">rendimento annuo nei 10 anni dopo</span><span>+{HI}%</span></span>
             <span className="text-right">Tipico</span>
             <span className="hidden sm:block text-right">Esito</span>
           </div>
@@ -110,28 +110,30 @@ export function EvidenceSection({ evidence }: { evidence: StoredEquityEvidence }
             Con che frequenza chi ha investito in borsa si è ritrovato, alla fine, con meno potere d’acquisto di quando
             era partito — in base a quanto a lungo è rimasto investito.
           </p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="text-xs font-medium text-(--muted)">
-                <th scope="col" className="py-1.5 text-left">Durata</th>
-                <th scope="col" className="py-1.5 text-right">In perdita</th>
-                <th scope="col" className="py-1.5 text-right">Tipico</th>
-                <th scope="col" className="py-1.5 text-right hidden sm:table-cell">Peggiore</th>
-                <th scope="col" className="py-1.5 text-right hidden sm:table-cell">Migliore</th>
-              </tr>
-            </thead>
-            <tbody>
-              {evidence.holding.map((h) => (
-                <tr key={h.years} className="border-t border-(--border)">
-                  <th scope="row" className="py-2 text-left font-normal text-(--ink)">{h.years} {h.years === 1 ? 'anno' : 'anni'}</th>
-                  <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{pctCases(h, h.worst)}</td>
-                  <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.median)}`}>{fmtSignedPct(h.median)}</td>
-                  <td className={`py-2 text-right font-mono tabular-nums hidden sm:table-cell ${toneClass(h.worst)}`}>{fmtSignedPct(h.worst)}</td>
-                  <td className={`py-2 text-right font-mono tabular-nums hidden sm:table-cell ${toneClass(h.best)}`}>{fmtSignedPct(h.best)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-xs font-medium text-(--muted)">
+                  <th scope="col" className="py-1.5 text-left">Durata</th>
+                  <th scope="col" className="py-1.5 text-right">In perdita</th>
+                  <th scope="col" className="py-1.5 text-right">Tipico</th>
+                  <th scope="col" className="py-1.5 text-right hidden sm:table-cell">Peggiore</th>
+                  <th scope="col" className="py-1.5 text-right hidden sm:table-cell">Migliore</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {evidence.holding.map((h) => (
+                  <tr key={h.years} className="border-t border-(--border)">
+                    <th scope="row" className="py-2 text-left font-normal text-(--ink)">{h.years} {h.years === 1 ? 'anno' : 'anni'}</th>
+                    <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{pctCases(h, h.worst)}</td>
+                    <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.median)}`}>{fmtSignedPct(h.median)}</td>
+                    <td className={`py-2 text-right font-mono tabular-nums hidden sm:table-cell ${toneClass(h.worst)}`}>{fmtSignedPct(h.worst)}</td>
+                    <td className={`py-2 text-right font-mono tabular-nums hidden sm:table-cell ${toneClass(h.best)}`}>{fmtSignedPct(h.best)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="text-xs text-(--muted)">«In perdita» = quota dei periodi chiusi sotto il valore reale di partenza. Rendimenti annui.</p>
         </Card>
 
@@ -145,26 +147,28 @@ export function EvidenceSection({ evidence }: { evidence: StoredEquityEvidence }
             Confronto tra chi è entrato quando la borsa era entro il 2% dal suo massimo di sempre e chi è entrato in
             qualsiasi altro momento.
           </p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="text-xs font-medium text-(--muted)">
-                <th scope="col" className="py-1.5 text-left">Dopo</th>
-                <th scope="col" className="py-1.5 text-right" colSpan={2}>Sui massimi</th>
-                <th scope="col" className="py-1.5 text-right" colSpan={2}>Altri momenti</th>
-              </tr>
-            </thead>
-            <tbody>
-              {evidence.highs.map((h) => (
-                <tr key={h.years} className="border-t border-(--border)">
-                  <th scope="row" className="py-2 text-left font-normal text-(--ink)">{h.years} {h.years === 1 ? 'anno' : 'anni'}</th>
-                  <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.nearHigh.median)}`}>{fmtSignedPct(h.nearHigh.median)}</td>
-                  <td className="py-2 pl-2 text-right text-xs font-mono tabular-nums text-(--muted)">{h.nearHigh.pctNegative}% in perdita</td>
-                  <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.other.median)}`}>{fmtSignedPct(h.other.median)}</td>
-                  <td className="py-2 pl-2 text-right text-xs font-mono tabular-nums text-(--muted)">{h.other.pctNegative}% in perdita</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-xs font-medium text-(--muted)">
+                  <th scope="col" className="py-1.5 text-left">Dopo</th>
+                  <th scope="col" className="py-1.5 text-right" colSpan={2}>Sui massimi</th>
+                  <th scope="col" className="py-1.5 text-right" colSpan={2}>Altri momenti</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {evidence.highs.map((h) => (
+                  <tr key={h.years} className="border-t border-(--border)">
+                    <th scope="row" className="py-2 text-left font-normal text-(--ink)">{h.years} {h.years === 1 ? 'anno' : 'anni'}</th>
+                    <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.nearHigh.median)}`}>{fmtSignedPct(h.nearHigh.median)}</td>
+                    <td className="py-2 pl-2 text-right text-xs font-mono tabular-nums text-(--muted)">{h.nearHigh.pctNegative}% in perdita</td>
+                    <td className={`py-2 text-right font-mono tabular-nums ${toneClass(h.other.median)}`}>{fmtSignedPct(h.other.median)}</td>
+                    <td className="py-2 pl-2 text-right text-xs font-mono tabular-nums text-(--muted)">{h.other.pctNegative}% in perdita</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {tenYearHigh && (
             <p className="text-xs text-(--muted) leading-relaxed">
               A 10 anni il rendimento tipico è stato {fmtSignedPct(tenYearHigh.nearHigh.median)} l’anno per chi è entrato

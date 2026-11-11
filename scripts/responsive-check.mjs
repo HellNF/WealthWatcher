@@ -4,6 +4,8 @@
 // Uso (dev server acceso su :3000, Node 24):
 //   WW_EMAIL=<email in whitelist> node scripts/responsive-check.mjs <cartella-screenshot> [pagina1,pagina2]
 //   WW_THEME=light  → tema chiaro;  WW_SHOTS=all → screenshot a tutte le larghezze (default: solo 390px)
+//   WW_WIDTHS=320,390,768,1024,1440,2560 → larghezze da controllare (default: 390,768,1024,1440)
+//   WW_RESIZE=1 → apre ogni pagina a 1440px e la restringe senza ricaricare
 // Sola lettura: naviga e misura, non invia moduli.
 import { spawn } from 'node:child_process'
 import { mkdtempSync, writeFileSync } from 'node:fs'
@@ -20,7 +22,12 @@ const PAGES = [
   ['account', '/dashboard/accounts/1'], ['import', '/dashboard/accounts/1/import'], ['portfolio', '/dashboard/portfolios/1'],
   ['institution', '/dashboard/institutions/1'], ['settings', '/dashboard/settings'], ['profilo', '/dashboard/profilo'],
 ].filter(([n]) => !ONLY || ONLY.includes(n))
-const VIEWPORTS = [[390, 844, 2, true], [768, 1024, 2, true], [1024, 768, 1, false], [1440, 900, 1, false]]
+const ALL_VIEWPORTS = [[320, 640, 2, true], [390, 844, 2, true], [768, 1024, 2, true], [1024, 768, 1, false], [1440, 900, 1, false], [2560, 1440, 1, false]]
+// WW_WIDTHS=320,390,2560 sceglie le larghezze; senza, le quattro classiche.
+const WIDTHS = process.env.WW_WIDTHS ? process.env.WW_WIDTHS.split(',').map(Number) : [390, 768, 1024, 1440]
+const VIEWPORTS = ALL_VIEWPORTS.filter(([w]) => WIDTHS.includes(w))
+// WW_RESIZE=1: ogni pagina si apre a 1440px e poi viene ristretta alla larghezza da controllare.
+const RESIZE = process.env.WW_RESIZE === '1'
 
 // login
 const jar = new Map()
@@ -37,7 +44,14 @@ const ws = new WebSocket(target.webSocketDebuggerUrl)
 await new Promise(r => ws.addEventListener('open', r))
 let id = 0; const pending = new Map()
 ws.addEventListener('message', (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result ?? m); pending.delete(m.id) } })
-const send = (method, params = {}) => new Promise(res => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
+// Ogni chiamata CDP ha un limite di tempo: una risposta che non arriva (pagina
+// bloccata, navigazione che sostituisce il contesto) non deve fermare il giro.
+const send = (method, params = {}, ms = 20000) => new Promise((res, rej) => {
+  const i = ++id
+  const timer = setTimeout(() => { pending.delete(i); rej(new Error(`timeout ${method}`)) }, ms)
+  pending.set(i, (v) => { clearTimeout(timer); res(v) })
+  ws.send(JSON.stringify({ id: i, method, params }))
+})
 await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable')
 for (const [name, value] of jar) await send('Network.setCookie', { name, value, url: BASE })
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: process.env.WW_THEME ?? 'dark' }] })
@@ -59,19 +73,33 @@ const CHECK = `(() => {
 })()`
 
 const report = []
+const log = (line) => { report.push(line); console.log(line) }
 for (const [w, h, dpr, mobile] of VIEWPORTS) {
   await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dpr, mobile })
   for (const [name, path] of PAGES) {
-    await send('Page.navigate', { url: BASE + path })
-    await new Promise(r => setTimeout(r, 2600))
+   try {
+    if (RESIZE) {
+      // Carica largo, poi restringe senza ricaricare: scopre grafici e layout
+      // che non si adattano quando la finestra cambia dimensione.
+      await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+      await send('Page.navigate', { url: BASE + path })
+      await new Promise(r => setTimeout(r, 2600))
+      await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dpr, mobile })
+      await new Promise(r => setTimeout(r, 1200))
+    } else {
+      await send('Page.navigate', { url: BASE + path })
+      await new Promise(r => setTimeout(r, 2600))
+    }
     const res = JSON.parse((await send('Runtime.evaluate', { expression: CHECK, returnByValue: true })).result.value)
     const bad = res.sw > res.vw + 1 || res.off.length > 0
-    report.push(`${bad ? 'KO' : 'ok'} ${String(w).padStart(4)} ${name.padEnd(12)} sw=${res.sw} h=${res.h}${res.off.length ? ' off: ' + res.off.join(' | ') : ''}${res.h1 ? '' : ' (no h1!)'}`)
+    log(`${bad ? 'KO' : 'ok'} ${String(w).padStart(4)} ${name.padEnd(12)} sw=${res.sw} h=${res.h}${res.off.length ? ' off: ' + res.off.join(' | ') : ''}${res.h1 ? '' : ' (no h1!)'}`)
     if (w === 390 || process.env.WW_SHOTS === 'all') {
       const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: 60, captureBeyondViewport: false })
       writeFileSync(join(OUT, `${name}-${w}.jpg`), Buffer.from(shot.data, 'base64'))
     }
+   } catch (err) {
+    log(`KO ${String(w).padStart(4)} ${name.padEnd(12)} ${err.message}`)
+   }
   }
 }
-console.log(report.join('\n'))
 ws.close(); chrome.kill()

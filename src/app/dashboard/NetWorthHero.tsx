@@ -4,12 +4,13 @@
 // alto diventa il valore di quel giorno e la variazione si ricalcola rispetto
 // all'inizio del periodo scelto. Il numero risponde 1:1 al gesto, senza tooltip
 // da inseguire.
+import { formatAxisMoney } from '@/lib/money'
 import { useId, useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { Info } from 'lucide-react'
 import { useTheme } from '@/components/providers/ThemeProvider'
-import { Badge, Eyebrow, HeroShell } from '@/components/ui'
+import { Badge, Eyebrow, HeroShell, HeroFigure } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 export interface NetWorthPoint {
@@ -63,12 +64,6 @@ function fmtEur(minor: number, decimals = 2): string {
   })
 }
 
-function fmtAxisEur(minor: number): string {
-  const v = minor / 100
-  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })} M€`
-  if (Math.abs(v) >= 1_000)     return `${(v / 1_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })} k€`
-  return `${Math.round(v)} €`
-}
 
 /** Tacche "tonde" (1/2/2,5/5 × 10ⁿ) che coprono [lo, hi] con circa `count` intervalli. */
 function niceTicks(lo: number, hi: number, count = 4): number[] {
@@ -148,6 +143,8 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
   // periodi brevi si stringe sui dati, altrimenti la variazione sparisce.
   const yLo = range === 'ALL' ? (yMin < -0.02 * Math.abs(yMax) ? yMin : 0) : yMin
   const yTicks = niceTicks(yLo, yMax)
+  // Colonna dell'asse larga quanto l'etichetta più lunga (≈7px a carattere a 11px, più margine): mai etichette su due righe.
+  const yAxisWidth = Math.max(48, Math.max(...yTicks.map((t) => formatAxisMoney(t).length)) * 7 + 12)
 
   const colors = isDark
     ? { brand: '#34d399', grid: 'oklch(0.28 0.01 160)', axis: 'oklch(0.72 0.01 160)' }
@@ -161,13 +158,7 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
         <div className="flex items-start justify-between gap-x-6 gap-y-4 flex-wrap">
           <div className="space-y-4 min-w-0">
             <h1><Eyebrow>Patrimonio netto</Eyebrow></h1>
-            <p
-              id={valueId}
-              className="text-5xl sm:text-7xl font-extrabold font-display tabular-nums text-(--ink) leading-none tracking-[-0.03em]"
-              aria-live="off"
-            >
-              {fmtEur(shown.value)}
-            </p>
+            <HeroFigure id={valueId} value={fmtEur(shown.value)} size="xl" className="text-(--ink)" aria-live="off" />
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-h-6 text-sm text-(--muted)">
               {data.length >= 2 && !atBase && (
                 shown.stale || base.stale ? (<span className="text-(--muted)">Variazione non confrontabile: dati incompleti o da verificare</span>) : delta === 0 ? (
@@ -280,14 +271,14 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
                   padding={{ left: 8, right: 16 }}
                 />
                 <YAxis
-                  tickFormatter={(v) => fmtAxisEur(Number(v))}
+                  tickFormatter={(v) => formatAxisMoney(Number(v))}
                   tick={{ fill: colors.axis, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   ticks={yTicks}
                   domain={[yTicks[0], yTicks[yTicks.length - 1]]}
                   allowDataOverflow
-                  width={56}
+                  width={yAxisWidth}
                 />
                 {/* Nessun riquadro: il valore vive nel numero grande in alto */}
                 <Tooltip

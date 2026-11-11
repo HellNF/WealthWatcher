@@ -37,14 +37,15 @@ export function Stat({
     : '')
 
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
-      <span className={cn('font-medium text-(--muted)', sizeClasses.label[size])}>
+    <div className={cn('flex flex-col gap-1 min-w-0', className)}>
+      <span className={cn('font-medium text-(--muted) [overflow-wrap:anywhere]', sizeClasses.label[size])}>
         {label}
       </span>
       <div className="flex items-end gap-2 flex-wrap">
         <span
           className={cn(
-            'font-mono tabular-nums font-semibold text-(--ink) leading-none',
+            // Mai fuori dal riquadro: se un importo enorme non entra va a capo.
+            'font-mono tabular-nums font-semibold text-(--ink) leading-none max-w-full [overflow-wrap:anywhere]',
             sizeClasses.value[size],
           )}
         >

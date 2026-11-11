@@ -55,3 +55,5 @@ export { HeroShell, Eyebrow, HeroLink } from './Hero'
 
 export { SectionNav } from './SectionNav'
 export type { SectionLink } from './SectionNav'
+export { HeroFigure } from './HeroFigure'
+export type { HeroFigureSize } from './HeroFigure'

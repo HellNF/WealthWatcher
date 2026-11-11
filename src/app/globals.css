@@ -133,6 +133,24 @@ body {
   color: var(--ink);
 }
 
+/* Nel layer base, così qualsiasi classe di utilità (min-w-*, max-w-*,
+   break-all…) continua a vincere su queste regole predefinite. */
+@layer base {
+  /* Rete di sicurezza: una parola senza spazi (codici, IBAN, descrizioni
+     bancarie) va a capo invece di uscire dal riquadro. Il testo normale non
+     cambia: si spezza solo ciò che altrimenti sforerebbe. */
+  body { overflow-wrap: break-word; }
+
+  /* I controlli dei moduli non possono essere più larghi del contenitore:
+     un <select> con un'opzione lunga si allargherebbe quanto il testo. */
+  select, input, textarea { max-width: 100%; min-width: 0; }
+
+  /* `truncate` serve solo se l'elemento può restringersi: dentro un flex o una
+     griglia, senza min-width: 0, il testo non viene mai accorciato e sfora.
+     :where() ha specificità zero, quindi un min-w-* esplicito vince sempre. */
+  :where(.truncate) { min-width: 0; }
+}
+
 /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

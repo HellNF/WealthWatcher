@@ -7,8 +7,7 @@ import ScrollToCurrent from './ScrollToCurrent'
 import {
   Card, Badge, ProgressBar, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
-  DataCard, DataCardHeader, DataRow, PageHeader
-} from '@/components/ui'
+  DataCard, DataCardHeader, DataRow, PageHeader, HeroFigure } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,9 +85,7 @@ export default async function MortgageDetailPage({ params }: Props) {
       <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
         <div className="space-y-5 min-w-0">
           <Eyebrow>Capitale residuo</Eyebrow>
-          <p id="mutuo-remaining" className="text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
-            {fmtEur(status.remainingCapitalMinor)}
-          </p>
+          <HeroFigure id="mutuo-remaining" value={fmtEur(status.remainingCapitalMinor)} className="text-(--ink)" />
           <div className="space-y-2 max-w-xl">
             <ProgressBar value={repaidMinor} max={mortgage.initial_capital_minor} color="var(--ink)" />
             <p className="text-sm text-(--muted)">

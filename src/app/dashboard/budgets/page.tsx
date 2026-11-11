@@ -4,8 +4,7 @@ import { listAllCategories } from '@/lib/transactions'
 import { availableMonths } from '@/lib/reports'
 import { Target } from 'lucide-react'
 import {
-  Card, EmptyState, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
-} from '@/components/ui'
+  Card, EmptyState, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import MonthNav from '../reports/MonthNav'
 import BudgetsManager from './BudgetsManager'
 
@@ -121,12 +120,11 @@ export default async function BudgetsPage({ searchParams }: Props) {
         <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
           <div className="space-y-5 min-w-0">
             <Eyebrow>{remainingMinor >= 0 ? 'Ancora disponibile' : 'Budget sforato'}</Eyebrow>
-            <p
+            <HeroFigure
               id="budget-remaining"
-              className={`text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${remainingMinor < 0 ? 'text-(--danger-text)' : 'text-(--ink)'}`}
-            >
-              {remainingMinor < 0 ? '−' : ''}{fmtEur(Math.abs(remainingMinor))}
-            </p>
+              value={`${remainingMinor < 0 ? '−' : ''}${fmtEur(Math.abs(remainingMinor))}`}
+              className={remainingMinor < 0 ? 'text-(--danger-text)' : 'text-(--ink)'}
+            />
             <div className="space-y-2 max-w-2xl">
               <Bar pct={pct} className="h-2.5" />
               <p className="text-sm text-(--muted)">

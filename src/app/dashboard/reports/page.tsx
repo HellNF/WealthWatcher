@@ -11,7 +11,7 @@ import type { MonthCategoryRow, MonthMerchantRow, MonthTxn } from '@/lib/monthRe
 import {
   FileBarChart2, Sparkles, ChevronDown, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
-import { Card, EmptyState, Badge, Button, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL } from '@/components/ui'
+import { Card, EmptyState, Badge, Button, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import SpendingTrend from './SpendingTrend'
 import MonthNav from './MonthNav'
 
@@ -171,6 +171,8 @@ export default async function ReportsPage({ searchParams }: Props) {
   }
 
   const r = buildMonthReport(user.id, month, accountId ?? undefined)
+  // I quattro numeri del riepilogo condividono la stessa scala: quello più lungo decide per tutti.
+  const heroFitChars = Math.max(...[r.totalOutflowMinor, r.totalInflowMinor, r.avgDailyMinor].map((m) => fmtEur(m).length), fmtEur(r.netMinor).length + 1)
   const hasNovelties = r.newMerchants.length > 0 || r.ceased.length > 0 || r.priceMoves.length > 0
 
   // Top esercenti su due colonne (da xl in su): 1…n/2 a sinistra, il resto a destra
@@ -262,11 +264,11 @@ export default async function ReportsPage({ searchParams }: Props) {
               )}
             </div>
 
-            <dl className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-x-10 gap-y-6 border-t border-(--border) pt-5 xl:border-t-0 xl:pt-0 xl:border-l xl:pl-14">
+            <dl className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-x-6 sm:gap-x-10 gap-y-6 border-t border-(--border) pt-5 xl:border-t-0 xl:pt-0 xl:border-l xl:pl-14">
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Uscite</dt>
                 <dd className="flex items-end gap-2 flex-wrap">
-                  <span className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)">{fmtEur(r.totalOutflowMinor)}</span>
+                  <HeroFigure value={fmtEur(r.totalOutflowMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" containerClassName="w-auto flex-1 basis-32" />
                   {r.baseline.typicalOutflowMinor !== null && !r.isPartialMonth && (
                     <DeltaBadge
                       deltaMinor={r.totalOutflowMinor - r.baseline.typicalOutflowMinor}
@@ -280,20 +282,21 @@ export default async function ReportsPage({ searchParams }: Props) {
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Entrate</dt>
-                <dd className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)">{fmtEur(r.totalInflowMinor)}</dd>
+                <dd><HeroFigure value={fmtEur(r.totalInflowMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
                 {r.baseline.typicalInflowMinor !== null && (
                   <dd className="text-xs text-(--muted)">tipico {fmtEur(r.baseline.typicalInflowMinor)}</dd>
                 )}
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Saldo netto</dt>
-                <dd className={`text-3xl sm:text-4xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] ${r.netMinor >= 0 ? 'text-(--brand-text)' : 'text-(--danger-text)'}`}>
-                  {r.netMinor >= 0 ? '+' : ''}{fmtEur(r.netMinor)}
+                <dd>
+                  <HeroFigure value={`${r.netMinor >= 0 ? '+' : ''}${fmtEur(r.netMinor)}`} fitChars={heroFitChars} size="xs" as="span"
+                    className={r.netMinor >= 0 ? 'text-(--brand-text)' : 'text-(--danger-text)'} />
                 </dd>
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Media al giorno</dt>
-                <dd className="text-3xl sm:text-4xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)">{fmtEur(r.avgDailyMinor)}</dd>
+                <dd><HeroFigure value={fmtEur(r.avgDailyMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
                 <dd className="text-xs text-(--muted)">
                   su {r.daysElapsed} giorni{r.isPartialMonth ? ' trascorsi' : ''}
                 </dd>

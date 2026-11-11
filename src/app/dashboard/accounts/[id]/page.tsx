@@ -17,7 +17,7 @@ import MergeAccountForm from './MergeAccountForm'
 import BalanceTrend, { type BalancePoint } from './BalanceTrend'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renameAccountAction, deleteAccountAction } from './manage-actions'
-import { Card, Stat, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL } from '@/components/ui'
+import { Card, Stat, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { formatMoney } from '@/lib/money'
 import { Upload, BarChart3 } from 'lucide-react'
 
@@ -213,9 +213,8 @@ export default async function AccountPage({ params, searchParams }: Props) {
             <div className="space-y-3">
               <Eyebrow>Saldo</Eyebrow>
               <p className="text-xs text-(--muted)">{account.anchor_date ? `Calcolato dal saldo di riferimento del ${account.anchor_date} e dai movimenti successivi.` : 'Ricostruito dai movimenti importati: può essere incompleto se manca lo storico o il saldo iniziale.'}</p>
-              <p id="account-balance" className={`text-4xl sm:text-5xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] ${balanceMinor < 0 ? 'text-(--danger-text)' : 'text-(--ink)'}`}>
-                {formatMoney(balanceMinor, account.currency)}
-              </p>
+              <HeroFigure id="account-balance" value={formatMoney(balanceMinor, account.currency)} size="md"
+                className={balanceMinor < 0 ? 'text-(--danger-text)' : 'text-(--ink)'} />
               <p className="text-xs text-(--muted)">
                 {latestTxn ? <>Ultimo movimento il {dayLabel(latestTxn.booked_date)} · {totalAll.toLocaleString('it-IT')} movimenti</> : <>Nessun movimento importato</>}
               </p>
@@ -278,34 +277,36 @@ export default async function AccountPage({ params, searchParams }: Props) {
           {months.length > 0 && (
             <Card className="space-y-3">
               <h2 className="text-sm font-semibold text-(--ink)">Mese per mese</h2>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-(--muted)">
-                    <th scope="col" className="text-left font-medium pb-2">Mese</th>
-                    <th scope="col" className="text-right font-medium pb-2">Entrate</th>
-                    <th scope="col" className="text-right font-medium pb-2">Uscite</th>
-                    <th scope="col" className="text-right font-medium pb-2">Saldo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-(--border)">
-                  {months.map(([m, r]) => {
-                    const net = r.inMinor - r.outMinor
-                    return (
-                      <tr key={m}>
-                        <th scope="row" className="py-2 text-left font-normal text-(--ink) whitespace-nowrap">
-                          {monthLabel(m)}
-                          <span className="block h-0.5 mt-1.5 rounded-full bg-(--muted)/60" style={{ width: `${Math.max(4, (r.outMinor / monthMaxOut) * 100)}%` }} aria-hidden />
-                        </th>
-                        <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{money(r.inMinor)}</td>
-                        <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{money(r.outMinor)}</td>
-                        <td className={`py-2 text-right font-mono tabular-nums ${net > 0 ? 'text-(--brand-text)' : net < 0 ? 'text-(--danger-text)' : 'text-(--muted)'}`}>
-                          {net > 0 ? '+' : net < 0 ? '−' : ''}{money(Math.abs(net))}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-(--muted)">
+                      <th scope="col" className="text-left font-medium pb-2">Mese</th>
+                      <th scope="col" className="text-right font-medium pb-2">Entrate</th>
+                      <th scope="col" className="text-right font-medium pb-2">Uscite</th>
+                      <th scope="col" className="text-right font-medium pb-2">Saldo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-(--border)">
+                    {months.map(([m, r]) => {
+                      const net = r.inMinor - r.outMinor
+                      return (
+                        <tr key={m}>
+                          <th scope="row" className="py-2 text-left font-normal text-(--ink) whitespace-nowrap">
+                            {monthLabel(m)}
+                            <span className="block h-0.5 mt-1.5 rounded-full bg-(--muted)/60" style={{ width: `${Math.max(4, (r.outMinor / monthMaxOut) * 100)}%` }} aria-hidden />
+                          </th>
+                          <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{money(r.inMinor)}</td>
+                          <td className="py-2 text-right font-mono tabular-nums text-(--ink)">{money(r.outMinor)}</td>
+                          <td className={`py-2 text-right font-mono tabular-nums ${net > 0 ? 'text-(--brand-text)' : net < 0 ? 'text-(--danger-text)' : 'text-(--muted)'}`}>
+                            {net > 0 ? '+' : net < 0 ? '−' : ''}{money(Math.abs(net))}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </Card>
           )}
 

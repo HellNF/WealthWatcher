@@ -19,7 +19,7 @@ import AllocationChart from './AllocationChart'
 import InstrumentPriceChart from './InstrumentPriceChart'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renamePortfolioAction, deletePortfolioAction } from './actions'
-import { Card, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL } from '@/components/ui'
+import { Card, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AddSection } from '@/components/dashboard/AddSection'
 import PriceHistoryBackfillButton from './PriceHistoryBackfillButton'
 import Link from 'next/link'
@@ -180,9 +180,7 @@ export default async function PortfolioPage({ params }: Props) {
             <div className="space-y-3">
               <Eyebrow>Valutazione ai prezzi disponibili</Eyebrow>
               <PortfolioQuality positions={positions} />
-              <p id="portfolio-value" className="text-4xl sm:text-5xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
-                {heroValue}
-              </p>
+              <HeroFigure id="portfolio-value" value={heroValue} size="md" className="text-(--ink)" />
               {heroPl !== null && single && (
                 <p className="flex items-center gap-2 flex-wrap text-sm text-(--muted)">
                   <Badge variant={heroPl >= 0 ? 'gain' : 'loss'} className="font-mono tabular-nums">

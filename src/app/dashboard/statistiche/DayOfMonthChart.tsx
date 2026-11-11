@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAxisMoney } from '@/lib/money'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell, Legend,
@@ -92,7 +93,7 @@ export default function DayOfMonthChart({ data }: Props) {
           interval={2}
         />
         <YAxis
-          tickFormatter={(v) => fmtEur(v)}
+          tickFormatter={(v) => formatAxisMoney(Number(v))}
           tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}

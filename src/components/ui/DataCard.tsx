@@ -11,7 +11,7 @@ export function DataRow({ label, children, className }: DataRowProps) {
   return (
     <div className={cn('flex items-center justify-between gap-2 py-1.5', className)}>
       <span className="text-xs text-(--muted) shrink-0">{label}</span>
-      <span className="text-xs text-(--ink) font-medium text-right min-w-0">{children}</span>
+      <span className="text-xs text-(--ink) font-medium text-right min-w-0 [overflow-wrap:anywhere]">{children}</span>
     </div>
   )
 }
@@ -28,12 +28,13 @@ export function DataCardHeader({ title, subtitle, badge, actions }: DataCardHead
   return (
     <div className="flex items-start justify-between gap-2 mb-2">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-(--ink) truncate">{title}</span>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {/* min-w-0 + max-w-full: senza, un titolo senza spazi non si tronca e allarga la pagina */}
+          <span className="text-sm font-semibold text-(--ink) truncate min-w-0 max-w-full">{title}</span>
           {badge}
         </div>
         {subtitle && (
-          <span className="text-xs text-(--muted) mt-0.5 block">{subtitle}</span>
+          <span className="text-xs text-(--muted) mt-0.5 block [overflow-wrap:anywhere]">{subtitle}</span>
         )}
       </div>
       {actions && (
@@ -52,7 +53,7 @@ export function DataCard({ className, children, ...props }: DataCardProps) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-(--border) bg-(--surface) px-4 py-3',
+        'rounded-xl border border-(--border) bg-(--surface) px-4 py-3 min-w-0',
         className,
       )}
       {...props}

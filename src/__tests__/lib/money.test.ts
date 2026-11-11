@@ -1,5 +1,5 @@
 // src/__tests__/lib/money.test.ts
-import { toMinor, fromMinor, formatMoney, dec } from '@/lib/money'
+import { toMinor, fromMinor, formatMoney, dec, formatAxisMoney } from '@/lib/money'
 
 describe('toMinor / fromMinor round-trip', () => {
   test('EUR: 12.50 → 1250 → "12.50"', () => {
@@ -88,5 +88,22 @@ describe('formatMoney', () => {
     expect(formatted).toContain('234')
     // it-IT locale uses the € symbol, not the currency code
     expect(formatted).toMatch(/€|EUR/)
+  })
+})
+
+describe('formatAxisMoney — etichette compatte per gli assi', () => {
+  // Intl usa spazi speciali in alcune versioni: confronto normalizzato.
+  const f = (minor: number, cur?: string) => formatAxisMoney(minor, cur).replace(/\s/g, ' ')
+  test.each([
+    [0, '0 €'],
+    [999_900, '9.999 €'],
+    [1_250_000, '12,5k €'],
+    [-150_000_000, '-1,5 Mln €'],
+    [742_038_181_674, '7,4 Mrd €'],
+  ])('%i centesimi → %s', (minor, expected) => {
+    expect(f(minor)).toBe(expected)
+  })
+  test('valute diverse dall’euro usano il codice', () => {
+    expect(f(1_000_000_00, 'USD')).toBe('1 Mln USD')
   })
 })

@@ -43,7 +43,7 @@ export default function ChatBubble({ message, isOwn, isAdmin = false, onResolve,
 
         {/* Azioni admin — visibili al hover */}
         {isAdmin && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0">
             <button
               onClick={() => onResolve?.(!isResolved)}
               title={isResolved ? 'Segna come aperto' : 'Segna come elaborato'}
