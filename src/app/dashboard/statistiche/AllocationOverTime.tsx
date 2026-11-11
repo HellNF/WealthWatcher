@@ -96,7 +96,7 @@ export default function AllocationOverTime({ data }: Props) {
           axisLine={false}
           width={88}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
@@ -111,7 +111,7 @@ export default function AllocationOverTime({ data }: Props) {
           iconSize={8}
           wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="Investimenti"
           stackId="1"
@@ -120,7 +120,7 @@ export default function AllocationOverTime({ data }: Props) {
           fill="url(#gradInv)"
           dot={false}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="Conti"
           stackId="1"
@@ -129,7 +129,7 @@ export default function AllocationOverTime({ data }: Props) {
           fill="url(#gradAcc)"
           dot={false}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="Altri beni"
           stackId="1"

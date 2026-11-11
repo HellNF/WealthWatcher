@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { TrendingUp } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
-import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { cn } from '@/lib/cn'
 import type { InvestmentsWidgetData, PortfolioItem, SparkPoint, WidgetSize } from './types'
+import { FitList, plural } from './FitList'
 
 // Palette luce / buio
 const PALETTE_LIGHT = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#ec4899']
@@ -37,14 +37,16 @@ function ChartStrip({
   sparkline,
   color,
   isDark,
+  height,
 }: {
   sparkline: SparkPoint[]
   color:     string
   isDark:    boolean
+  height:    number
 }) {
   if (sparkline.length < 2) {
     return (
-      <p className="text-xs text-(--faint) text-center py-3">
+      <p className="text-xs text-(--faint) flex items-center justify-center" style={{ height }}>
         Storico non ancora disponibile
       </p>
     )
@@ -55,7 +57,7 @@ function ChartStrip({
   const gradId        = `invGrad${color.replace('#', '')}`
 
   return (
-    <ResponsiveContainer width="100%" height={36}>
+    <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={sparkline} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -64,7 +66,7 @@ function ChartStrip({
           </linearGradient>
         </defs>
         <YAxis domain={['auto', 'auto']} hide />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(v) => [fmtEur(Number(v)), 'Valore']}
           labelFormatter={(l) => String(l)}
           contentStyle={{
@@ -76,7 +78,7 @@ function ChartStrip({
           itemStyle={{ color }}
           cursor={{ stroke: tooltipBorder, strokeWidth: 1 }}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="value"
           stroke={color}
@@ -96,12 +98,12 @@ interface RowProps {
   pf:         PortfolioItem
   color:      string
   isSelected: boolean
-  canExpand:  boolean
+  canSelect:  boolean
   isDark:     boolean
-  onToggle:   () => void
+  onSelect:   () => void
 }
 
-function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: RowProps) {
+function PortfolioRow({ pf, color, isSelected, canSelect, isDark, onSelect }: RowProps) {
   const pct   = calcPct(pf.sparkline)
   const isPos = pct === null || pct >= 0
 
@@ -113,64 +115,56 @@ function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: Ro
     ? (isDark ? 'oklch(0.22 0.06 160)' : 'oklch(0.94 0.04 160)')
     : (isDark ? 'oklch(0.22 0.06 15)'  : 'oklch(0.96 0.03 15)')
 
-  return (
-    <motion.div key={pf.id} layout layoutId={`inv-row-${pf.id}`} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
-      {/* Riga principale */}
-      <button
-        onClick={canExpand ? onToggle : undefined}
-        className={cn(
-          'w-full flex items-center gap-2.5 px-4 sm:px-5 py-2 text-left transition-colors duration-100',
-          canExpand && 'hover:bg-(--surface-2) cursor-pointer',
-          !canExpand && 'cursor-default',
-          isSelected && 'bg-(--surface-2)',
-        )}
+  const content = (
+    <>
+      {/* Avatar */}
+      <span
+        className="size-7 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-bold text-white"
+        style={{ background: color }}
+        aria-hidden
       >
-        {/* Avatar */}
-        <div
-          className="size-7 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-bold text-white"
-          style={{ background: color }}
+        {pf.name[0]?.toUpperCase()}
+      </span>
+
+      {/* Nome */}
+      <span className="flex-1 min-w-0 text-xs font-medium text-(--ink) [overflow-wrap:anywhere]">
+        {pf.name}
+      </span>
+
+      {/* Badge % */}
+      {pct !== null && (
+        <span
+          className="text-[10px] font-semibold tabular-nums shrink-0 px-1.5 py-0.5 rounded-full"
+          style={{ color: pctColor, background: pctBg }}
         >
-          {pf.name[0]?.toUpperCase()}
-        </div>
-
-        {/* Nome */}
-        <span className="flex-1 min-w-0 text-xs font-medium text-(--ink) [overflow-wrap:anywhere]">
-          {pf.name}
+          {isPos ? '+' : ''}{pct.toFixed(2)}%
         </span>
+      )}
 
-        {/* Badge % */}
-        {pct !== null && (
-          <span
-            className="text-[10px] font-semibold tabular-nums shrink-0 px-1.5 py-0.5 rounded-full"
-            style={{ color: pctColor, background: pctBg }}
-          >
-            {isPos ? '+' : ''}{pct.toFixed(2)}%
-          </span>
-        )}
+      {/* Valore */}
+      <span className="text-xs font-mono tabular-nums text-(--ink) shrink-0">
+        {pf.eurMinor !== null ? fmtEur(pf.eurMinor) : '—'}
+      </span>
+    </>
+  )
 
-        {/* Valore */}
-        <span className="text-xs font-mono tabular-nums text-(--ink) shrink-0">
-          {pf.eurMinor !== null ? fmtEur(pf.eurMinor) : '—'}
-        </span>
-      </button>
+  const rowClass = 'w-full flex items-center gap-2.5 px-4 sm:px-5 py-2 text-left'
+  if (!canSelect) return <div className={rowClass}>{content}</div>
 
-      {/* Grafico — appare solo sulla riga selezionata */}
-      <AnimatePresence initial={false}>
-        {isSelected && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 sm:px-5 pb-3 pt-1">
-              <ChartStrip sparkline={pf.sparkline} color={color} isDark={isDark} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+  // Selezionare non sposta né apre righe: cambia solo il grafico sopra la lista
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={isSelected}
+      className={cn(
+        rowClass,
+        'transition-colors duration-150 ease-out hover:bg-(--surface-2) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)',
+        isSelected && 'bg-(--surface-2)',
+      )}
+    >
+      {content}
+    </button>
   )
 }
 
@@ -196,6 +190,7 @@ export function InvestmentsWidget({
   if (portfolios.length === 0) {
     return (
       <EmptyState
+        className="flex-1 py-6 sm:py-6"
         icon={TrendingUp}
         title="Nessun portafoglio"
         description="Aggiungi il tuo primo portafoglio d'investimento."
@@ -203,26 +198,14 @@ export function InvestmentsWidget({
     )
   }
 
-  const canExpand = size !== 'sm'
-
-  function toggle(id: number) {
-    setSelectedId(prev => prev === id ? null : id)
-  }
-
-  // Il portfolio selezionato sale in cima; gli altri seguono nell'ordine originale
-  const selected = portfolios.find(p => p.id === selectedId)
-  const rest     = portfolios.filter(p => p.id !== selectedId)
-  const sorted   = canExpand && selected ? [selected, ...rest] : portfolios
-
-  // In SM/MD si mostrano al massimo 3 righe per stare nell'altezza fissa del widget
-  const limit      = size === 'lg' ? portfolios.length : 3
-  const displayed  = sorted.slice(0, limit)
-  const hiddenCount = sorted.length - displayed.length
+  // In S il widget è un riepilogo: niente grafico, righe non selezionabili
+  const canSelect = size !== 'sm'
+  const selected  = portfolios.find(p => p.id === selectedId) ?? portfolios[0]
 
   return (
-    <div>
+    <div className="flex-1 min-h-0 flex flex-col">
       {/* Totale */}
-      <div className="mb-3">
+      <div className="mb-3 shrink-0">
         <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">
           Totale investito
         </p>
@@ -231,27 +214,34 @@ export function InvestmentsWidget({
         </p>
       </div>
 
-      {/* Lista portafogli con animazione di riordino */}
-      <LayoutGroup>
-        <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
-          {displayed.map((pf) => (
-            <PortfolioRow
-              key={pf.id}
-              pf={pf}
-              color={colorOf.get(pf.id)!}
-              isSelected={canExpand && pf.id === selectedId}
-              canExpand={canExpand}
-              isDark={isDark}
-              onToggle={() => toggle(pf.id)}
-            />
-          ))}
-          {hiddenCount > 0 && (
-            <p className="px-4 sm:px-5 py-2 text-[10px] text-(--faint)">
-              +{hiddenCount} altri portafogli
-            </p>
-          )}
+      {/* Andamento del portafoglio selezionato: spazio fisso, le righe sotto non si muovono */}
+      {canSelect && (
+        <div className="shrink-0 mb-2">
+          <ChartStrip
+            sparkline={selected.sparkline}
+            color={colorOf.get(selected.id)!}
+            isDark={isDark}
+            height={size === 'lg' ? 72 : 44}
+          />
         </div>
-      </LayoutGroup>
+      )}
+
+      <FitList
+        className="divide-y divide-(--border) -mx-4 sm:-mx-5"
+        more={(n) => plural(n, 'altro portafoglio', 'altri portafogli')}
+      >
+        {portfolios.map((pf) => (
+          <PortfolioRow
+            key={pf.id}
+            pf={pf}
+            color={colorOf.get(pf.id)!}
+            isSelected={canSelect && pf.id === selected.id}
+            canSelect={canSelect}
+            isDark={isDark}
+            onSelect={() => setSelectedId(pf.id)}
+          />
+        ))}
+      </FitList>
     </div>
   )
 }

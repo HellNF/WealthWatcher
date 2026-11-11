@@ -40,7 +40,7 @@ export default function ScadenziarioView({ events, today }: Props) {
               aria-checked={view === key}
               className={cn(
                 'relative inline-flex items-center gap-1.5 h-8 px-3 text-sm font-medium rounded-md cursor-pointer select-none',
-                'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                 view === key ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}
@@ -60,7 +60,7 @@ export default function ScadenziarioView({ events, today }: Props) {
 
         <button
           onClick={() => openForm(today)}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,scale,translate,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)"
         >
           <Plus className="size-4" strokeWidth={1.75} /> Aggiungi evento
         </button>

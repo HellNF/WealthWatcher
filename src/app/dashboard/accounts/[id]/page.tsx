@@ -132,7 +132,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const monthLabel = (m: string) => `${MONTHS_IT[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`
   const dayLabel = (iso: string) => `${Number(iso.slice(8, 10))} ${MONTHS_IT[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
 
-  const LINK = 'inline-flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)'
+  const LINK = 'inline-flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,scale,translate,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)'
 
   return (
     <>
@@ -162,7 +162,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
             {importSupported ? (
               <Link
                 href={`/dashboard/accounts/${id}/import`}
-                className="inline-flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg bg-(--brand) text-(--brand-fg) shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-(--brand-hover) active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
+                className="inline-flex items-center gap-2 h-9 px-3.5 text-sm font-medium rounded-lg bg-(--brand) text-(--brand-fg) shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-(--brand-hover) active:scale-[0.97] transition-[transform,scale,translate,background-color] duration-150 ease-out-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
               >
                 <Upload className="size-4" strokeWidth={1.75} />
                 Importa movimenti

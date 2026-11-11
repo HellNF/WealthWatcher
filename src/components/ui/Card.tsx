@@ -1,4 +1,21 @@
+import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
+
+export const cardVariants = cva(
+  [
+    'rounded-2xl border border-(--border) bg-(--surface)',
+    'shadow-[var(--shadow-sm),var(--highlight)]',
+    'transition-[translate,box-shadow,border-color] duration-300 [transition-timing-function:var(--ease-spring)]',
+  ],
+  {
+    variants: {
+      padded:    { true: 'p-4 sm:p-5', false: '' },
+      // Solleva leggermente la card al passaggio del mouse (per tile cliccabili)
+      hoverable: { true: 'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md),var(--highlight)]', false: '' },
+    },
+    defaultVariants: { padded: true, hoverable: false },
+  },
+)
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
@@ -11,14 +28,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Card({ className, children, noPadding, hoverable, ...props }: CardProps) {
   return (
     <div
-      className={cn(
-        'rounded-2xl border border-(--border) bg-(--surface)',
-        'shadow-[var(--shadow-sm),var(--highlight)]',
-        'transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:var(--ease-spring)]',
-        hoverable && 'hover:-translate-y-0.5 hover:shadow-[var(--shadow-md),var(--highlight)] hover:border-(--border)',
-        !noPadding && 'p-4 sm:p-5',
-        className,
-      )}
+      className={cn(cardVariants({ padded: !noPadding, hoverable: !!hoverable }), className)}
       {...props}
     >
       {children}

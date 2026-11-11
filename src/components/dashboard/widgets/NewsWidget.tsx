@@ -3,6 +3,7 @@
 import { Newspaper, ExternalLink } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import type { NewsWidgetData, WidgetSize } from './types'
+import { FitList, plural } from './FitList'
 
 function timeAgo(ts: number): string {
   const diff = Math.floor(Date.now() / 1000) - ts
@@ -14,7 +15,8 @@ function timeAgo(ts: number): string {
   return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
-const ARTICLES_VISIBLE: Record<WidgetSize, number> = { sm: 3, md: 4, lg: 6 }
+// Massimo di articoli; quanti se ne vedono davvero lo decide FitList
+const ARTICLES_VISIBLE: Record<WidgetSize, number> = { sm: 6, md: 6, lg: 6 }
 
 export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetSize }) {
   const { articles } = data
@@ -24,6 +26,7 @@ export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetS
   if (articles.length === 0) {
     return (
       <EmptyState
+        className="flex-1 py-6 sm:py-6"
         icon={Newspaper}
         title="Nessuna notizia disponibile"
         description="Le notizie sui tuoi strumenti appariranno qui."
@@ -32,7 +35,10 @@ export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetS
   }
 
   return (
-    <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
+    <FitList
+      className="divide-y divide-(--border) -mx-4 sm:-mx-5"
+      more={(n) => plural(n + articles.length - visible.length, 'altra notizia', 'altre notizie')}
+    >
       {visible.map((a) => (
         <a
           key={a.uuid}
@@ -74,6 +80,6 @@ export function NewsWidget({ data, size }: { data: NewsWidgetData; size: WidgetS
           />
         </a>
       ))}
-    </div>
+    </FitList>
   )
 }

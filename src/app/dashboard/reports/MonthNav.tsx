@@ -7,9 +7,10 @@
 import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { Select } from '@/components/ui/Select'
+import { useSlidingPill } from '@/components/ui/useSlidingPill'
 
 interface AccountOption { id: number; name: string }
 
@@ -57,7 +58,7 @@ function Step({ target, accountId, dir, href }: { target: string | null; account
       className={cn(
         base,
         'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.94] active:bg-(--surface-2)',
-        'transition-[transform,color,background-color] duration-150 ease-out-strong',
+        'transition-[transform,scale,translate,color,background-color] duration-150 ease-out-strong',
       )}
     >
       <Icon className="size-4" strokeWidth={1.75} />
@@ -68,7 +69,6 @@ function Step({ target, accountId, dir, href }: { target: string | null; account
 export default function MonthNav({ months, month, accounts, accountId, compact, basePath = '/dashboard/reports' }: Props) {
   const router = useRouter()
   const href = useMemo(() => makeHref(basePath), [basePath])
-  const reduceMotion = useReducedMotion()
 
   const idx  = months.indexOf(month)
   // months è ordinato dal più recente: "precedente" = indice successivo
@@ -108,73 +108,69 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
         <Step target={prev} accountId={accountId} dir="prev" href={href} />
 
         <label className="sr-only" htmlFor="month-select">Mese</label>
-        <select
+        <Select
           id="month-select"
           value={month}
-          onChange={(e) => router.push(href(e.target.value, accountId), { scroll: false })}
-          className={cn(CONTROL, 'bg-(--surface-2) px-2.5 text-sm font-medium text-(--ink) tabular-nums cursor-pointer')}
-        >
-          {months.map((m) => (
-            <option key={m} value={m}>{label(m)}</option>
-          ))}
-        </select>
+          onValueChange={(v) => router.push(href(v, accountId), { scroll: false })}
+          className="h-8 pointer-coarse:h-10 w-auto px-2.5 font-medium tabular-nums privacy-keep"
+          options={months.map((m) => ({ value: m, label: label(m) }))}
+        />
 
         <Step target={next} accountId={accountId} dir="next" href={href} />
       </nav>
 
       {accounts.length > 1 && (
         accounts.length <= 3 ? (
-          <LayoutGroup id="report-account">
-            <nav aria-label="Filtro conto" className="flex gap-0.5 flex-wrap p-0.5 bg-(--surface-2) rounded-lg min-w-0 max-w-full">
-              {accountOptions.map((acc) => {
-                const active = accountId === acc.id
-                return (
-                  <Link
-                    key={acc.id ?? 'all'}
-                    href={href(month, acc.id)}
-                    scroll={false}
-                    aria-current={active ? 'true' : undefined}
-                    title={acc.name}
-                    className={cn(
-                      'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-sm whitespace-nowrap select-none min-w-0 max-w-full',
-                      'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
-                      'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-                      active ? 'text-(--ink) font-medium' : 'text-(--muted) hover:text-(--ink)',
-                    )}
-                  >
-                    {active && (
-                      <motion.span
-                        layoutId="report-account-pill"
-                        className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
-                        transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
-                      />
-                    )}
-                    <span className="relative truncate max-w-[16rem]">{acc.name}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-          </LayoutGroup>
+          <AccountPills options={accountOptions} accountId={accountId} month={month} href={href} />
         ) : (
           <>
             <label className="sr-only" htmlFor="report-account">Conto</label>
-            <select
+            <Select
               id="report-account"
-              value={accountId ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                router.push(href(month, v === '' ? null : Number(v)), { scroll: false })
-              }}
-              className={cn(CONTROL, 'bg-(--surface-2) px-2.5 text-sm text-(--ink) cursor-pointer')}
-            >
-              <option value="">Tutti i conti</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
-              ))}
-            </select>
+              value={accountId === null ? '' : String(accountId)}
+              onValueChange={(v) => router.push(href(month, v === '' ? null : Number(v)), { scroll: false })}
+              className="h-8 pointer-coarse:h-10 w-auto max-w-64 px-2.5"
+              options={[{ value: '', label: 'Tutti i conti' }, ...accounts.map((acc) => ({ value: String(acc.id), label: acc.name }))]}
+            />
           </>
         )
       )}
     </div>
+  )
+}
+
+/** Filtro conto a segmenti (fino a 3 conti): pillola che scivola in CSS, anche durante la navigazione. */
+function AccountPills({ options, accountId, month, href }: {
+  options: { id: number | null; name: string }[]
+  accountId: number | null
+  month: string
+  href: HrefFn
+}) {
+  const { containerRef, pillRef } = useSlidingPill<HTMLElement>(String(accountId ?? 'all'))
+  return (
+    <nav ref={containerRef} aria-label="Filtro conto" className="relative flex gap-0.5 flex-wrap p-0.5 bg-(--surface-2) rounded-lg min-w-0 max-w-full">
+      <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border) opacity-0" />
+      {options.map((acc) => {
+        const active = accountId === acc.id
+        return (
+          <Link
+            key={acc.id ?? 'all'}
+            data-pill-key={String(acc.id ?? 'all')}
+            href={href(month, acc.id)}
+            scroll={false}
+            aria-current={active ? 'true' : undefined}
+            title={acc.name}
+            className={cn(
+              'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-sm whitespace-nowrap select-none min-w-0 max-w-full',
+              'transition-[color,scale] duration-150 ease-out-strong active:scale-[0.97]',
+              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
+              active ? 'text-(--ink) font-medium' : 'text-(--muted) hover:text-(--ink)',
+            )}
+          >
+            <span className="relative truncate max-w-[16rem]">{acc.name}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

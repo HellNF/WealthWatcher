@@ -192,15 +192,18 @@ body {
 
 /* ─── Ingresso dell'hero ─────────────────────────────────────────────────────
    Un solo fade-up, breve, alla comparsa. @starting-style migliora uno stato
-   già visibile: senza supporto (o a scheda nascosta) l'hero c'è e basta. */
+   già visibile: senza supporto (o a scheda nascosta) l'hero c'è e basta.
+   Si vede a ogni navigazione nella dashboard (decine di volte al giorno): resta
+   sotto i 300ms e con poca sfocatura, così il dato principale arriva subito.
+   Solo opacity/transform/filter, composti dal browser anche durante l'idratazione. */
 .hero-enter {
   transition:
-    opacity 600ms var(--ease-drawer),
-    transform 700ms var(--ease-drawer),
-    filter 600ms var(--ease-drawer);
+    opacity 260ms var(--ease-out-strong),
+    transform 300ms var(--ease-out-strong),
+    filter 260ms var(--ease-out-strong);
 }
 @starting-style {
-  .hero-enter { opacity: 0; transform: translateY(12px); filter: blur(6px); }
+  .hero-enter { opacity: 0; transform: translateY(8px); filter: blur(2px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-enter { transition: opacity 200ms ease; }
@@ -227,4 +230,28 @@ html[data-privacy="on"] :is(input, select, textarea).tabular-nums { filter: none
 /* ─── Smooth scroll ─────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
   * { scroll-behavior: smooth; }
+}
+
+/* ─── Popup di base-ui (Select, Tooltip, AlertDialog) ──────────────────────────
+   I popup vanno in un portale in fondo al body: `.app-root` crea un contesto di
+   impilamento proprio, così nessuno z-index della pagina li copre. Su iOS 26+
+   i fondali dei dialoghi sono `absolute` e serve il body posizionato. */
+.app-root { isolation: isolate; }
+body { position: relative; }
+
+/* ─── Toast (Sonner) con i token dell'app ───────────────────────────────────── */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--surface);
+  --normal-border: var(--border);
+  --normal-text: var(--ink);
+  --border-radius: 0.75rem;
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+}
+[data-sonner-toaster] .ww-toast {
+  box-shadow: var(--shadow-md), var(--highlight);
+}
+[data-sonner-toaster] [data-close-button] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--muted);
 }

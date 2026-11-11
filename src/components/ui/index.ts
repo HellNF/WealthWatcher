@@ -1,12 +1,19 @@
-export { Button } from './Button'
+export { Button, buttonVariants } from './Button'
 export type { ButtonVariant, ButtonSize, ButtonProps } from './Button'
 
 export { Card, CardHeader, CardTitle, CardDescription } from './Card'
 
-export { Field, Input, Select, Textarea } from './Input'
-export type { InputProps, SelectProps, TextareaProps } from './Input'
+export { Field, Input, Textarea } from './Input'
+export type { InputProps, TextareaProps } from './Input'
 
-export { Badge } from './Badge'
+export { Select } from './Select'
+export type { SelectProps, SelectOption, SelectGroup } from './Select'
+
+export { Tooltip, TooltipProvider } from './Tooltip'
+
+export { ConfirmDialog } from './ConfirmDialog'
+
+export { Badge, badgeVariants } from './Badge'
 export type { BadgeVariant } from './Badge'
 
 export { Stat } from './Stat'
@@ -26,7 +33,7 @@ export {
   Td,
 } from './Table'
 
-export { ToastProvider, useToast } from './Toast'
+export { ToastProvider, useToast, toast } from './Toast'
 export type { ToastVariant } from './Toast'
 
 export { Breadcrumb } from './Breadcrumb'

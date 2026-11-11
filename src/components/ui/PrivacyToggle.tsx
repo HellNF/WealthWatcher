@@ -10,6 +10,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 const STORAGE_KEY = 'ww-privacy'
 const EVENT = 'ww-privacy-change'
@@ -65,24 +66,25 @@ export function PrivacyToggle({ mode = 'icon', className }: PrivacyToggleProps) 
   const Icon = on ? EyeOff : Eye
 
   return (
-    <button
-      type="button"
-      onClick={() => set(!on)}
-      aria-pressed={on}
-      aria-label={mode === 'icon' ? label : undefined}
-      title={`${label} (modalità privacy)`}
-      className={cn(
-        'privacy-keep inline-flex items-center justify-center gap-1.5 rounded-lg text-xs transition-[color,background-color,transform] duration-150 ease-out-strong active:scale-95',
-        'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-        mode === 'icon' ? 'size-8' : 'h-8 px-2.5',
-        on
-          ? 'bg-(--brand-subtle) text-(--brand-text)'
-          : 'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2)',
-        className,
-      )}
-    >
-      <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-      {mode === 'label' && <span>{on ? 'Privacy attiva' : 'Modalità privacy'}</span>}
-    </button>
+    <Tooltip content={`${label} (modalità privacy)`}>
+      <button
+        type="button"
+        onClick={() => set(!on)}
+        aria-pressed={on}
+        aria-label={mode === 'icon' ? label : undefined}
+        className={cn(
+          'privacy-keep inline-flex items-center justify-center gap-1.5 rounded-lg text-xs transition-[color,background-color,transform,scale,translate] duration-150 ease-out-strong active:scale-95',
+          'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
+          mode === 'icon' ? 'size-8' : 'h-8 px-2.5',
+          on
+            ? 'bg-(--brand-subtle) text-(--brand-text)'
+            : 'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2)',
+          className,
+        )}
+      >
+        <Icon className="size-4 shrink-0" strokeWidth={1.75} />
+        {mode === 'label' && <span>{on ? 'Privacy attiva' : 'Modalità privacy'}</span>}
+      </button>
+    </Tooltip>
   )
 }

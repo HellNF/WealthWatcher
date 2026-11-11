@@ -63,10 +63,10 @@ export function InsightCard({ insight, linkLabel = 'Approfondisci', className }:
         {insight.href && (
           <Link
             href={insight.href}
-            className="inline-flex items-center gap-1 text-xs font-medium text-(--brand-text) hover:gap-1.5 transition-all shrink-0"
+            className="group/link inline-flex items-center gap-1 text-xs font-medium text-(--brand-text) shrink-0"
           >
             {linkLabel}
-            <ArrowRight className="size-3.5" strokeWidth={2} aria-hidden />
+            <ArrowRight className="size-3.5 transition-transform duration-150 ease group-hover/link:translate-x-0.5" strokeWidth={2} aria-hidden />
           </Link>
         )}
       </div>

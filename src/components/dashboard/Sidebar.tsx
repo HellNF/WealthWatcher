@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, LayoutGroup } from 'motion/react'
 import {
   LayoutDashboard,
   BarChart3,
@@ -23,6 +22,8 @@ import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { PrivacyToggle } from '@/components/ui/PrivacyToggle'
 import { cn } from '@/lib/cn'
+import { Tooltip } from '@/components/ui/Tooltip'
+import { useSlidingPill } from '@/components/ui/useSlidingPill'
 
 interface NavItem {
   label: string
@@ -64,6 +65,51 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
+function NavLinks({ isActive }: { isActive: (item: NavItem) => boolean }) {
+  const activeHref = NAV_GROUPS.flatMap((g) => g.items).find(isActive)?.href ?? null
+  const { containerRef, pillRef } = useSlidingPill<HTMLElement>(activeHref)
+  return (
+    <nav ref={containerRef} className="relative flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Navigazione principale">
+      {/* Pillola della voce attiva: scivola in CSS (transform) anche mentre la pagina nuova si carica */}
+      <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-lg bg-(--brand-subtle) opacity-0" />
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label}>
+          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-(--faint)">
+            {group.label}
+          </p>
+          <div className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = isActive(item)
+              return (
+                <Link
+                  key={item.href}
+                  data-pill-key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-[color,background-color,transform,scale,translate] duration-150 ease-out-strong',
+                    // Pressione solo sulle voci non attive: la pillola è un elemento a parte e non scalerebbe col testo
+                    !active && 'active:scale-[0.98]',
+                    active
+                      ? 'text-(--brand-text) font-medium'
+                      : 'text-(--muted) hover:bg-(--surface-2) hover:text-(--ink)',
+                  )}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <item.icon className="relative z-10 size-[18px] shrink-0" strokeWidth={1.75} />
+                  <span className="relative z-10">{item.label}</span>
+                  {active && (
+                    <ChevronRight className="relative z-10 size-3.5 ml-auto text-(--brand)" />
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
 interface SidebarProps {
   user: { name?: string | null; email?: string | null; role?: string | null }
   signOutAction: () => Promise<void>
@@ -92,48 +138,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
     return pathname.startsWith(item.href)
   }
 
-  const navContent = (
-    <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto" aria-label="Navigazione principale">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.label}>
-          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-(--faint)">
-            {group.label}
-          </p>
-          <div className="space-y-0.5">
-            {group.items.map((item) => {
-              const active = isActive(item)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-[color,background-color,transform] duration-150 ease-out-strong active:scale-[0.98]',
-                    active
-                      ? 'text-(--brand-text) font-medium'
-                      : 'text-(--muted) hover:bg-(--surface-2) hover:text-(--ink)',
-                  )}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="sidebar-active-pill"
-                      className="absolute inset-0 rounded-lg bg-(--brand-subtle)"
-                      transition={{ type: 'spring', duration: 0.35, bounce: 0 }}
-                    />
-                  )}
-                  <item.icon className="relative z-10 size-[18px] shrink-0" strokeWidth={1.75} />
-                  <span className="relative z-10">{item.label}</span>
-                  {active && (
-                    <ChevronRight className="relative z-10 size-3.5 ml-auto text-(--brand)" />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </nav>
-  )
+  const navContent = <NavLinks isActive={isActive} />
 
   const userFooter = (
     <div className="px-3 py-3 border-t border-(--border) space-y-2">
@@ -160,14 +165,15 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           </div>
         </Link>
         <form action={signOutAction} className="shrink-0">
-          <button
-            type="submit"
-            className="p-1 rounded-md text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) active:scale-90 transition-all duration-150"
-            title="Esci"
-            aria-label="Esci dall'account"
-          >
-            <LogOut className="size-4" />
-          </button>
+          <Tooltip content="Esci">
+            <button
+              type="submit"
+              className="p-1 rounded-md text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-150"
+              aria-label="Esci dall'account"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </Tooltip>
         </form>
       </div>
     </div>
@@ -191,7 +197,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           </Link>
         </div>
 
-        <LayoutGroup id="sidebar-desktop">{navContent}</LayoutGroup>
+        {navContent}
         {userFooter}
       </aside>
 
@@ -199,7 +205,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 border-b border-(--border) bg-(--surface)/90 backdrop-blur-md shadow-(--shadow-sm)">
         <button
           onClick={() => setMobileOpen((o) => !o)}
-          className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+          className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)]"
           aria-label={mobileOpen ? 'Chiudi menu' : 'Apri menu'}
           aria-expanded={mobileOpen}
         >
@@ -271,13 +277,13 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1 rounded-md text-(--faint) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-all duration-200 [transition-timing-function:var(--ease-spring)]"
+            className="p-1 rounded-md text-(--faint) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)]"
             aria-label="Chiudi menu"
           >
             <X className="size-5" />
           </button>
         </div>
-        <LayoutGroup id="sidebar-mobile">{navContent}</LayoutGroup>
+        {navContent}
         {userFooter}
       </aside>
     </>

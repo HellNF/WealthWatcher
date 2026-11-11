@@ -85,7 +85,7 @@ function EntityRow({ href, name, sub, value, accent }: {
         {sub && <span className="block text-xs text-(--muted) [overflow-wrap:anywhere]">{sub}</span>}
       </span>
       <span className="font-mono tabular-nums text-sm font-medium text-(--ink) shrink-0">{value}</span>
-      <ChevronRight className="size-4 text-(--faint) group-hover:text-(--ink) group-hover:translate-x-0.5 transition-[color,transform] duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
+      <ChevronRight className="size-4 text-(--faint) group-hover:text-(--ink) group-hover:translate-x-0.5 transition-[color,transform,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
     </Link>
   )
 }

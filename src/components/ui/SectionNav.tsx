@@ -64,7 +64,7 @@ export function SectionNav({ sections, className }: Props) {
               aria-current={selected ? 'location' : undefined}
               className={cn(
                 'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-xs font-medium whitespace-nowrap select-none',
-                'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                 selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}

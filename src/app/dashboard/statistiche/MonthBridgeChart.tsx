@@ -85,7 +85,7 @@ export default function MonthBridgeChart({ data }: Props) {
           axisLine={false}
           width={120}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, _name, entry) => {
             const p = entry?.payload as (typeof rows)[number] | undefined
             const detail = p && p.name !== 'Altre categorie'
@@ -103,7 +103,7 @@ export default function MonthBridgeChart({ data }: Props) {
           }}
         />
         <ReferenceLine x={0} stroke={colors.zero} />
-        <Bar dataKey="delta" radius={[0, 3, 3, 0]} maxBarSize={22}>
+        <Bar isAnimationActive={false} dataKey="delta" radius={[0, 3, 3, 0]} maxBarSize={22}>
           {rows.map((r, i) => (
             <Cell key={i} fill={r.delta >= 0 ? colors.over : colors.under} opacity={0.85} />
           ))}

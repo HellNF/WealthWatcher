@@ -79,7 +79,7 @@ export default async function LoginPage({
                 />
                 <button
                   type="submit"
-                  className="w-full h-10 rounded-lg bg-(--brand) text-(--brand-fg) text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-(--brand-hover) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
+                  className="w-full h-10 rounded-lg bg-(--brand) text-(--brand-fg) text-sm font-medium shadow-[var(--shadow-sm),inset_0_1px_0_0_oklch(1_0_0/0.25)] hover:bg-(--brand-hover) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
                 >
                   Accedi
                 </button>
@@ -96,7 +96,7 @@ export default async function LoginPage({
           <form action={googleSignIn}>
             <button
               type="submit"
-              className="w-full h-10 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) text-sm font-medium hover:bg-(--surface) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
+              className="w-full h-10 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) text-sm font-medium hover:bg-(--surface) hover:-translate-y-px active:scale-[0.98] active:translate-y-0 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"
             >
               Continua con Google
             </button>

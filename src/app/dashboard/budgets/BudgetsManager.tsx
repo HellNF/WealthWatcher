@@ -25,7 +25,7 @@ function DeleteBudgetBtn({ budget }: { budget: BudgetWithCategory }) {
     <ConfirmDelete
       action={deleteBudgetAction.bind(null, budget.id)}
       label=""
-      confirmText="Eliminare?"
+      confirmText="Eliminare questo budget?"
     />
   )
 }

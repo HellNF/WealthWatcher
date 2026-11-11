@@ -296,12 +296,16 @@ export interface RuleDraft {
   direction?:      'in' | 'out' | null
 }
 
+/** Lunghezza massima del pattern di una regola (form e server). */
+export const RULE_PATTERN_MAX = 200
+
 export function createCategoryRule(
   ownerId: number,
   draft:   RuleDraft,
 ): { ok: true; id: number } | { ok: false; error: string } {
   const clean = draft.pattern.trim().toLowerCase()
   if (!clean) return { ok: false, error: 'Il pattern non può essere vuoto.' }
+  if (clean.length > RULE_PATTERN_MAX) return { ok: false, error: `Il pattern può avere al massimo ${RULE_PATTERN_MAX} caratteri.` }
   const accountId = draft.bankAccountId ?? null
   const direction = draft.direction ?? null
   if (accountId !== null) {

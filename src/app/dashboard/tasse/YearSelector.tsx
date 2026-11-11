@@ -15,18 +15,18 @@ interface Props {
 export default function YearSelector({ years, selectedYear }: Props) {
   const router = useRouter()
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  function handleChange(year: string) {
     const params = new URLSearchParams(window.location.search)
-    params.set('year', e.target.value)
+    params.set('year', year)
     router.replace(`/dashboard/tasse?${params.toString()}`)
   }
 
   return (
     <Select
       value={selectedYear}
-      onChange={handleChange}
+      onValueChange={handleChange}
       aria-label="Seleziona anno fiscale"
-      className="w-28"
+      className="w-28 tabular-nums privacy-keep"
     >
       {years.map(y => (
         <option key={y} value={y}>{y}</option>

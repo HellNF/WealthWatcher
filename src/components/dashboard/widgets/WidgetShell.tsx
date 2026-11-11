@@ -54,7 +54,7 @@ export function WidgetShell({
                     key={s}
                     onClick={() => onResize(s)}
                     className={cn(
-                      'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase leading-none transition-all duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-none',
+                      'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase leading-none transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)] focus-visible:outline-none',
                       size === s
                         ? 'bg-(--brand) text-white'
                         : 'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2)',
@@ -69,7 +69,7 @@ export function WidgetShell({
               <button
                 onClick={onHide}
                 aria-label="Nascondi widget"
-                className="size-6 flex items-center justify-center rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger)/10 active:scale-90 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+                className="size-6 flex items-center justify-center rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger)/10 active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
               >
                 <EyeOff className="size-3.5" strokeWidth={1.75} />
               </button>
@@ -86,8 +86,9 @@ export function WidgetShell({
         </div>
       </div>
 
-      {/* Content — occupa lo spazio residuo, scorribile se overflow */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+      {/* Contenuto: occupa lo spazio residuo senza scorrere. Le liste dentro
+          (FitList) mostrano solo le righe che entrano per intero. */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {children}
       </div>
     </Card>

@@ -16,7 +16,7 @@ export default function RefreshMarketsButton() {
         type="button"
         disabled={isPending}
         onClick={() => startTransition(async () => setState(await refreshMarketsAction()))}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-(--border) bg-(--surface) px-3 py-1.5 text-xs font-medium text-(--ink) hover:bg-(--surface-2) active:scale-[0.98] disabled:opacity-60 transition-all duration-150"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-(--border) bg-(--surface) px-3 py-1.5 text-xs font-medium text-(--ink) hover:bg-(--surface-2) active:scale-[0.98] disabled:opacity-60 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-150"
       >
         <RefreshCw className={`size-3.5 ${isPending ? 'animate-spin' : ''}`} strokeWidth={1.75} aria-hidden />
         {isPending ? 'Aggiornamento in corso (circa un minuto)…' : 'Aggiorna i dati'}

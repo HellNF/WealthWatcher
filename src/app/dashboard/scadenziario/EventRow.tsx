@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Trash2, ArrowUpRight } from 'lucide-react'
-import { Badge } from '@/components/ui'
+import { Badge, Tooltip } from '@/components/ui'
 import type { DeadlineEvent } from '@/lib/calendar'
 import { deleteCalendarEventAction } from './actions'
 import { metaFor, fmtEur, fmtShort, countdownLabel } from './eventMeta'
@@ -67,9 +67,9 @@ export default function EventRow({ event: e, today, showDate = true }: Props) {
         {e.href && (
           <Link
             href={e.href}
-            className="inline-flex items-center gap-0.5 text-xs font-medium text-(--brand-text) mt-1 hover:gap-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) rounded"
+            className="group/link inline-flex items-center gap-0.5 text-xs font-medium text-(--brand-text) mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) rounded"
           >
-            Approfondisci <ArrowUpRight className="size-3" strokeWidth={2} />
+            Approfondisci <ArrowUpRight className="size-3 transition-transform duration-150 ease group-hover/link:translate-x-px group-hover/link:-translate-y-px" strokeWidth={2} aria-hidden />
           </Link>
         )}
       </div>
@@ -80,14 +80,15 @@ export default function EventRow({ event: e, today, showDate = true }: Props) {
         )}
         {e.source === 'custom' && e.id !== undefined && (
           <form action={deleteCalendarEventAction.bind(null, e.id)}>
-            <button
-              type="submit"
-              className="flex size-6 items-center justify-center rounded text-(--muted) hover:text-(--danger-text) hover:bg-(--danger-subtle) active:scale-90 transition-[color,background-color,transform] duration-150 ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
-              aria-label="Elimina evento"
-              title="Elimina"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+            <Tooltip content="Elimina">
+              <button
+                type="submit"
+                className="flex size-6 items-center justify-center rounded text-(--muted) hover:text-(--danger-text) hover:bg-(--danger-subtle) active:scale-90 transition-[color,background-color,transform,scale,translate] duration-150 ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+                aria-label="Elimina evento"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </Tooltip>
           </form>
         )}
       </div>

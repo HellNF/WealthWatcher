@@ -44,7 +44,7 @@ export default function GoalAllocateForm({ goalId, freeMinor, allocatedMinor }: 
                   onClick={() => setDirection(o.key)}
                   className={cn(
                     'relative h-8 px-3 rounded-md text-sm font-medium cursor-pointer select-none',
-                    'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                    'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
                     'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                     'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
                     selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',

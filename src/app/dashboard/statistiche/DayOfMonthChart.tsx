@@ -99,7 +99,7 @@ export default function DayOfMonthChart({ data }: Props) {
           axisLine={false}
           width={80}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), name === 'avgMinor' ? 'Spesa media' : String(name)]}
           labelFormatter={(label) => `Giorno ${label} del mese`}
           contentStyle={{
@@ -112,7 +112,7 @@ export default function DayOfMonthChart({ data }: Props) {
         />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 6 }} />
         <ReferenceLine y={avg} stroke={colors.ref} strokeDasharray="4 4" />
-        <Bar dataKey="avgMinor" name="Spesa giornaliera" radius={[3, 3, 0, 0]} maxBarSize={20} legendType="none">
+        <Bar isAnimationActive={false} dataKey="avgMinor" name="Spesa giornaliera" radius={[3, 3, 0, 0]} maxBarSize={20} legendType="none">
           {data.map((entry, i) => (
             <Cell
               key={i}
@@ -120,7 +120,7 @@ export default function DayOfMonthChart({ data }: Props) {
             />
           ))}
         </Bar>
-        <Line
+        <Line isAnimationActive={false}
           type="monotone"
           dataKey="Media Mobile Trend"
           stroke={colors.trend}

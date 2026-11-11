@@ -77,34 +77,6 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 )
 Input.displayName = 'Input'
 
-/* ─── Select ────────────────────────────────────────────────────────────────── */
-
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  error?: boolean
-}
-
-const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, error, children, ...props }, ref) => {
-    return (
-      <select
-        ref={ref}
-        aria-invalid={error ? true : undefined}
-        className={cn(
-          inputBase,
-          'cursor-pointer appearance-none',
-          'bg-[image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23888\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E")] bg-no-repeat bg-[right_0.75rem_center]',
-          'pr-8',
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-    )
-  },
-)
-Select.displayName = 'Select'
-
 /* ─── Textarea ──────────────────────────────────────────────────────────────── */
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -133,4 +105,4 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 )
 Textarea.displayName = 'Textarea'
 
-export { Input, Select, Textarea }
+export { Input, Textarea }

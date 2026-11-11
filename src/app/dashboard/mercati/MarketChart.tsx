@@ -69,7 +69,7 @@ export default function MarketChart({ series, value, unit, level, decimals = 0 }
           width={40} domain={['auto', 'auto']}
           tickFormatter={(v) => v.toLocaleString('it-IT', { maximumFractionDigits: decimals })}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           cursor={{ stroke: colors.grid, strokeWidth: 1 }}
           content={(props) => {
             const { active, payload } = props as unknown as { active?: boolean; payload?: { payload?: { label: string; v: number } }[] }
@@ -88,7 +88,7 @@ export default function MarketChart({ series, value, unit, level, decimals = 0 }
           y={value} stroke={stroke} strokeDasharray="4 3" strokeOpacity={0.9}
           label={{ value: 'ora', position: 'insideTopRight', fill: stroke, fontSize: 10 }}
         />
-        <Area type="monotone" dataKey="v" stroke={stroke} strokeWidth={2} fill={`url(#${gradId})`} dot={false} />
+        <Area isAnimationActive={false} type="monotone" dataKey="v" stroke={stroke} strokeWidth={2} fill={`url(#${gradId})`} dot={false} />
       </AreaChart>
     </ResponsiveContainer>
   )

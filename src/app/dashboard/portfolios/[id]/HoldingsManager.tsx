@@ -15,8 +15,7 @@ import {
   Button, Badge, EmptyState, Field, Input,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
   Card, CardHeader, CardTitle,
-  DataCard, DataCardHeader, DataRow,
-} from '@/components/ui'
+  DataCard, DataCardHeader, DataRow, Tooltip } from '@/components/ui'
 import { TrendingUp } from 'lucide-react'
 
 // ── Ricerca coin ───────────────────────────────────────────────────────────────
@@ -357,25 +356,27 @@ export default function HoldingsManager({
                           </Td>
                           <Td numeric>
                             <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setEditingId(
-                                  editingId === pos.instrumentId ? null : pos.instrumentId,
-                                )}
-                                className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
-                                title="Modifica quantità"
-                              >
-                                <Pencil className="size-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemove(pos.instrumentId)}
-                                disabled={removePending}
-                                className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
-                                title="Rimuovi posizione"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </button>
+                              <Tooltip content="Modifica quantità">
+                                <button aria-label="Modifica quantità"
+                                  type="button"
+                                  onClick={() => setEditingId(
+                                    editingId === pos.instrumentId ? null : pos.instrumentId,
+                                  )}
+                                  className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip content="Rimuovi posizione">
+                                <button aria-label="Rimuovi posizione"
+                                  type="button"
+                                  onClick={() => handleRemove(pos.instrumentId)}
+                                  disabled={removePending}
+                                  className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </Tooltip>
                             </div>
                           </Td>
                         </Tr>
@@ -400,25 +401,27 @@ export default function HoldingsManager({
                       badge={!pos.lastPrice ? <Badge variant="warning">stale</Badge> : undefined}
                       actions={
                         <div className="flex items-center gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setEditingId(
-                              editingId === pos.instrumentId ? null : pos.instrumentId,
-                            )}
-                            className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
-                            title="Modifica quantità"
-                          >
-                            <Pencil className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemove(pos.instrumentId)}
-                            disabled={removePending}
-                            className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
-                            title="Rimuovi posizione"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
+                          <Tooltip content="Modifica quantità">
+                            <button aria-label="Modifica quantità"
+                              type="button"
+                              onClick={() => setEditingId(
+                                editingId === pos.instrumentId ? null : pos.instrumentId,
+                              )}
+                              className="p-1.5 rounded-lg text-(--faint) hover:text-(--brand) hover:bg-(--brand-subtle) transition-colors"
+                            >
+                              <Pencil className="size-3.5" />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Rimuovi posizione">
+                            <button aria-label="Rimuovi posizione"
+                              type="button"
+                              onClick={() => handleRemove(pos.instrumentId)}
+                              disabled={removePending}
+                              className="p-1.5 rounded-lg text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) transition-colors disabled:opacity-40"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </Tooltip>
                         </div>
                       }
                     />

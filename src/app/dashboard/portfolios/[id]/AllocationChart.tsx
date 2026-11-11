@@ -76,7 +76,7 @@ export default function AllocationChart({ positions }: Props) {
       )}
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
-          <Pie
+          <Pie isAnimationActive={false}
             data={data}
             dataKey="value"
             innerRadius="52%"
@@ -89,7 +89,7 @@ export default function AllocationChart({ positions }: Props) {
               <Cell key={i} fill={PALETTE[i % PALETTE.length]} strokeWidth={0} />
             ))}
           </Pie>
-          <Tooltip
+          <Tooltip isAnimationActive={false}
             formatter={(value, _name, props) => {
               const d = props.payload as typeof data[0]
               const pct = ((Number(value) / total) * 100).toFixed(1)

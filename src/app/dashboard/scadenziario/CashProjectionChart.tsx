@@ -102,7 +102,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
           tickFormatter={(v) => formatAxisMoney(Number(v))} tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false} axisLine={false} width={78}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           content={(props) => {
             const { active, payload } = props as unknown as { active?: boolean; payload?: TooltipEntry[] }
             return <ProjectionTooltip active={active} payload={payload} colors={colors} />
@@ -119,7 +119,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
         {/* Giorno del minimo */}
         <ReferenceLine x={shortDate(minDate)} stroke={colors.axis} strokeOpacity={0.4} strokeDasharray="3 3" />
 
-        <Area
+        <Area isAnimationActive={false}
           type="monotone" dataKey="balanceMinor" stroke={stroke} strokeWidth={2}
           fill="url(#cashProjGrad)"
           dot={(props: { cx?: number; cy?: number; payload?: CashProjectionPoint; index?: number }) => {

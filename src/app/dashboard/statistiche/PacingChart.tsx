@@ -77,7 +77,7 @@ export default function PacingChart({ data }: Props) {
           axisLine={false}
           width={88}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
           labelFormatter={(day) => `Giorno ${day}`}
           contentStyle={{
@@ -94,7 +94,7 @@ export default function PacingChart({ data }: Props) {
           strokeDasharray="3 3"
           label={{ value: 'oggi', fill: colors.axis, fontSize: 11, position: 'insideTopRight' }}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="Tipico"
           stroke={colors.typical}
@@ -102,7 +102,7 @@ export default function PacingChart({ data }: Props) {
           fill={colors.typicalFill}
           dot={false}
         />
-        <Line
+        <Line isAnimationActive={false}
           type="monotone"
           dataKey="Attuale"
           stroke={colors.actual}
@@ -111,7 +111,7 @@ export default function PacingChart({ data }: Props) {
           connectNulls={false}
           activeDot={{ r: 4, strokeWidth: 0 }}
         />
-        <Line
+        <Line isAnimationActive={false}
           type="monotone"
           dataKey="Proiezione"
           stroke={colors.projected}

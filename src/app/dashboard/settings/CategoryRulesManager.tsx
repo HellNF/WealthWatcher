@@ -8,7 +8,7 @@ import {
   previewCategoryRuleAction,
 } from './actions'
 import {
-  Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge,
+  Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge, Select, ConfirmDialog,
 } from '@/components/ui'
 import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
 import type { CategoryProposal } from '@/lib/categorization'
@@ -72,13 +72,6 @@ function RulePreviewBox({ preview }: { preview: RulePreview }) {
 }
 
 function RuleRow({ rule }: { rule: CategoryRuleRow }) {
-  const [isPending, startTransition] = useTransition()
-
-  function handleDelete() {
-    if (!confirm(`Eliminare la regola "${rule.pattern}"?`)) return
-    startTransition(async () => { await deleteCategoryRuleAction(rule.id) })
-  }
-
   return (
     <Tr>
       <Td className="whitespace-normal">
@@ -96,16 +89,21 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
         <Badge variant="neutral">{rule.category_name}</Badge>
       </Td>
       <Td>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDelete}
-          disabled={isPending}
-          title={`Elimina regola "${rule.pattern}"`}
-          className="text-(--danger) hover:bg-(--danger-subtle) disabled:opacity-30"
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        <ConfirmDialog
+          title={`Eliminare la regola “${rule.pattern}”?`}
+          description="I movimenti già categorizzati restano come sono; i prossimi import non useranno più questa regola."
+          onConfirm={() => deleteCategoryRuleAction(rule.id)}
+          trigger={
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Elimina regola "${rule.pattern}"`}
+              className="hover:text-(--danger-text) hover:bg-(--danger-subtle)"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          }
+        />
       </Td>
     </Tr>
   )
@@ -222,6 +220,7 @@ export default function CategoryRulesManager({ rules, categories, accounts }: Pr
               name="pattern"
               type="text"
               required
+              maxLength={200}
               placeholder="es. netflix, apple, abbonamento…"
               className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
             />
@@ -259,53 +258,45 @@ export default function CategoryRulesManager({ rules, categories, accounts }: Pr
             <label htmlFor="rule-category" className="text-xs font-medium text-(--muted)">
               Categoria
             </label>
-            <select
+            <Select
               id="rule-category"
               name="category_id"
               required
-              className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)"
-            >
-              <option value="">— scegli —</option>
-              {expenseCategories.length > 0 && (
-                <optgroup label="Uscite">
-                  {expenseCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </optgroup>
-              )}
-              {incomeCategories.length > 0 && (
-                <optgroup label="Entrate">
-                  {incomeCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </optgroup>
-              )}
-              {otherCategories.length > 0 && (
-                <optgroup label="Altro">
-                  {otherCategories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+              placeholder="Scegli…"
+              onValueChange={() => setRulePreview(null)}
+              options={[
+                { label: 'Uscite',  options: expenseCategories.map((c) => ({ value: String(c.id), label: c.name })) },
+                { label: 'Entrate', options: incomeCategories.map((c) => ({ value: String(c.id), label: c.name })) },
+                { label: 'Altro',   options: otherCategories.map((c) => ({ value: String(c.id), label: c.name })) },
+              ].filter((g) => g.options.length > 0)}
+            />
           </div>
 
           <div className="space-y-1 min-w-0 max-w-full">
             <label htmlFor="rule-account" className="block text-xs font-medium text-(--muted)">Conto</label>
-            <select id="rule-account" name="bank_account_id"
-              className="h-9 w-full max-w-64 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
-              <option value="">Tutti i conti</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <Select
+              id="rule-account"
+              name="bank_account_id"
+              defaultValue=""
+              className="max-w-64"
+              onValueChange={() => setRulePreview(null)}
+              options={[{ value: '', label: 'Tutti i conti' }, ...accounts.map((a) => ({ value: String(a.id), label: a.name }))]}
+            />
           </div>
           <div className="space-y-1 min-w-0 max-w-full">
             <label htmlFor="rule-direction" className="block text-xs font-medium text-(--muted)">Movimenti</label>
-            <select id="rule-direction" name="direction"
-              className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
-              <option value="">Entrate e uscite</option>
-              <option value="out">Solo uscite</option>
-              <option value="in">Solo entrate</option>
-            </select>
+            <Select
+              id="rule-direction"
+              name="direction"
+              defaultValue=""
+              className="w-auto"
+              onValueChange={() => setRulePreview(null)}
+              options={[
+                { value: '',    label: 'Entrate e uscite' },
+                { value: 'out', label: 'Solo uscite' },
+                { value: 'in',  label: 'Solo entrate' },
+              ]}
+            />
           </div>
 
           <Button type="button" variant="secondary" size="sm" loading={previewing} disabled={previewing} onClick={runPreview}>

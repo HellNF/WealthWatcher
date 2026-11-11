@@ -37,7 +37,7 @@ export default function EtfDetails({ portfolioId, instrumentId, isin, initial }:
             <LineChart data={profile.performance} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <XAxis dataKey="date" minTickGap={70} tickFormatter={d => String(d).slice(0, 7)} />
               <YAxis tickFormatter={v => `${v}%`} domain={['auto', 'auto']} />
-              <Tooltip formatter={v => [`${Number(v).toLocaleString('it-IT')}%`, 'Rendimento cumulativo']} />
+              <Tooltip isAnimationActive={false} formatter={v => [`${Number(v).toLocaleString('it-IT')}%`, 'Rendimento cumulativo']} />
               <Line type="linear" dataKey="percent" stroke="var(--brand)" dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
