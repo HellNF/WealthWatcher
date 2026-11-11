@@ -18,6 +18,8 @@ export interface NetWorthPoint {
   /** Patrimonio netto in centesimi di euro */
   value: number
   stale?: boolean
+  /** Stima a posteriori da movimenti, prezzi e valutazioni salvati (non una rilevazione) */
+  reconstructed?: boolean
 }
 
 interface Props {
@@ -88,7 +90,18 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
   const [range, setRange] = useState<RangeId>('ALL')
   const [scrub, setScrub] = useState<number | null>(null)
 
-  const all = useMemo(() => points.map((p) => ({ t: toTime(p.date), value: p.value, stale: p.stale ?? false })), [points])
+  // Due serie sullo stesso asse: `estimated` (ricostruita, tratteggiata) e
+  // `observed` (snapshot veri). Il primo snapshot porta anche il valore stimato
+  // così il tratteggio si aggancia alla linea piena senza buchi.
+  const all = useMemo(() => points.map((p, i) => {
+    const reconstructed = p.reconstructed ?? false
+    const joinsEstimate = !reconstructed && (points[i - 1]?.reconstructed ?? false)
+    return {
+      t: toTime(p.date), value: p.value, stale: p.stale ?? false, reconstructed,
+      observed:  reconstructed ? null : p.value,
+      estimated: reconstructed || joinsEstimate ? p.value : null,
+    }
+  }), [points])
   const latest = all.at(-1) ?? null
 
   // Punti del periodo. Se il periodo parte "in mezzo" a due rilevazioni, tiene
@@ -181,6 +194,9 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
                 {stale || shown.stale ? 'Dati incompleti o da verificare · calcolo' : 'Calcolo'} il {fmtDay(latest.t, true)}
                 {refresh}
               </span>
+              {(shown.reconstructed || base.reconstructed) && data.length >= 2 && (
+                <span className="text-(--muted)">· {shown.reconstructed ? 'valore ricostruito dai movimenti' : 'base ricostruita dai movimenti'}</span>
+              )}
             </div>
           </div>
 
@@ -281,7 +297,22 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
                 />
                 <Area
                   type="monotoneX"
-                  dataKey="value"
+                  dataKey="estimated"
+                  stroke={colors.brand}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.7}
+                  fill={`url(#${groupId}-grad)`}
+                  fillOpacity={0.45}
+                  dot={false}
+                  activeDot={{ r: 4.5, fill: colors.brand, stroke: isDark ? 'oklch(0.17 0.007 160)' : '#fff', strokeWidth: 2 }}
+                  isAnimationActive={!reduceMotion}
+                  animationDuration={350}
+                  animationEasing="ease-out"
+                />
+                <Area
+                  type="monotoneX"
+                  dataKey="observed"
                   stroke={colors.brand}
                   strokeWidth={2}
                   fill={`url(#${groupId}-grad)`}
@@ -295,7 +326,14 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
             </ResponsiveContainer>
             </div>
           </div>
-        ) : (
+        ) : null}
+        {hasChart && data.some((d) => d.reconstructed) && (
+          <p className="px-3 pt-1 text-xs text-(--muted)">
+            Tratteggio: stima ricostruita da movimenti, prezzi e valutazioni salvati, prima della prima rilevazione.
+            I conti senza movimenti sono considerati costanti; i beni eliminati non sono inclusi.
+          </p>
+        )}
+        {!hasChart && (
           <p className="text-sm text-(--muted) py-10 text-center">
             Il grafico si popola nei prossimi giorni: servono almeno due rilevazioni.
           </p>
