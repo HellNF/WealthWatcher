@@ -3,7 +3,7 @@
 // colonna di riepilogo. Passando il puntatore si legge il saldo di quel giorno.
 import { useId, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { useReducedMotion } from 'motion/react'
+import { useReducedMotion } from '@/components/ui/useReducedMotion'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { fmtIsoDay } from '@/lib/format'
 

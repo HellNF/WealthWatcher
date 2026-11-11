@@ -1,62 +1,33 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSlidingPill } from '@/components/ui/useSlidingPill'
-import { cn } from '@/lib/cn'
+import { Segmented } from '@/components/ui/Segmented'
 
 /**
- * Segmented control Essenziale | Avanzata. Aggiorna il query param ?vista= via
- * router.replace (no nuova voce history), preservando gli altri parametri (year,
- * quarterly). Il Server Component rilegge searchParams e cambia profondità.
- * Default: Essenziale (nessun parametro).
+ * Essenziale | Avanzata: aggiorna ?vista= con router.replace (nessuna voce nella
+ * cronologia) preservando gli altri parametri; il Server Component rilegge
+ * searchParams e cambia profondità. Default: Essenziale (nessun parametro).
  */
 export default function ViewToggle() {
   const router = useRouter()
   const sp     = useSearchParams()
-  const advanced = sp.get('vista') === 'avanzata'
-  const { containerRef, pillRef } = useSlidingPill<HTMLDivElement>(advanced ? 'adv' : 'base')
 
-  function go(toAdvanced: boolean) {
+  function go(view: 'base' | 'avanzata') {
     const params = new URLSearchParams(sp.toString())
-    if (toAdvanced) params.set('vista', 'avanzata')
+    if (view === 'avanzata') params.set('vista', 'avanzata')
     else params.delete('vista')
     router.replace(`/dashboard/tasse?${params.toString()}`, { scroll: false })
   }
 
-  const options: { label: string; advanced: boolean }[] = [
-    { label: 'Essenziale', advanced: false },
-    { label: 'Avanzata',   advanced: true  },
-  ]
-
   return (
-    <div
-        ref={containerRef}
-        role="tablist"
-        aria-label="Livello di dettaglio"
-        className="relative inline-flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5"
-      >
-        <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border) opacity-0" />
-        {options.map((o) => {
-          const active = o.advanced === advanced
-          return (
-            <button
-              key={o.label}
-              data-pill-key={o.advanced ? 'adv' : 'base'}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => go(o.advanced)}
-              className={cn(
-                'relative h-8 rounded-md px-3 text-sm font-medium cursor-pointer select-none',
-                'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
-                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-                active ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
-              )}
-            >
-              <span className="relative">{o.label}</span>
-            </button>
-          )
-        })}
-      </div>
+    <Segmented
+      label="Livello di dettaglio"
+      value={sp.get('vista') === 'avanzata' ? 'avanzata' : 'base'}
+      onChange={go}
+      options={[
+        { value: 'base',     label: 'Essenziale' },
+        { value: 'avanzata', label: 'Avanzata' },
+      ]}
+    />
   )
 }

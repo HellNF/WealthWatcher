@@ -379,8 +379,22 @@ const FALLBACK_NEWS_SYMBOLS = ['^GSPC', '^STOXX50E', 'BTC-EUR']
  * @param symbols  — Simboli dei propri strumenti. Se vuoto, usa indici di mercato.
  * @param limit    — Numero massimo di articoli da restituire (default 6).
  */
+// Le notizie cambiano lentamente: senza cache ogni apertura della panoramica
+// farebbe fino a 5 richieste a Yahoo prima di poter rispondere.
+const NEWS_TTL_MS = 15 * 60 * 1000
+const newsCache = new Map<string, { at: number; items: NewsItem[] }>()
+
 export async function getMarketNews(symbols: string[], limit = 6): Promise<NewsItem[]> {
   const targets = symbols.length > 0 ? symbols.slice(0, 5) : FALLBACK_NEWS_SYMBOLS
+  const key = `${limit}:${targets.join(',')}`
+  const hit = newsCache.get(key)
+  if (hit && Date.now() - hit.at < NEWS_TTL_MS) return hit.items
+  const items = await fetchMarketNews(targets, limit)
+  if (items.length > 0) newsCache.set(key, { at: Date.now(), items })
+  return items
+}
+
+async function fetchMarketNews(targets: string[], limit: number): Promise<NewsItem[]> {
   try {
     const yf = await getYf()
     const perSymbol = Math.max(2, Math.ceil((limit * 2) / targets.length))

@@ -7,7 +7,8 @@
 import { formatAxisMoney, fmtEur } from '@/lib/format'
 import { useId, useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
+import { Segmented } from '@/components/ui/Segmented'
+import { useReducedMotion } from '@/components/ui/useReducedMotion'
 import { Info } from 'lucide-react'
 import NumberFlow from '@number-flow/react'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -202,41 +203,13 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
 
           {all.length >= 2 && (
               <div className="shrink-0">
-                <LayoutGroup id={groupId}>
-                  <div
-                    role="radiogroup"
-                    aria-label="Periodo del grafico"
-                    className="inline-flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5"
-                  >
-                    {RANGES.map((r) => {
-                      const selected = r.id === range
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          onClick={() => { setRange(r.id); setScrub(null) }}
-                          className={cn(
-                            'relative h-7 pointer-coarse:h-9 min-w-10 px-2.5 rounded-md text-xs font-medium cursor-pointer select-none',
-                            'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.96]',
-                            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-                            selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
-                          )}
-                        >
-                          {selected && (
-                            <motion.span
-                              layoutId="networth-range-pill"
-                              className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
-                              transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
-                            />
-                          )}
-                          <span className="relative">{r.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </LayoutGroup>
+                <Segmented
+                  label="Periodo del grafico"
+                  size="sm"
+                  value={range}
+                  onChange={(r) => { setRange(r); setScrub(null) }}
+                  options={RANGES.map((r) => ({ value: r.id, label: r.label }))}
+                />
               </div>
             )}
         </div>
