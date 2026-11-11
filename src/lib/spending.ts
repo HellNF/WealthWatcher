@@ -3,11 +3,12 @@
 // Problema risolto: i trasferimenti tra conti propri NON sono né reddito né spesa.
 // Due meccanismi complementari:
 //   1. filtro sulle categorie con kind='transfer' (esplicite, vincono sempre);
-//   2. rilevamento automatico delle coppie di trasferimento interno tra transazioni
-//      NON categorizzate (stesso importo assoluto, segni opposti, conti diversi
-//      dello stesso utente, entro ±3 giorni).
+//   2. coppie di giroconto proposte tra transazioni NON categorizzate (stesso
+//      importo e valuta, segni opposti, conti diversi, entro ±3 giorni) e non
+//      rifiutate dall'utente — vedi src/lib/transfers.ts.
 // L'insieme di id delle coppie rilevate viene iniettato nelle query via json_each.
 import { sqlite } from '@/db'
+import { suggestTransfers } from '@/lib/transfers'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FLOW CONTEXT — esclusione trasferimenti
@@ -23,22 +24,11 @@ export interface FlowContext {
   hasMultipleCurrencies: boolean
 }
 
-interface PairCandidate {
-  id:              number
-  bank_account_id: number
-  booked_date:     string
-  amount_minor:    number
-}
-
-const PAIR_WINDOW_DAYS = 3
-const PAIR_MIN_ABS_MINOR = 100 // ignora importi < €1
-
 /**
- * Costruisce il contesto di flusso per l'utente: rileva le coppie di
- * trasferimento interno tra transazioni non categorizzate.
- * Matching greedy 1:1: per ogni gamba negativa (in ordine di data) la gamba
- * positiva più vicina nel tempo, su un conto DIVERSO, con lo stesso |importo|,
- * entro ±3 giorni. Un rimborso (positivo sullo stesso conto) non matcha mai.
+ * Costruisce il contesto di flusso per l'utente. Le coppie di giroconto
+ * proposte tra movimenti ancora senza categoria vengono escluse dalle
+ * statistiche anche senza conferma (src/lib/transfers.ts); quelle confermate
+ * hanno già la categoria di trasferimento, quelle rifiutate restano flussi.
  */
 export function buildFlowContext(userId: number): FlowContext {
   const currencyRow = sqlite
@@ -46,64 +36,11 @@ export function buildFlowContext(userId: number): FlowContext {
     .get(userId) as { n: number }
   const hasMultipleCurrencies = (currencyRow?.n ?? 0) > 1
 
-  const accountRow = sqlite
-    .prepare(`SELECT COUNT(DISTINCT bank_account_id) AS n FROM transactions WHERE owner_id = ?`)
-    .get(userId) as { n: number }
-
-  if ((accountRow?.n ?? 0) < 2) {
-    return { userId, excludedIdsJson: '[]', pairCount: 0, hasMultipleCurrencies }
-  }
-
-  const candidates = sqlite
-    .prepare(
-      `SELECT id, bank_account_id, booked_date, amount_minor
-       FROM transactions
-       WHERE owner_id = ?
-         AND category_id IS NULL
-         AND ABS(amount_minor) >= ?
-       ORDER BY booked_date ASC, id ASC`,
-    )
-    .all(userId, PAIR_MIN_ABS_MINOR) as PairCandidate[]
-
-  // Bucket per importo assoluto: una coppia ha lo stesso |amount_minor|.
-  const buckets = new Map<number, { neg: PairCandidate[]; pos: PairCandidate[] }>()
-  for (const c of candidates) {
-    const key = Math.abs(c.amount_minor)
-    let b = buckets.get(key)
-    if (!b) { b = { neg: [], pos: [] }; buckets.set(key, b) }
-    ;(c.amount_minor < 0 ? b.neg : b.pos).push(c)
-  }
-
-  const pairedIds: number[] = []
-  const windowMs = PAIR_WINDOW_DAYS * 86_400_000
-
-  for (const { neg, pos } of buckets.values()) {
-    if (neg.length === 0 || pos.length === 0) continue
-    // Tutte le combinazioni valide ordinate per distanza temporale crescente,
-    // poi consumo greedy 1:1: vince sempre la coppia globalmente più vicina.
-    const combos: { negId: number; posId: number; delta: number }[] = []
-    for (const n of neg) {
-      const nMs = Date.parse(n.booked_date)
-      for (const p of pos) {
-        if (p.bank_account_id === n.bank_account_id) continue
-        const delta = Math.abs(Date.parse(p.booked_date) - nMs)
-        if (delta <= windowMs) combos.push({ negId: n.id, posId: p.id, delta })
-      }
-    }
-    combos.sort((a, b) => a.delta - b.delta)
-    const used = new Set<number>()
-    for (const c of combos) {
-      if (used.has(c.negId) || used.has(c.posId)) continue
-      used.add(c.negId)
-      used.add(c.posId)
-      pairedIds.push(c.negId, c.posId)
-    }
-  }
-
+  const pairs = suggestTransfers(userId).filter((p) => p.autoExcluded)
   return {
     userId,
-    excludedIdsJson: JSON.stringify(pairedIds),
-    pairCount: pairedIds.length / 2,
+    excludedIdsJson: JSON.stringify(pairs.flatMap((p) => [p.outflow.id, p.inflow.id])),
+    pairCount: pairs.length,
     hasMultipleCurrencies,
   }
 }

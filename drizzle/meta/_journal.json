@@ -225,6 +225,13 @@
       "when": 1794340026188,
       "tag": "0031_new_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1794388221271,
+      "tag": "0032_condemned_argent",
+      "breakpoints": true
     }
   ]
 }

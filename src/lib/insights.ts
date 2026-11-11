@@ -347,7 +347,7 @@ export function computeInsights(inputs: InsightInputs): Insight[] {
       severity: 'info',
       icon: 'repeat',
       title: `${inputs.pairCount} trasferimenti interni riconosciuti automaticamente`,
-      body: `Ho individuato ${inputs.pairCount} coppie di movimenti speculari tra i tuoi conti e le ho escluse dalle statistiche. Per renderlo esplicito (e a prova di errore), assegna loro la categoria Trasferimento.`,
+      body: `Ho individuato ${inputs.pairCount} coppie di movimenti speculari tra i tuoi conti e le ho escluse dalle statistiche. Confermale (o scartale) dalla sezione «Giroconti» della pagina di ciascun conto: una volta confermate restano escluse anche se cambiano le categorie.`,
       impactMinor: 0,
     })
   }
