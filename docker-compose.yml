@@ -5,7 +5,6 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/data
-      - ./SPEC.md:/app/SPEC.md:ro
     restart: unless-stopped
     env_file:
       - .env

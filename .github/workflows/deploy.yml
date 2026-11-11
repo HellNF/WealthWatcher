@@ -18,7 +18,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 15
+    # Con un lockfile nuovo il livello di npm ci si ricostruisce da zero
+    # (compilazione di better-sqlite3 inclusa): sul server servono più di 15 min.
+    timeout-minutes: 40
     steps:
       - name: Pull latest main
         run: |

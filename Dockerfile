@@ -2,7 +2,9 @@ FROM node:24-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache python3 make g++
 COPY package*.json ./
-RUN npm ci
+# Cache dei pacchetti scaricati tra un build e l'altro: quando il lockfile
+# cambia, npm ci riparte da questa cache invece di riscaricare tutto.
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 FROM node:24-alpine AS builder
 WORKDIR /app
