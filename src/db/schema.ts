@@ -787,3 +787,23 @@ export const recurringDecisions = sqliteTable('recurring_decisions', {
 }, (t) => [
   uniqueIndex('recurring_decisions_owner_key_uniq').on(t.owner_id, t.key),
 ])
+
+// Storico delle sincronizzazioni Open Banking: esito visibile all'utente anche
+// quando una sync (manuale o programmata) fallisce. Nessun dato bancario: solo
+// conteggi e messaggi d'errore generici. Si conservano le ultime per connessione.
+export const syncRuns = sqliteTable('sync_runs', {
+  id:              integer('id').primaryKey({ autoIncrement: true }),
+  owner_id:        integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  connection_id:   integer('connection_id').notNull().references(() => ebConnections.id, { onDelete: 'cascade' }),
+  trigger:         text('trigger', { enum: ['manual', 'scheduled'] as const }).notNull(),
+  outcome:         text('outcome', { enum: ['ok', 'partial', 'failed', 'expired', 'no-credentials'] as const }).notNull(),
+  started_at:      integer('started_at').notNull(),
+  finished_at:     integer('finished_at').notNull(),
+  inserted_count:  integer('inserted_count').notNull().default(0),
+  duplicate_count: integer('duplicate_count').notNull().default(0),
+  error:           text('error'),
+  accounts_json:   text('accounts_json').notNull().default('[]'),
+}, (t) => [
+  index('idx_sync_runs_connection').on(t.connection_id, t.started_at),
+])
+export type SyncRun = InferSelectModel<typeof syncRuns>

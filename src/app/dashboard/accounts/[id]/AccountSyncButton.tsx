@@ -10,8 +10,9 @@ import { useRouter } from 'next/navigation'
 import { syncConnectionAction, type SyncActionResult } from '@/app/dashboard/banking/actions'
 import { Button } from '@/components/ui'
 import { RefreshCw } from 'lucide-react'
+import type { SyncRunSummary } from '@/lib/banking/syncRuns'
 
-export default function AccountSyncButton({ connectionId, accountId }: { connectionId: number; accountId: number }) {
+export default function AccountSyncButton({ connectionId, accountId, lastRun }: { connectionId: number; accountId: number; lastRun?: SyncRunSummary | null }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<SyncActionResult | null>(null)
@@ -43,6 +44,12 @@ export default function AccountSyncButton({ connectionId, accountId }: { connect
         <RefreshCw className="size-4" />
         Sincronizza (Open Banking)
       </Button>
+      {!result && lastRun && (
+        <span className={`text-xs ${lastRun.outcome === 'ok' ? 'text-(--muted)' : 'text-(--warning-text)'}`}
+          title={lastRun.outcome !== 'ok' ? lastRun.error ?? undefined : undefined}>
+          Ultima sync {lastRun.when} · {lastRun.label}
+        </span>
+      )}
       {result?.error && <span className="text-sm text-(--danger)">{result.error}</span>}
       {result && !result.error && (
         <span className="text-sm text-(--muted)">

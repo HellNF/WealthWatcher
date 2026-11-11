@@ -15,6 +15,7 @@ import EditInstitutionForm from './EditInstitutionForm'
 import { deleteInstitutionAction } from './actions'
 import ConnectBankButton from '@/app/dashboard/banking/ConnectBankButton'
 import SyncButton from '@/app/dashboard/banking/SyncButton'
+import { listSyncRuns, summarizeSyncRun } from '@/lib/banking/syncRuns'
 import {
   Card, EmptyState, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
 } from '@/components/ui'
@@ -68,6 +69,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
   // trovare la propria banca nel selettore.
   const aspsps = ebCreds ? await getAspsps(ebCreds, institution.country ?? 'IT') : null
   const connections = ebCreds ? listConnectionsForInstitution(user.id, id) : []
+  const accountNames = new Map(listAccounts(user.id).map((a) => [a.id, a.name]))
   const visibleConnections = connections.filter((c) => c.status !== 'revoked')
 
   // Preview conti: saldo + statistiche movimenti + stima interesse.
@@ -279,6 +281,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
                 status={c.status}
                 aspsp={{ name: c.aspsp_name, country: c.aspsp_country }}
                 lastSyncedAt={c.last_synced_at ? formatDateIt(c.last_synced_at) : null}
+                runs={listSyncRuns(user.id, c.id, 5).map((r) => summarizeSyncRun(r, accountNames))}
               />
             ))}
           </Card>

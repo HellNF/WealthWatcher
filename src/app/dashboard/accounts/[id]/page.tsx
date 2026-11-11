@@ -8,6 +8,7 @@ import { listTransactions, countTransactions, listAllCategories } from '@/lib/tr
 import TxnFilters from './TxnFilters'
 import TransactionTable from './TransactionTable'
 import TransferReview from './TransferReview'
+import { latestSyncRun, summarizeSyncRun } from '@/lib/banking/syncRuns'
 import { suggestTransfers, listConfirmedTransfers } from '@/lib/transfers'
 import SetBalanceForm from './SetBalanceForm'
 import InterestForm from './InterestForm'
@@ -48,6 +49,8 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const transactions = listTransactions(user.id, id, { from, to, limit, review })
   const totalCount   = countTransactions(user.id, id, { from, to, review })
   const categories   = listAllCategories()
+  const lastSyncRunView = account.eb_connection_id ? latestSyncRun(user.id, account.eb_connection_id) : null
+  const lastSyncRun = lastSyncRunView ? summarizeSyncRun(lastSyncRunView, new Map([[account.id, account.name]])) : null
   // Giroconti che toccano questo conto: le proposte servono anche al contatore.
   const involves = (p: { outflow: { bank_account_id: number }; inflow: { bank_account_id: number } }) =>
     p.outflow.bank_account_id === id || p.inflow.bank_account_id === id
@@ -151,7 +154,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         description={institution ? `Conto corrente · ${institution.name} · ${account.currency}` : `Conto corrente · ${account.currency}`}
         actions={
           <>
-            {account.eb_connection_id && <AccountSyncButton connectionId={account.eb_connection_id} accountId={id} />}
+            {account.eb_connection_id && <AccountSyncButton connectionId={account.eb_connection_id} accountId={id} lastRun={lastSyncRun} />}
             <Link href={`/dashboard/reports?account=${id}`} className={LINK}>
               <BarChart3 className="size-4" strokeWidth={1.75} />
               Report mensile
