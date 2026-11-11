@@ -5,7 +5,7 @@ import { Button, Field, Input, Select, Badge, ConfirmDelete, Tooltip } from '@/c
 import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction, setAssetIncludedAction } from './assets-actions'
 import { ASSET_KINDS, KIND_MAP } from './assetKinds'
 import { FUEL_OPTIONS, GEARBOX_OPTIONS, COUNTRY_OPTIONS, DRIVETRAIN_OPTIONS } from './vehicleFields'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import { formatDateIt } from '@/lib/formatDate'
 import type { Asset, VehicleDetails } from '@/lib/assets'
 

@@ -50,7 +50,7 @@ function errorOf(result: ConnectionSyncResult): string | null {
   return errors.length ? errors.join(' · ') : null
 }
 
-export function recordSyncRun(
+function recordSyncRun(
   connection: Pick<EbConnection, 'id' | 'owner_id'>,
   trigger: SyncTrigger,
   startedAt: number,
@@ -118,7 +118,7 @@ export function latestSyncRun(userId: number, connectionId: number): SyncRunView
   return listSyncRuns(userId, connectionId, 1)[0] ?? null
 }
 
-export const OUTCOME_LABEL: Record<SyncOutcome, string> = {
+const OUTCOME_LABEL: Record<SyncOutcome, string> = {
   'ok':             'riuscita',
   'partial':        'riuscita in parte',
   'failed':         'non riuscita',

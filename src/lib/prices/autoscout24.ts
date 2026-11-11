@@ -15,7 +15,6 @@
 // (JSON assente, campo mancante, HTTP non-200) ritorna null, e il chiamante marca la
 // stima come "stale" mantenendo l'ultimo valore noto. Un campione insufficiente NON è
 // più un'anomalia fatale: vedi cascata di rilassamento sotto.
-import type { Quote } from './provider'
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout'
 
 const BASE = 'https://www.autoscout24.it'
@@ -189,7 +188,7 @@ function downgrade(c: Confidence): Confidence {
  *     comparabili tra loro → declassa)
  * Funzione pura, testabile in isolamento.
  */
-export function scoreConfidence(input: { level: number; sampleSize: number; prices: number[] }): Confidence {
+function scoreConfidence(input: { level: number; sampleSize: number; prices: number[] }): Confidence {
   const { level, sampleSize, prices } = input
 
   let score: Confidence =
@@ -293,15 +292,3 @@ export async function estimateVehicleValue(v: VehicleQuery): Promise<VehicleEsti
   }
 }
 
-/**
- * Converte una Quote-like { price, currency } dal risultato mediano, per uniformità
- * stilistica con gli altri provider (non implementa PriceProvider — il veicolo non
- * ha un "symbol", ha un VehicleQuery strutturato).
- */
-export function toQuote(estimate: VehicleEstimate): Quote {
-  return {
-    price:    (estimate.valueMinor / 100).toString(),
-    currency: estimate.currency,
-    asOf:     Math.floor(Date.now() / 1000),
-  }
-}

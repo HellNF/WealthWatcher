@@ -69,8 +69,8 @@ export function percentileOf(value: number, history: number[]): number | null {
 
 // Soglie fisse e revisionabili. Volutamente conservative: si etichetta "estremo"
 // solo agli estremi della distribuzione storica.
-export const HIGH_PERCENTILE = 90
-export const LOW_PERCENTILE = 10
+const HIGH_PERCENTILE = 90
+const LOW_PERCENTILE = 10
 
 /** Mappa un percentile su un livello neutro tramite le soglie fisse. */
 export function levelFromPercentile(

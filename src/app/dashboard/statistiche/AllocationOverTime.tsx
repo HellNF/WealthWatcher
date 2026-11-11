@@ -1,23 +1,15 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
 } from 'recharts'
 import type { AllocationPoint } from '@/lib/analytics'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   data: AllocationPoint[]
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 function shortDate(iso: string): string {
@@ -26,8 +18,7 @@ function shortDate(iso: string): string {
 }
 
 export default function AllocationOverTime({ data }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const t = useChartTheme()
 
   if (data.length < 2) {
     return (
@@ -36,26 +27,6 @@ export default function AllocationOverTime({ data }: Props) {
       </p>
     )
   }
-
-  const colors = isDark
-    ? {
-        grid:   'oklch(0.26 0.01 160)',
-        axis:   'oklch(0.42 0.01 160)',
-        inv:    '#34d399',
-        acc:    '#60a5fa',
-        other:  '#f59e0b',
-        tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-      }
-    : {
-        grid:   'oklch(0.88 0.005 160)',
-        axis:   'oklch(0.65 0.008 160)',
-        inv:    '#059669',
-        acc:    '#2563eb',
-        other:  '#d97706',
-        tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-      }
 
   const chartData = data.map((p) => ({
     date:        shortDate(p.date),
@@ -69,42 +40,36 @@ export default function AllocationOverTime({ data }: Props) {
       <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="gradInv" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={colors.inv}   stopOpacity={isDark ? 0.5 : 0.35} />
-            <stop offset="100%" stopColor={colors.inv}   stopOpacity={0.05} />
+            <stop offset="0%"   stopColor={t.brand}   stopOpacity={t.dark ? 0.5 : 0.35} />
+            <stop offset="100%" stopColor={t.brand}   stopOpacity={0.05} />
           </linearGradient>
           <linearGradient id="gradAcc" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={colors.acc}   stopOpacity={isDark ? 0.5 : 0.35} />
-            <stop offset="100%" stopColor={colors.acc}   stopOpacity={0.05} />
+            <stop offset="0%"   stopColor={t.blue}   stopOpacity={t.dark ? 0.5 : 0.35} />
+            <stop offset="100%" stopColor={t.blue}   stopOpacity={0.05} />
           </linearGradient>
           <linearGradient id="gradOther" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={colors.other} stopOpacity={isDark ? 0.5 : 0.35} />
-            <stop offset="100%" stopColor={colors.other} stopOpacity={0.05} />
+            <stop offset="0%"   stopColor={t.amber} stopOpacity={t.dark ? 0.5 : 0.35} />
+            <stop offset="100%" stopColor={t.amber} stopOpacity={0.05} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
         <XAxis
           dataKey="date"
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           tickFormatter={(v) => formatAxisMoney(Number(v))}
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           width={88}
         />
         <Tooltip isAnimationActive={false}
-          formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
-          contentStyle={{
-            background: colors.tooltipBg,
-            border: `1px solid ${colors.tooltipBorder}`,
-            borderRadius: 10,
-            fontSize: 12,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
-          }}
+          formatter={(value, name) => [fmtEur(Number(value), 0), String(name)]}
+          contentStyle={t.tooltip}
         />
         <Legend
           iconType="circle"
@@ -115,7 +80,7 @@ export default function AllocationOverTime({ data }: Props) {
           type="monotone"
           dataKey="Investimenti"
           stackId="1"
-          stroke={colors.inv}
+          stroke={t.brand}
           strokeWidth={1.5}
           fill="url(#gradInv)"
           dot={false}
@@ -124,7 +89,7 @@ export default function AllocationOverTime({ data }: Props) {
           type="monotone"
           dataKey="Conti"
           stackId="1"
-          stroke={colors.acc}
+          stroke={t.blue}
           strokeWidth={1.5}
           fill="url(#gradAcc)"
           dot={false}
@@ -133,7 +98,7 @@ export default function AllocationOverTime({ data }: Props) {
           type="monotone"
           dataKey="Altri beni"
           stackId="1"
-          stroke={colors.other}
+          stroke={t.amber}
           strokeWidth={1.5}
           fill="url(#gradOther)"
           dot={false}

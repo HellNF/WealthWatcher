@@ -23,18 +23,6 @@ export interface RefreshResult {
 }
 
 /**
- * Storico prezzi per crypto con fallback CoinGecko → CoinMarketCap.
- * Se CoinGecko va in rate-limit (risposta vuota), tenta CMC prima di rinunciare.
- */
-export async function getCryptoHistory(
-  coinId: string,
-  symbol: string,
-  period: string,
-): Promise<PricePoint[]> {
-  return (await getCryptoHistoryWithSource(coinId, symbol, period)).points
-}
-
-/**
  * Ticker Yahoo della coppia in euro (es. BTC → "BTC-EUR").
  * Lo stesso ticker può appartenere a monete diverse: se è noto un prezzo di
  * riferimento, la serie viene accettata solo se l'ultimo valore gli è vicino.

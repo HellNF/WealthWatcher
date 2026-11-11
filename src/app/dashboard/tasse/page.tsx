@@ -32,7 +32,7 @@ import RealizedSection from './RealizedSection'
 import WealthTaxSection from './WealthTaxSection'
 import PensionSection from './PensionSection'
 import { ETF_ASYMMETRY_SOURCE } from './sources'
-import { fmtEur } from './format'
+import { fmtEur } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,7 +79,7 @@ export default async function TassePage({ searchParams }: Props) {
   const actionable = insights.find(i =>
     i.severity === 'critical' || i.severity === 'warn' || i.severity === 'opportunity')
   const headline = totalTaxMinor > 0
-    ? `Nel ${year} il tuo carico fiscale stimato è ${fmtEur(totalTaxMinor)}.`
+    ? `Nel ${year} il tuo carico fiscale stimato è ${fmtEur(totalTaxMinor, 0)}.`
     : `Nel ${year} non risulta imposta stimata a tuo carico.`
   const detail = actionable
     ? `${actionable.title}${actionable.impactLabel ? ` — ${actionable.impactLabel}.` : '.'} `
@@ -91,24 +91,24 @@ export default async function TassePage({ searchParams }: Props) {
   const verdictStats: VerdictStat[] = [
     {
       label: 'Su plus e redditi realizzati',
-      value: fmtEur(realizedTax.totalTaxDueMinor),
-      sub: realizedTax.compensatedMinor > 0 ? `dopo ${fmtEur(realizedTax.compensatedMinor)} compensati` : undefined,
+      value: fmtEur(realizedTax.totalTaxDueMinor, 0),
+      sub: realizedTax.compensatedMinor > 0 ? `dopo ${fmtEur(realizedTax.compensatedMinor, 0)} compensati` : undefined,
       tone: 'danger',
     },
     {
       label: 'Patrimoniali (bollo/IVAFE)',
-      value: wealthTaxes ? fmtEur(wealthTaxes.totalMinor) : '—',
+      value: wealthTaxes ? fmtEur(wealthTaxes.totalMinor, 0) : '—',
       sub: wealthTaxes?.stale ? 'cambio BCE parziale' : undefined,
       tone: 'danger',
     },
     {
       label: 'Ritenuta interessi',
-      value: interestTotal.accountCount > 0 ? fmtEur(interestTotal.withholdingMinor) : '—',
+      value: interestTotal.accountCount > 0 ? fmtEur(interestTotal.withholdingMinor, 0) : '—',
       tone: 'danger',
     },
     {
       label: 'Tassa latente',
-      value: latentTax && latentTax.latentTaxMinor > 0 ? fmtEur(latentTax.latentTaxMinor) : '—',
+      value: latentTax && latentTax.latentTaxMinor > 0 ? fmtEur(latentTax.latentTaxMinor, 0) : '—',
       sub: latentTax && latentTax.latentTaxMinor > 0 ? 'se vendi oggi' : undefined,
     },
   ]
@@ -141,7 +141,7 @@ export default async function TassePage({ searchParams }: Props) {
     title:    rec.ticker ? `${rec.assetName} · ${rec.ticker}` : rec.assetName,
     body:     rec.actionText,
     impactMinor: rec.taxImpactMinor,
-    impactLabel: `${rec.type === 'EXTEND_EXPIRY' ? 'Risparmio' : 'Credito futuro'} ${fmtEur(rec.taxImpactMinor)}`,
+    impactLabel: `${rec.type === 'EXTEND_EXPIRY' ? 'Risparmio' : 'Credito futuro'} ${fmtEur(rec.taxImpactMinor, 0)}`,
   }))
 
   return (
@@ -149,7 +149,7 @@ export default async function TassePage({ searchParams }: Props) {
     <StickyBar watchId="tax-total">
       <span className="text-sm font-medium text-(--ink)">Gestione fiscale {year}</span>
       <span className="text-sm text-(--muted)">
-        Carico stimato <span className="font-mono tabular-nums font-semibold text-(--ink)">{fmtEur(totalTaxMinor)}</span>
+        Carico stimato <span className="font-mono tabular-nums font-semibold text-(--ink)">{fmtEur(totalTaxMinor, 0)}</span>
       </span>
     </StickyBar>
     <main className={`${PAGE_SHELL} space-y-8`}>
@@ -169,7 +169,7 @@ export default async function TassePage({ searchParams }: Props) {
         headline={headline}
         detail={detail}
         totalLabel={`Carico fiscale stimato ${year}`}
-        totalValue={fmtEur(totalTaxMinor)}
+        totalValue={fmtEur(totalTaxMinor, 0)}
         valueId="tax-total"
         stats={verdictStats}
       />
@@ -236,15 +236,15 @@ export default async function TassePage({ searchParams }: Props) {
               <Card className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                 <Stat
                   label="Interesse lordo / anno"
-                  value={fmtEur(interestTotal.grossAnnualMinor)}
+                  value={fmtEur(interestTotal.grossAnnualMinor, 0)}
                   sub={`su ${interestTotal.accountCount} ${interestTotal.accountCount === 1 ? 'conto' : 'conti'}`}
                   size="sm"
                 />
-                <Stat label="Ritenuta 26%" value={`−${fmtEur(interestTotal.withholdingMinor)}`} size="sm" />
+                <Stat label="Ritenuta 26%" value={`−${fmtEur(interestTotal.withholdingMinor, 0)}`} size="sm" />
                 <Stat
                   label="Netto / anno"
-                  value={fmtEur(interestTotal.netAnnualMinor)}
-                  sub={`≈ ${fmtEur(Math.round(interestTotal.netAnnualMinor / 12))}/mese`}
+                  value={fmtEur(interestTotal.netAnnualMinor, 0)}
+                  sub={`≈ ${fmtEur(Math.round(interestTotal.netAnnualMinor / 12), 0)}/mese`}
                   size="sm"
                 />
               </Card>

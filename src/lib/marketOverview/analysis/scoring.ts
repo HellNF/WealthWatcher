@@ -16,7 +16,7 @@ export function clamp(x: number, lo = -1, hi = 1): number {
 }
 
 /** Lettura qualitativa a partire dal punteggio. */
-export function readingFromScore(score: number): Reading {
+function readingFromScore(score: number): Reading {
   if (!Number.isFinite(score)) return 'neutral'
   if (score >= 0.2) return 'favorable'
   if (score <= -0.2) return 'unfavorable'
@@ -51,7 +51,7 @@ export function confidenceFromCoverage(present: number, total: number): Confiden
   return 'bassa'
 }
 
-export const STANCE_HEADLINE: Record<Stance, string> = {
+const STANCE_HEADLINE: Record<Stance, string> = {
   accumulate:        'Contesto storicamente favorevole all’accumulo',
   'lean-accumulate': 'Contesto moderatamente favorevole',
   neutral:           'Contesto neutro',
@@ -60,7 +60,7 @@ export const STANCE_HEADLINE: Record<Stance, string> = {
 }
 
 /** Costruisce il paragrafo argomentato: tensione tra fattori pro e contro. */
-export function buildNarrative(
+function buildNarrative(
   title:    string,
   stance:   Stance,
   drivers:  Driver[],

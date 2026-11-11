@@ -15,6 +15,7 @@ import { listInstruments } from '@/lib/instruments'
 import { convertToEur } from '@/lib/fx/convert'
 import { computeFiscalWallet } from './wallet'
 import { effectiveRate, incomeType } from './rates'
+import { fmtEur } from '@/lib/format'
 
 // ── Tipi pubblici ─────────────────────────────────────────────────────────────
 
@@ -45,12 +46,6 @@ export interface HarvestingRecommendation {
 const MATERIALITY_MINOR = 1_000
 
 // ── Helper ────────────────────────────────────────────────────────────────────
-
-function fmtEur(minor: number): string {
-  return (Math.abs(minor) / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', useGrouping: 'always', minimumFractionDigits: 2,
-  })
-}
 
 /** Arrotonda la quantità suggerita a 2 decimali, al rialzo per coprire il target */
 function roundQtyUp(qty: number): string {

@@ -131,8 +131,8 @@ const present = <T,>(xs: (T | null)[]): T[] => xs.filter((x): x is T => x !== nu
 
 // FRED data ogni osservazione al primo giorno del periodo: "2026-08-01" per
 // agosto, "2026-04-01" per il 2° trimestre. Si riportano al periodo vero.
-export const toMonthly = (s: Observation[]): Observation[] => s.map((o) => ({ ...o, period: o.period.slice(0, 7) }))
-export const toQuarterly = (s: Observation[]): Observation[] =>
+const toMonthly = (s: Observation[]): Observation[] => s.map((o) => ({ ...o, period: o.period.slice(0, 7) }))
+const toQuarterly = (s: Observation[]): Observation[] =>
   s.map((o) => ({ ...o, period: `${o.period.slice(0, 4)}-Q${Math.floor((parseInt(o.period.slice(5, 7), 10) - 1) / 3) + 1}` }))
 
 // ── Classificatori a soglie fisse (testati) ───────────────────────────────────

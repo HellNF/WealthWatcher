@@ -116,13 +116,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ user, signOutAction }: SidebarProps) {
-  const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
-
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+  // Il menu mobile è aperto solo sulla pagina in cui lo si è aperto: cambiando
+  // pagina si richiude da solo, senza un effetto che lo rimetta a false.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const mobileOpen = openOn === pathname
+  const setMobileOpen = (open: boolean) => setOpenOn(open ? pathname : null)
 
   // Menu aperto: la pagina sotto non scorre (trascinando sul fondale o ai bordi
   // della lista si muoverebbe il contenuto dietro, come in un sito e non in un'app)
@@ -137,7 +136,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMobileOpen(false)
+      if (e.key === 'Escape') setOpenOn(null)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
@@ -214,7 +213,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
       {/* ── Mobile top bar ──────────────────────────────────────────────────── */}
       <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] border-b border-(--border) bg-(--surface)/90 backdrop-blur-md shadow-(--shadow-sm)">
         <button
-          onClick={() => setMobileOpen((o) => !o)}
+          onClick={() => setMobileOpen(!mobileOpen)}
           className="relative size-8 -ml-1 flex items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-200 [transition-timing-function:var(--ease-spring)]"
           aria-label={mobileOpen ? 'Chiudi menu' : 'Apri menu'}
           aria-expanded={mobileOpen}

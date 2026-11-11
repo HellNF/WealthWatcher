@@ -2,13 +2,13 @@
 
 // Andamento giornaliero del mese su calendario completo: i giorni a zero
 // esistono (il "ritmo" è reale) e la media è per giorno di calendario.
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney } from '@/lib/format'
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import type { DailyCalPoint } from '@/lib/monthReport'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   data:          DailyCalPoint[]
@@ -23,12 +23,7 @@ function fmt(minor: number, currency: string) {
 }
 
 export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
-
-  const colors = isDark
-    ? { outflow: 'oklch(0.82 0.01 160)', inflow: '#34d399', grid: 'oklch(0.28 0.01 160)', axis: 'oklch(0.72 0.01 160)', tooltipBg: '#1a2421', tooltipBorder: 'oklch(0.26 0.01 160)' }
-    : { outflow: 'oklch(0.40 0.01 160)', inflow: '#059669', grid: 'oklch(0.90 0.005 160)', axis: 'oklch(0.45 0.01 160)', tooltipBg: '#fff', tooltipBorder: 'oklch(0.88 0.005 160)' }
+  const t = useChartTheme()
 
   if (data.length === 0) {
     return <p className="text-sm text-(--faint) py-8 text-center">Nessun dato disponibile.</p>
@@ -51,23 +46,23 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barGap={2}>
-        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
         <XAxis
           dataKey="day"
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           interval={tickInterval - 1}
         />
         <YAxis
           tickFormatter={(v) => formatAxisMoney(Number(v), currency)}
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           width={64}
         />
         <Tooltip
-          cursor={{ fill: colors.grid, opacity: 0.5 }}
+          cursor={{ fill: t.grid, opacity: 0.5 }}
           isAnimationActive={false}
           formatter={(value, name) => [
             fmt(Number(value), currency),
@@ -77,32 +72,26 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
             const point = chartData[Number(l) - 1]
             return `Giorno ${String(l)}${point?.weekend ? ' · weekend' : ''}`
           }}
-          contentStyle={{
-            background: colors.tooltipBg,
-            border: `1px solid ${colors.tooltipBorder}`,
-            borderRadius: 10,
-            fontSize: 12,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
-          }}
+          contentStyle={t.tooltip}
         />
         {avgDailyMinor > 0 && (
           <ReferenceLine
             y={avgDailyMinor}
-            stroke={colors.axis}
+            stroke={t.axis}
             strokeDasharray="4 2"
-            label={{ value: 'media/giorno', position: 'insideTopRight', fill: colors.axis, fontSize: 10 }}
+            label={{ value: 'media/giorno', position: 'insideTopRight', fill: t.axis, fontSize: 10 }}
           />
         )}
         <Bar isAnimationActive={false} dataKey="uscite" radius={[3, 3, 0, 0]} maxBarSize={16}>
           {chartData.map((d) => (
             <Cell
               key={d.day}
-              fill={colors.outflow}
+              fill={t.soft}
               opacity={d.isMax ? 1 : 0.5}
             />
           ))}
         </Bar>
-        <Bar isAnimationActive={false} dataKey="entrate" fill={colors.inflow} opacity={0.7} radius={[3, 3, 0, 0]} maxBarSize={16} />
+        <Bar isAnimationActive={false} dataKey="entrate" fill={t.brand} opacity={0.7} radius={[3, 3, 0, 0]} maxBarSize={16} />
       </BarChart>
     </ResponsiveContainer>
   )

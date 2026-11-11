@@ -46,7 +46,7 @@ export interface CategoryModel {
 
 // Sotto queste soglie il modello non risponde: troppo pochi esempi per
 // distinguere un'abitudine da una coincidenza.
-export const MIN_TRAINING_TRANSACTIONS = 20
+const MIN_TRAINING_TRANSACTIONS = 20
 const MIN_CATEGORIES = 2
 const MIN_EXAMPLES_PER_CATEGORY = 3
 // Confidenza minima (punteggio softmax, non una probabilità calibrata).
@@ -55,7 +55,7 @@ const MIN_EXAMPLES_PER_CATEGORY = 3
 // valutazione temporale sullo storico reale (addestramento sui mesi precedenti,
 // verifica sul mese): ~94% di proposte corrette coprendo ~70% dei movimenti,
 // contro ~82% senza il requisito di indizio distintivo.
-export const DEFAULT_THRESHOLD = 0.8
+const DEFAULT_THRESHOLD = 0.8
 // Indizio distintivo: una parola o un merchant che nello storico compare almeno
 // EVIDENCE_MIN_COUNT volte, per almeno EVIDENCE_SHARE delle volte nella categoria.
 const EVIDENCE_SHARE = 0.9

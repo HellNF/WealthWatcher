@@ -6,7 +6,7 @@ import {
   updateDescriptionAction,
   deleteTransactionAction,
 } from './actions'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, fmtIsoDate } from '@/lib/format'
 import type { TransactionRow } from '@/lib/transactions'
 import {
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
@@ -17,11 +17,6 @@ import { cn } from '@/lib/cn'
 import { ReceiptText, Wand2, X, Check, Pencil, Trash2 } from 'lucide-react'
 
 interface Category { id: number; name: string; kind: string }
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
-}
 
 // Da dove viene la categoria: l'utente deve poter distinguere una sua scelta
 // da un'assegnazione automatica o da un suggerimento dello storico.
@@ -294,7 +289,7 @@ export default function TransactionTable({
               {transactions.map((txn) => (
                 <Tr key={txn.id} className="group/row">
                   <Td className="text-(--muted) text-xs whitespace-nowrap tabular-nums">
-                    {formatDate(txn.booked_date)}
+                    {fmtIsoDate(txn.booked_date)}
                   </Td>
                   <Td className="whitespace-normal min-w-48">
                     <DescriptionCell
@@ -346,7 +341,7 @@ export default function TransactionTable({
             />
             <div className="divide-y divide-(--border)">
               <DataRow label="Data">
-                <span className="tabular-nums">{formatDate(txn.booked_date)}</span>
+                <span className="tabular-nums">{fmtIsoDate(txn.booked_date)}</span>
               </DataRow>
               <div className="py-2 space-y-1.5">
                 <span className="text-xs text-(--muted)">Categoria · {sourceLabel(txn.category_source, true)}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</span>

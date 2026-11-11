@@ -4,15 +4,7 @@ import { CalendarClock } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import type { DeadlinesWidgetData, WidgetSize } from './types'
 import { FitList, plural } from './FitList'
-
-function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
-
-function fmtDate(iso: string): string {
-  const [, m, d] = iso.split('-')
-  return `${d}/${m}`
-}
+import { fmtEur, fmtIsoDayMonth } from '@/lib/format'
 
 function daysUntil(iso: string): number {
   const today = new Date()
@@ -95,10 +87,10 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
 
             <div className="text-right shrink-0">
               {ev.amountMinor > 0 && (
-                <p className="text-xs font-mono tabular-nums text-(--ink)">{fmtEur(ev.amountMinor)}</p>
+                <p className="text-xs font-mono tabular-nums text-(--ink)">{fmtEur(ev.amountMinor, 0)}</p>
               )}
               <p className={`text-[10px] tabular-nums mt-0.5 ${urgent ? 'text-(--danger) font-semibold' : 'text-(--muted)'}`}>
-                {days === 0 ? 'Oggi' : days === 1 ? 'Domani' : `${fmtDate(ev.date)} · ${days}gg`}
+                {days === 0 ? 'Oggi' : days === 1 ? 'Domani' : `${fmtIsoDayMonth(ev.date)} · ${days}gg`}
               </p>
             </div>
           </div>

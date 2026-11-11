@@ -168,7 +168,7 @@ export interface WidgetConfig {
 const ALL_WIDGET_IDS:  WidgetId[]   = ['investments', 'goals', 'budget', 'deadlines', 'news']
 const VALID_SIZES:     WidgetSize[] = ['sm', 'md', 'lg']
 
-export const DEFAULT_LAYOUT: WidgetConfig[] = ALL_WIDGET_IDS.map(id => ({
+const DEFAULT_LAYOUT: WidgetConfig[] = ALL_WIDGET_IDS.map(id => ({
   id, visible: true, size: 'md' as const,
 }))
 

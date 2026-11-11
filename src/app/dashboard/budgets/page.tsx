@@ -7,6 +7,7 @@ import {
   Card, EmptyState, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import MonthNav from '../reports/MonthNav'
 import BudgetsManager from './BudgetsManager'
+import { fmtEur } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,13 +21,6 @@ const MONTHS_IT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','lugl
 function monthLabel(m: string): string {
   const [y, mo] = m.split('-')
   return `${MONTHS_IT[parseInt(mo, 10) - 1]} ${y}`
-}
-
-function fmtEur(minor: number, decimals = 2): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always', currency: 'EUR',
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  })
 }
 
 /** Colore di stato: neutro finché c'è margine, ambra vicino al limite, rosso oltre. */

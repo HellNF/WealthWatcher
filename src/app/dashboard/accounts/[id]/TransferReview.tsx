@@ -4,14 +4,9 @@
 import { useState, useTransition } from 'react'
 import { ArrowRight, Check, X, Undo2, ArrowLeftRight } from 'lucide-react'
 import { Button, EmptyState } from '@/components/ui'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, fmtIsoDate } from '@/lib/format'
 import type { ConfirmedTransfer, TransferLeg, TransferSuggestion } from '@/lib/transfers'
 import { confirmTransferAction, rejectTransferAction, undoTransferAction } from './transfer-actions'
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
-}
 
 function Legs({ outflow, inflow, categoryNames }: { outflow: TransferLeg; inflow: TransferLeg; categoryNames?: Record<number, string> }) {
   const cat = (leg: TransferLeg) => (leg.category_id !== null ? categoryNames?.[leg.category_id] : null) ?? 'senza categoria'
@@ -24,11 +19,11 @@ function Legs({ outflow, inflow, categoryNames }: { outflow: TransferLeg; inflow
         <span className="font-mono tabular-nums ml-1">{formatMoney(inflow.amount_minor, inflow.currency)}</span>
       </p>
       <p className="text-xs text-(--muted) tabular-nums">
-        Uscita {formatDate(outflow.booked_date)} · {outflow.description_raw}
+        Uscita {fmtIsoDate(outflow.booked_date)} · {outflow.description_raw}
         {categoryNames && <> · <span className="text-(--ink)">{cat(outflow)}</span></>}
       </p>
       <p className="text-xs text-(--muted) tabular-nums">
-        Entrata {formatDate(inflow.booked_date)} · {inflow.description_raw}
+        Entrata {fmtIsoDate(inflow.booked_date)} · {inflow.description_raw}
         {categoryNames && <> · <span className="text-(--ink)">{cat(inflow)}</span></>}
       </p>
     </div>

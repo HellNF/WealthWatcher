@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Position } from '@/lib/investments/fifo'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   positions: Position[]
@@ -29,8 +29,7 @@ function formatVal(minor: number, currency: string): string {
 }
 
 export default function AllocationChart({ positions }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const t = useChartTheme()
 
   const active = positions.filter(
     (p) => parseFloat(p.remainingQty) > 0 && (p.marketValueMinor ?? p.costBasisMinor) > 0,
@@ -54,14 +53,6 @@ export default function AllocationChart({ positions }: Props) {
 
   const total = data.reduce((s, d) => s + d.value, 0)
   const singleCurrency = data.every((d) => d.currency === data[0].currency) ? data[0].currency : null
-
-  const tooltipStyle = {
-    background:   isDark ? '#1a2421' : '#ffffff',
-    border:       `1px solid ${isDark ? 'oklch(0.26 0.01 160)' : 'oklch(0.88 0.005 160)'}`,
-    borderRadius: 10,
-    fontSize:     12,
-    boxShadow:    '0 4px 12px oklch(0 0 0 / 0.12)',
-  }
 
   return (
     <div className="relative w-full">
@@ -95,9 +86,9 @@ export default function AllocationChart({ positions }: Props) {
               const pct = ((Number(value) / total) * 100).toFixed(1)
               return [`${formatVal(Number(value), d.currency)} (${pct}%)`, d.fullName]
             }}
-            contentStyle={tooltipStyle}
-            itemStyle={{ color: isDark ? '#d1fae5' : '#065f46' }}
-            labelStyle={{ color: isDark ? 'oklch(0.62 0.01 160)' : 'oklch(0.45 0.01 160)' }}
+            contentStyle={t.tooltip}
+            itemStyle={{ color: t.dark ? '#d1fae5' : '#065f46' }}
+            labelStyle={{ color: t.dark ? 'oklch(0.62 0.01 160)' : 'oklch(0.45 0.01 160)' }}
           />
         </PieChart>
       </ResponsiveContainer>

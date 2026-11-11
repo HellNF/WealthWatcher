@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/dal'
 import { listMortgages, monthlyPaymentMinor, mortgageStatus, amortizationSchedule } from '@/lib/mortgages'
-import { formatMoney } from '@/lib/money'
+import { fmtEur, fmtIsoDay } from '@/lib/format'
 import { listAccounts } from '@/lib/accounts'
 import MortgageForm from './MortgageForm'
 import { deleteMortgageAction } from './actions'
@@ -11,18 +11,6 @@ import Link from 'next/link'
 import { ChevronRight, Home, CalendarClock, TrendingDown, Landmark } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-
-function fmtEur(minor: number, decimals = 2) {
-  return decimals === 2
-    ? formatMoney(minor, 'EUR')
-    : (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always', maximumFractionDigits: 0 })
-}
-
-function fmtDay(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('it-IT', {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome',
-  })
-}
 
 const KEY = 'text-2xl sm:text-3xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)'
 
@@ -103,7 +91,7 @@ export default async function MutuiPage() {
       </span>
       {nextPayment && (
         <span className="ml-auto text-xs text-(--muted)">
-          Prossima rata {fmtDay(nextPayment.next!.date)}
+          Prossima rata {fmtIsoDay(nextPayment.next!.date)}
         </span>
       )}
     </StickyBar>
@@ -136,12 +124,12 @@ export default async function MutuiPage() {
           </div>
           <div className="space-y-1.5">
             <dt className="text-xs font-medium text-(--muted)">Prossima rata</dt>
-            <dd className={KEY}>{nextPayment ? fmtDay(nextPayment.next!.date) : '—'}</dd>
+            <dd className={KEY}>{nextPayment ? fmtIsoDay(nextPayment.next!.date) : '—'}</dd>
             {nextPayment && mortgages.length > 1 && <dd className="text-xs text-(--muted) [overflow-wrap:anywhere]">{nextPayment.m.name}</dd>}
           </div>
           <div className="space-y-1.5">
             <dt className="text-xs font-medium text-(--muted)">Ultima rata</dt>
-            <dd className={KEY}>{lastEnd ? fmtDay(lastEnd) : '—'}</dd>
+            <dd className={KEY}>{lastEnd ? fmtIsoDay(lastEnd) : '—'}</dd>
           </div>
         </dl>
       </HeroShell>
@@ -162,7 +150,7 @@ export default async function MutuiPage() {
                   <div className="min-w-0">
                     <h3 className="text-base font-semibold text-(--ink) [overflow-wrap:anywhere]">{m.name}</h3>
                     <p className="text-xs text-(--muted) mt-0.5">
-                      {m.duration_months} mesi · {rateDisplay}% annuo · dal {fmtDay(m.start_date)}
+                      {m.duration_months} mesi · {rateDisplay}% annuo · dal {fmtIsoDay(m.start_date)}
                     </p>
                   </div>
                   <ConfirmDelete
@@ -196,7 +184,7 @@ export default async function MutuiPage() {
                   <p className="text-xs text-(--muted)">
                     Versato <span className="font-mono tabular-nums">{fmtEur(status.totalPaidMinor, 0)}</span> su{' '}
                     <span className="font-mono tabular-nums">{fmtEur(totalDue, 0)}</span> ({status.percentagePaid}%)
-                    {next && <> · prossima rata {fmtDay(next.date)}</>}
+                    {next && <> · prossima rata {fmtIsoDay(next.date)}</>}
                   </p>
                 </div>
 

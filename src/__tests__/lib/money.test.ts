@@ -1,5 +1,6 @@
 // src/__tests__/lib/money.test.ts
-import { toMinor, fromMinor, formatMoney, dec, formatAxisMoney } from '@/lib/money'
+import { toMinor, fromMinor, dec } from '@/lib/money'
+import { formatMoney, formatAxisMoney } from '@/lib/format'
 
 describe('toMinor / fromMinor round-trip', () => {
   test('EUR: 12.50 → 1250 → "12.50"', () => {

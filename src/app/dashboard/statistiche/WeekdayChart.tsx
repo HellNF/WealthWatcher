@@ -1,28 +1,19 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts'
 import type { WeekdaySpending } from '@/lib/analytics'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   data: WeekdaySpending[]
 }
 
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
-}
-
 export default function WeekdayChart({ data }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const t = useChartTheme()
 
   if (data.length === 0) {
     return (
@@ -32,23 +23,10 @@ export default function WeekdayChart({ data }: Props) {
     )
   }
 
-  const colors = isDark
-    ? {
-        grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.72 0.01 160)',
-        bar:     'oklch(0.90 0.01 160)',
-        barDim:  'oklch(0.42 0.01 160)',
-        tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-      }
-    : {
-        grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.45 0.01 160)',
-        bar:     'oklch(0.28 0.01 160)',
-        barDim:  'oklch(0.80 0.005 160)',
-        tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-      }
+  const colors = {
+    bar: t.dark ? 'oklch(0.90 0.01 160)' : 'oklch(0.28 0.01 160)',
+    barDim: t.dark ? 'oklch(0.42 0.01 160)' : 'oklch(0.80 0.005 160)',
+  }
 
   // Riordina Lun–Dom (stile europeo): 1,2,3,4,5,6,0
   const euroOrder = [1, 2, 3, 4, 5, 6, 0]
@@ -61,16 +39,16 @@ export default function WeekdayChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={180}>
       <BarChart data={sorted} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fill: colors.axis, fontSize: 12 }}
+          tick={{ fill: t.axis, fontSize: 12 }}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
           tickFormatter={(v) => formatAxisMoney(Number(v))}
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           width={80}
@@ -81,15 +59,9 @@ export default function WeekdayChart({ data }: Props) {
             const extra = d
               ? ` · ${d.sharePct.toLocaleString('it-IT')}% del totale${d.topCategory ? ` · soprattutto ${d.topCategory}` : ''}`
               : ''
-            return [`${fmtEur(Number(value))}${extra}`, 'Spesa totale']
+            return [`${fmtEur(Number(value), 0)}${extra}`, 'Spesa totale']
           }}
-          contentStyle={{
-            background: colors.tooltipBg,
-            border: `1px solid ${colors.tooltipBorder}`,
-            borderRadius: 10,
-            fontSize: 12,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
-          }}
+          contentStyle={t.tooltip}
         />
         <Bar isAnimationActive={false} dataKey="totalMinor" radius={[4, 4, 0, 0]} maxBarSize={40}>
           {sorted.map((entry, i) => (

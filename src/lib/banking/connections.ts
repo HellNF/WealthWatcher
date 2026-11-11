@@ -99,15 +99,6 @@ export function getConnectionForUser(userId: number, id: number): EbConnection |
     .get()
 }
 
-export function listConnectionsForUser(userId: number): EbConnection[] {
-  return db
-    .select()
-    .from(ebConnections)
-    .where(eq(ebConnections.owner_id, userId))
-    .orderBy(desc(ebConnections.created_at))
-    .all()
-}
-
 export function listConnectionsForInstitution(userId: number, institutionId: number): EbConnection[] {
   return db
     .select()

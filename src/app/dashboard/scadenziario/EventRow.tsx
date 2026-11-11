@@ -5,7 +5,8 @@ import { Trash2, ArrowUpRight } from 'lucide-react'
 import { Badge, Tooltip } from '@/components/ui'
 import type { DeadlineEvent } from '@/lib/calendar'
 import { deleteCalendarEventAction } from './actions'
-import { metaFor, fmtEur, fmtShort, countdownLabel } from './eventMeta'
+import { metaFor, fmtShort, countdownLabel } from './eventMeta'
+import { fmtEur } from '@/lib/format'
 
 const CONFIDENCE_CHIP: Record<DeadlineEvent['confidence'], string | null> = {
   certain: null, estimated: 'stima', inferred: 'stimato',
@@ -15,13 +16,13 @@ const CONFIDENCE_CHIP: Record<DeadlineEvent['confidence'], string | null> = {
 function amountDisplay(e: DeadlineEvent): { text: string; cls: string } | null {
   if (e.amountMinor <= 0) return null
   if (e.kind === 'cash' && e.direction === 'in') {
-    return { text: `+${fmtEur(e.amountMinor)}`, cls: 'text-(--brand-text)' }
+    return { text: `+${fmtEur(e.amountMinor, 0)}`, cls: 'text-(--brand-text)' }
   }
   if (e.kind === 'cash' && e.direction === 'out') {
-    return { text: `−${fmtEur(e.amountMinor)}`, cls: 'text-(--ink)' }
+    return { text: `−${fmtEur(e.amountMinor, 0)}`, cls: 'text-(--ink)' }
   }
   // opportunity / info: valore a rischio o residuo, tono neutro
-  return { text: fmtEur(e.amountMinor), cls: 'text-(--muted)' }
+  return { text: fmtEur(e.amountMinor, 0), cls: 'text-(--muted)' }
 }
 
 interface Props {

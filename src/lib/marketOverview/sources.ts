@@ -34,8 +34,3 @@ export async function fetchAllMarketSignals(): Promise<MarketSignalGroup[]> {
   ]
 }
 
-/** Versione appiattita per la scrittura in cache. */
-export async function fetchAllMarketSignalsFlat(): Promise<MarketSignal[]> {
-  const groups = await fetchAllMarketSignals()
-  return groups.flatMap((g) => g.signals)
-}

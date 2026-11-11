@@ -2,8 +2,8 @@
 // Navigazione tra le sezioni di una pagina lunga: ancore con evidenziazione
 // della sezione che si sta leggendo. Risponde a "dove sono? dove posso andare?"
 // senza costringere a scorrere per scoprire cosa c'è.
-import { useEffect, useId, useState } from 'react'
-import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
+import { useEffect, useState } from 'react'
+import { useSlidingPill } from './useSlidingPill'
 import { cn } from '@/lib/cn'
 
 export interface SectionLink { id: string; label: string }
@@ -15,8 +15,7 @@ interface Props {
 
 export function SectionNav({ sections, className }: Props) {
   const [active, setActive] = useState<string | null>(null)
-  const reduceMotion = useReducedMotion()
-  const groupId = useId()
+  const { containerRef, pillRef } = useSlidingPill<HTMLElement>(active)
 
   useEffect(() => {
     const els = sections
@@ -50,37 +49,31 @@ export function SectionNav({ sections, className }: Props) {
   }, [sections])
 
   return (
-    <LayoutGroup id={groupId}>
-      <nav
-        aria-label="Sezioni della pagina"
-        className={cn('flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5 max-w-full overflow-x-auto', className)}
-      >
-        {sections.map((s) => {
-          const selected = s.id === active
-          return (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              aria-current={selected ? 'location' : undefined}
-              className={cn(
-                'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-xs font-medium whitespace-nowrap select-none',
-                'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
-                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-                selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
-              )}
-            >
-              {selected && (
-                <motion.span
-                  layoutId="section-nav-pill"
-                  className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
-                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
-                />
-              )}
-              <span className="relative">{s.label}</span>
-            </a>
-          )
-        })}
-      </nav>
-    </LayoutGroup>
+    <nav
+      ref={containerRef}
+      aria-label="Sezioni della pagina"
+      className={cn('relative flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5 max-w-full overflow-x-auto', className)}
+    >
+      <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border) opacity-0" />
+      {sections.map((s) => {
+        const selected = s.id === active
+        return (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            data-pill-key={s.id}
+            aria-current={selected ? 'location' : undefined}
+            className={cn(
+              'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-xs font-medium whitespace-nowrap select-none',
+              'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
+              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
+              selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
+            )}
+          >
+            <span className="relative">{s.label}</span>
+          </a>
+        )
+      })}
+    </nav>
   )
 }

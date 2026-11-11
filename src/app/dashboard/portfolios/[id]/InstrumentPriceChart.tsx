@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition, useEffect, useId } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { motion, LayoutGroup } from 'motion/react'
+import { Segmented } from '@/components/ui/Segmented'
 import { fetchHistoryAction } from './actions'
 import type { PricePoint } from '@/lib/prices/yahoo'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -38,6 +38,7 @@ const PERIODS = [
   { key: '1y', label: '1A' },
   { key: '5y', label: '5A' },
 ] as const
+type Period = (typeof PERIODS)[number]['key']
 
 function shortDate(iso: string, period: string): string {
   const [y, m, d] = iso.split('-')
@@ -57,9 +58,8 @@ function formatPrice(value: number, currency: string): string {
 export default function InstrumentPriceChart({ symbol, name, currency, isCrypto = false }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
-  const pillGroupId = useId()
 
-  const [period, setPeriod]          = useState<string>('3m')
+  const [period, setPeriod]          = useState<Period>('3m')
   const [isPending, startTransition] = useTransition()
   const [retryKey, setRetryKey] = useState(0)
   const requestKey = `${symbol}:${period}:${retryKey}`
@@ -130,31 +130,13 @@ export default function InstrumentPriceChart({ symbol, name, currency, isCrypto 
             </span>
           )}
           {/* Period selector */}
-          <LayoutGroup id={pillGroupId}>
-            <div className="flex rounded-lg border border-(--border) overflow-hidden p-0.5 gap-0.5">
-              {PERIODS.map(({ key, label }) => {
-                const active = period === key
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setPeriod(key)}
-                    className="relative px-2 py-1 rounded-md text-xs font-medium transition-colors duration-150"
-                    style={{ color: active ? colors.brand : isDark ? 'oklch(0.55 0.01 160)' : 'oklch(0.55 0.01 160)' }}
-                  >
-                    {active && (
-                      <motion.span
-                        layoutId="period-pill"
-                        className="absolute inset-0 rounded-md"
-                        style={{ background: isDark ? 'oklch(0.22 0.06 160)' : 'oklch(0.92 0.05 160)' }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                      />
-                    )}
-                    <span className="relative z-10">{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </LayoutGroup>
+          <Segmented
+            label="Periodo"
+            size="sm"
+            value={period}
+            onChange={setPeriod}
+            options={PERIODS.map(({ key, label }) => ({ value: key, label }))}
+          />
         </div>
       </div>
 

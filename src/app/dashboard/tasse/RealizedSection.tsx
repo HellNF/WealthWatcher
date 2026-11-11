@@ -2,10 +2,10 @@
 // realizzate + zainetto fiscale. Le tabelle sono dentro <details> (drill-down accessibile).
 import { AlertTriangle, ChevronDown } from 'lucide-react'
 import { Card, Stat } from '@/components/ui'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, fmtEur } from '@/lib/format'
 import type { RealizedYearTax } from '@/lib/tax/annual'
 import type { FiscalWallet } from '@/lib/tax/wallet'
-import { fmtEur, fmtEurDec, sign } from './format'
+import { sign } from './format'
 
 interface Props {
   year:         string
@@ -36,10 +36,10 @@ export default function RealizedSection({ year, currentYear, realizedTax, fiscal
               </div>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <Stat label="Plusvalenze lorde" value={fmtEur(realizedTax.grossGainMinor)} size="sm" />
-              <Stat label="Minusvalenze" value={realizedTax.lossMinor > 0 ? `−${fmtEur(realizedTax.lossMinor)}` : '—'} size="sm" />
-              <Stat label="Compensazione zainetto" value={realizedTax.compensatedMinor > 0 ? `−${fmtEur(realizedTax.compensatedMinor)}` : '—'} size="sm" />
-              <Stat label={`Imposta dovuta ${year}`} value={fmtEur(realizedTax.totalTaxDueMinor)} size="sm" />
+              <Stat label="Plusvalenze lorde" value={fmtEur(realizedTax.grossGainMinor, 0)} size="sm" />
+              <Stat label="Minusvalenze" value={realizedTax.lossMinor > 0 ? `−${fmtEur(realizedTax.lossMinor, 0)}` : '—'} size="sm" />
+              <Stat label="Compensazione zainetto" value={realizedTax.compensatedMinor > 0 ? `−${fmtEur(realizedTax.compensatedMinor, 0)}` : '—'} size="sm" />
+              <Stat label={`Imposta dovuta ${year}`} value={fmtEur(realizedTax.totalTaxDueMinor, 0)} size="sm" />
             </div>
 
             <details className="group">
@@ -61,11 +61,11 @@ export default function RealizedSection({ year, currentYear, realizedTax, fiscal
                       <tr key={i} className="hover:bg-(--surface-2) transition-colors">
                         <td className="px-3 py-2 text-(--ink) min-w-36 [overflow-wrap:anywhere]">{ev.instrumentName}</td>
                         <td className={`px-3 py-2 text-right font-mono tabular-nums font-medium ${ev.gainEurMinor >= 0 ? 'text-(--brand-text)' : 'text-(--danger)'}`}>
-                          {sign(ev.gainEurMinor)}{fmtEurDec(ev.gainEurMinor)}
+                          {sign(ev.gainEurMinor)}{fmtEur(ev.gainEurMinor)}
                         </td>
                         <td className="px-3 py-2 text-right font-mono tabular-nums">
                           {ev.taxMinor > 0
-                            ? <span className="text-(--danger)">−{fmtEurDec(ev.taxMinor)}</span>
+                            ? <span className="text-(--danger)">−{fmtEur(ev.taxMinor)}</span>
                             : ev.gainEurMinor < 0
                               ? <span className="text-(--brand-text)">credito</span>
                               : <span className="text-(--faint)">esente</span>}

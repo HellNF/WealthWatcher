@@ -57,4 +57,3 @@ export function decryptBackupBuffer(encrypted: Buffer): Buffer {
   }
 }
 
-export const BACKUP_ENCRYPTED_EXT = '.enc'

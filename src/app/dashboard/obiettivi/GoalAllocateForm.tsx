@@ -1,11 +1,10 @@
 'use client'
 
 import { useActionState, useId, useState } from 'react'
-import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
+import { Segmented } from '@/components/ui/Segmented'
 import { allocateGoalAction } from './actions'
 import { Button, Input } from '@/components/ui'
-import { formatMoney } from '@/lib/money'
-import { cn } from '@/lib/cn'
+import { formatMoney } from '@/lib/format'
 
 interface Props {
   goalId:        number
@@ -17,12 +16,11 @@ export default function GoalAllocateForm({ goalId, freeMinor, allocatedMinor }: 
   const action = allocateGoalAction.bind(null, goalId)
   const [state, formAction, pending] = useActionState(action, undefined)
   const [direction, setDirection] = useState<'in' | 'out'>('in')
-  const reduceMotion = useReducedMotion()
   const fieldId = useId()
 
   const options = [
-    { key: 'in' as const,  label: 'Alloca',  disabled: false },
-    { key: 'out' as const, label: 'Preleva', disabled: allocatedMinor <= 0 },
+    { value: 'in' as const,  label: 'Alloca' },
+    { value: 'out' as const, label: 'Preleva', disabled: allocatedMinor <= 0 },
   ]
 
   return (
@@ -30,39 +28,7 @@ export default function GoalAllocateForm({ goalId, freeMinor, allocatedMinor }: 
       <input type="hidden" name="direction" value={direction} />
 
       <div className="flex gap-2 items-center flex-wrap">
-        <LayoutGroup id={`goal-dir-${goalId}`}>
-          <div role="radiogroup" aria-label="Operazione" className="inline-flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5">
-            {options.map((o) => {
-              const selected = direction === o.key
-              return (
-                <button
-                  key={o.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  disabled={o.disabled}
-                  onClick={() => setDirection(o.key)}
-                  className={cn(
-                    'relative h-8 px-3 rounded-md text-sm font-medium cursor-pointer select-none',
-                    'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
-                    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
-                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
-                    selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
-                  )}
-                >
-                  {selected && (
-                    <motion.span
-                      layoutId="goal-dir-pill"
-                      className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
-                    />
-                  )}
-                  <span className="relative">{o.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </LayoutGroup>
+        <Segmented label="Operazione" value={direction} onChange={setDirection} options={options} />
 
         <label htmlFor={fieldId} className="sr-only">Importo in euro</label>
         <Input

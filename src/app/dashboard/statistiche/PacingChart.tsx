@@ -1,23 +1,15 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import type { MonthPacing } from '@/lib/spendingInsights'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   data: MonthPacing
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 /**
@@ -25,32 +17,11 @@ function fmtEur(minor: number): string {
  * (area attenuata), con proiezione tratteggiata fino a fine mese.
  */
 export default function PacingChart({ data }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  const t = useChartTheme()
 
-  const colors = isDark
-    ? {
-        grid:    'oklch(0.26 0.01 160)',
-        axis:    'oklch(0.72 0.01 160)',
-        typical: 'oklch(0.42 0.01 160)',
-        typicalFill: 'oklch(0.42 0.01 160 / 0.15)',
-        actual:  'oklch(0.92 0.01 160)',
-        projected: '#a78bfa',
-        today:   'oklch(0.42 0.01 160)',
-        tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-      }
-    : {
-        grid:    'oklch(0.88 0.005 160)',
-        axis:    'oklch(0.45 0.01 160)',
-        typical: 'oklch(0.65 0.008 160)',
-        typicalFill: 'oklch(0.65 0.008 160 / 0.12)',
-        actual:  'oklch(0.25 0.01 160)',
-        projected: '#7c3aed',
-        today:   'oklch(0.65 0.008 160)',
-        tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-      }
+  const colors = {
+    typicalFill: t.dark ? 'oklch(0.42 0.01 160 / 0.15)' : 'oklch(0.65 0.008 160 / 0.12)',
+  }
 
   const chartData = data.points.map((p) => ({
     day:        p.day,
@@ -62,42 +33,36 @@ export default function PacingChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
         <XAxis
           dataKey="day"
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           tickFormatter={(v) => formatAxisMoney(Number(v))}
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
           width={88}
         />
         <Tooltip isAnimationActive={false}
-          formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
+          formatter={(value, name) => [fmtEur(Number(value), 0), String(name)]}
           labelFormatter={(day) => `Giorno ${day}`}
-          contentStyle={{
-            background: colors.tooltipBg,
-            border: `1px solid ${colors.tooltipBorder}`,
-            borderRadius: 10,
-            fontSize: 12,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
-          }}
+          contentStyle={t.tooltip}
         />
         <ReferenceLine
           x={data.today}
-          stroke={colors.today}
+          stroke={t.faint}
           strokeDasharray="3 3"
-          label={{ value: 'oggi', fill: colors.axis, fontSize: 11, position: 'insideTopRight' }}
+          label={{ value: 'oggi', fill: t.axis, fontSize: 11, position: 'insideTopRight' }}
         />
         <Area isAnimationActive={false}
           type="monotone"
           dataKey="Tipico"
-          stroke={colors.typical}
+          stroke={t.faint}
           strokeWidth={1.5}
           fill={colors.typicalFill}
           dot={false}
@@ -105,7 +70,7 @@ export default function PacingChart({ data }: Props) {
         <Line isAnimationActive={false}
           type="monotone"
           dataKey="Attuale"
-          stroke={colors.actual}
+          stroke={t.strong}
           strokeWidth={2.5}
           dot={false}
           connectNulls={false}
@@ -114,7 +79,7 @@ export default function PacingChart({ data }: Props) {
         <Line isAnimationActive={false}
           type="monotone"
           dataKey="Proiezione"
-          stroke={colors.projected}
+          stroke={t.violet}
           strokeWidth={2}
           strokeDasharray="5 4"
           dot={false}

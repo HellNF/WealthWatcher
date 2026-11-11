@@ -1,7 +1,7 @@
 // src/lib/investments/fifo.ts — Pure FIFO engine. No I/O, no side effects.
 // Monetary amounts: integer minor units (see money.ts).
 // Quantities / prices: decimal strings via dec() / Decimal (never Number for math).
-import { dec, toMinor, fromMinor, Decimal } from '@/lib/money'
+import { dec, toMinor, Decimal } from '@/lib/money'
 import type { InvestmentTxn } from '@/db/schema'
 
 // ── Internal lot ──────────────────────────────────────────────────────────────

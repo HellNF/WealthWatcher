@@ -104,14 +104,6 @@ export interface KidFields {
 }
 
 /**
- * Update only the whitelist_percentage for an existing instrument.
- * Called when the user manually edits the fiscal settings of an instrument.
- */
-export function updateInstrumentWhitelistPct(id: number, whitelistPct: string): void {
-  sqlite.prepare('UPDATE instruments SET whitelist_percentage = ? WHERE id = ?').run(whitelistPct, id)
-}
-
-/**
  * Scrive i campi KID solo dove sono ancora NULL (COALESCE(colonna, ?)).
  *
  * `instruments` è un catalogo GLOBALE senza owner_id (vedi commento in cima

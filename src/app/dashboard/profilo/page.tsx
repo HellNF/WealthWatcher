@@ -5,6 +5,7 @@ import ProfileForm from './ProfileForm'
 import { Card, PageHeader, HeroShell, PAGE_SHELL } from '@/components/ui'
 import Link from 'next/link'
 import { AlertTriangle, Info } from 'lucide-react'
+import { fmtEur } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,9 +17,6 @@ const EMPLOYMENT_LABELS: Record<string, string> = {
   none:                      'Altro / nessun reddito da lavoro',
 }
 
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR' })
-}
 function fmtPct(rate: number): string {
   return (rate * 100).toFixed(1) + '%'
 }

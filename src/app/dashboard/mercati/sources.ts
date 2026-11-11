@@ -10,7 +10,7 @@ export interface MarketSource {
   official?: boolean
 }
 
-export const MARKET_SOURCES: Record<string, MarketSource> = {
+const MARKET_SOURCES: Record<string, MarketSource> = {
   'Yahoo Finance': {
     label: 'Yahoo Finance',
     href:  'https://finance.yahoo.com/markets/',

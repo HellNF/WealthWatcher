@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { mortgages } from '@/db/schema'
 import type { Mortgage } from '@/db/schema'
-import { dec, Decimal, toMinor, fromMinor } from '@/lib/money'
+import { dec, Decimal } from '@/lib/money'
 
 export type { Mortgage }
 
@@ -52,29 +52,6 @@ export function createMortgage(userId: number, input: CreateMortgageInput): Mort
     })
     .returning()
     .get() as Mortgage
-}
-
-export function updateMortgage(
-  userId: number,
-  id: number,
-  input: Partial<CreateMortgageInput> & { currentOutstandingOverrideMinor?: number | null },
-): boolean {
-  const res = db
-    .update(mortgages)
-    .set({
-      ...(input.name !== undefined && { name: input.name }),
-      ...(input.initialCapitalMinor !== undefined && { initial_capital_minor: input.initialCapitalMinor }),
-      ...(input.annualInterestRate !== undefined && { annual_interest_rate: input.annualInterestRate }),
-      ...(input.durationMonths !== undefined && { duration_months: input.durationMonths }),
-      ...(input.startDate !== undefined && { start_date: input.startDate }),
-      ...(input.associatedAccountId !== undefined && { associated_account_id: input.associatedAccountId ?? null }),
-      ...('currentOutstandingOverrideMinor' in input && {
-        current_outstanding_override_minor: input.currentOutstandingOverrideMinor ?? null,
-      }),
-    })
-    .where(and(eq(mortgages.id, id), eq(mortgages.owner_id, userId)))
-    .run()
-  return res.changes > 0
 }
 
 export function deleteMortgage(userId: number, id: number): boolean {
@@ -204,6 +181,3 @@ export function mortgageStatus(m: Mortgage, asOfDate: string): MortgageStatus {
 
 // ── Helper display ─────────────────────────────────────────────────────────────
 
-export function fmtEurMortgage(minor: number): string {
-  return fromMinor(minor, 'EUR')
-}

@@ -14,6 +14,7 @@ import {
 import { Card, EmptyState, Badge, Button, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import SpendingTrend from './SpendingTrend'
 import MonthNav from './MonthNav'
+import { fmtEur } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,12 +24,6 @@ interface Props {
 
 // ── Formattazione ─────────────────────────────────────────────────────────────
 
-function fmtEur(minor: number, decimals = 0): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always', currency: 'EUR',
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  })
-}
 function fmtDate(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
 }
@@ -85,7 +80,7 @@ function CategoryRow({ cat, totalOutflow }: { cat: MonthCategoryRow; totalOutflo
           )}
         </span>
         <span className="shrink-0 text-xs font-mono tabular-nums text-(--muted) flex items-baseline gap-1.5">
-          <span className="text-(--ink) text-sm font-medium">{fmtEur(cat.totalMinor)}</span>
+          <span className="text-(--ink) text-sm font-medium">{fmtEur(cat.totalMinor, 0)}</span>
           <span className="w-8 text-right">{barPct}%</span>
           <span className="w-7 text-right">{cat.count}×</span>
         </span>
@@ -96,7 +91,7 @@ function CategoryRow({ cat, totalOutflow }: { cat: MonthCategoryRow; totalOutflo
       </summary>
       {cat.typicalMinor !== null && (
         <p className="text-xs text-(--muted) mt-2">
-          Mese tipico: {fmtEur(cat.typicalMinor)} (mediana ultimi 6 mesi)
+          Mese tipico: {fmtEur(cat.typicalMinor, 0)} (mediana ultimi 6 mesi)
         </p>
       )}
       <TxnList txns={cat.txns} />
@@ -121,7 +116,7 @@ function MerchantRow({ m, rank, totalOutflow }: { m: MonthMerchantRow; rank: num
           <span className="block h-full bg-(--muted)/70 rounded-full" style={{ width: `${barPct}%` }} />
         </span>
         <span className="text-right shrink-0">
-          <span className="block text-sm font-medium font-mono tabular-nums text-(--ink)">{fmtEur(m.totalMinor)}</span>
+          <span className="block text-sm font-medium font-mono tabular-nums text-(--ink)">{fmtEur(m.totalMinor, 0)}</span>
           <span className="block text-xs text-(--muted)">×{m.count}</span>
         </span>
         <ChevronDown className="size-4 text-(--faint) shrink-0 transition-transform duration-200 ease-out-strong group-open:rotate-180" strokeWidth={1.75} aria-hidden />
@@ -172,7 +167,7 @@ export default async function ReportsPage({ searchParams }: Props) {
 
   const r = buildMonthReport(user.id, month, accountId ?? undefined)
   // I quattro numeri del riepilogo condividono la stessa scala: quello più lungo decide per tutti.
-  const heroFitChars = Math.max(...[r.totalOutflowMinor, r.totalInflowMinor, r.avgDailyMinor].map((m) => fmtEur(m).length), fmtEur(r.netMinor).length + 1)
+  const heroFitChars = Math.max(...[r.totalOutflowMinor, r.totalInflowMinor, r.avgDailyMinor].map((m) => fmtEur(m, 0).length), fmtEur(r.netMinor, 0).length + 1)
   const hasNovelties = r.newMerchants.length > 0 || r.ceased.length > 0 || r.priceMoves.length > 0
 
   // Top esercenti su due colonne (da xl in su): 1…n/2 a sinistra, il resto a destra
@@ -184,7 +179,7 @@ export default async function ReportsPage({ searchParams }: Props) {
       <span className="text-sm font-medium text-(--ink)">{cap(monthLabelIt(r.month))}</span>
       {r.hasData && (
         <span className="text-sm text-(--muted) font-mono tabular-nums">
-          Uscite <span className="font-semibold text-(--ink)">{fmtEur(r.totalOutflowMinor)}</span>
+          Uscite <span className="font-semibold text-(--ink)">{fmtEur(r.totalOutflowMinor, 0)}</span>
         </span>
       )}
       <div className="ml-auto">
@@ -255,10 +250,9 @@ export default async function ReportsPage({ searchParams }: Props) {
               </div>
             )}
 
-
               {r.transfersOutMinor > 0 && (
                 <p className="text-xs text-(--muted) max-w-[75ch]">
-                  Trasferimenti tra conti propri esclusi: {fmtEur(r.transfersOutMinor)} in uscita
+                  Trasferimenti tra conti propri esclusi: {fmtEur(r.transfersOutMinor, 0)} in uscita
                   (non sono spesa: il patrimonio non cambia).
                 </p>
               )}
@@ -268,7 +262,7 @@ export default async function ReportsPage({ searchParams }: Props) {
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Uscite</dt>
                 <dd className="flex items-end gap-2 flex-wrap">
-                  <HeroFigure value={fmtEur(r.totalOutflowMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" containerClassName="w-auto flex-1 basis-32" />
+                  <HeroFigure value={fmtEur(r.totalOutflowMinor, 0)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" containerClassName="w-auto flex-1 basis-32" />
                   {r.baseline.typicalOutflowMinor !== null && !r.isPartialMonth && (
                     <DeltaBadge
                       deltaMinor={r.totalOutflowMinor - r.baseline.typicalOutflowMinor}
@@ -277,26 +271,26 @@ export default async function ReportsPage({ searchParams }: Props) {
                   )}
                 </dd>
                 {r.baseline.typicalOutflowMinor !== null && (
-                  <dd className="text-xs text-(--muted)">tipico {fmtEur(r.baseline.typicalOutflowMinor)}</dd>
+                  <dd className="text-xs text-(--muted)">tipico {fmtEur(r.baseline.typicalOutflowMinor, 0)}</dd>
                 )}
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Entrate</dt>
-                <dd><HeroFigure value={fmtEur(r.totalInflowMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
+                <dd><HeroFigure value={fmtEur(r.totalInflowMinor, 0)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
                 {r.baseline.typicalInflowMinor !== null && (
-                  <dd className="text-xs text-(--muted)">tipico {fmtEur(r.baseline.typicalInflowMinor)}</dd>
+                  <dd className="text-xs text-(--muted)">tipico {fmtEur(r.baseline.typicalInflowMinor, 0)}</dd>
                 )}
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Saldo netto</dt>
                 <dd>
-                  <HeroFigure value={`${r.netMinor >= 0 ? '+' : ''}${fmtEur(r.netMinor)}`} fitChars={heroFitChars} size="xs" as="span"
+                  <HeroFigure value={`${r.netMinor >= 0 ? '+' : ''}${fmtEur(r.netMinor, 0)}`} fitChars={heroFitChars} size="xs" as="span"
                     className={r.netMinor >= 0 ? 'text-(--brand-text)' : 'text-(--danger-text)'} />
                 </dd>
               </div>
               <div className="space-y-1.5">
                 <dt className="text-xs font-medium text-(--muted)">Media al giorno</dt>
-                <dd><HeroFigure value={fmtEur(r.avgDailyMinor)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
+                <dd><HeroFigure value={fmtEur(r.avgDailyMinor, 0)} fitChars={heroFitChars} size="xs" as="span" className="text-(--ink)" /></dd>
                 <dd className="text-xs text-(--muted)">
                   su {r.daysElapsed} giorni{r.isPartialMonth ? ' trascorsi' : ''}
                 </dd>
@@ -353,7 +347,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                   <dt className="text-xs font-medium text-(--muted)">Giorno più caro</dt>
                   <dd className="text-lg font-medium font-mono tabular-nums tracking-tight text-(--ink)">
                     {r.patterns.topDay.day}
-                    <span className="text-xs text-(--muted) font-sans font-normal ml-1.5">{fmtEur(r.patterns.topDay.totalMinor)}</span>
+                    <span className="text-xs text-(--muted) font-sans font-normal ml-1.5">{fmtEur(r.patterns.topDay.totalMinor, 0)}</span>
                   </dd>
                   {r.patterns.topDay.topTxn && (
                     <dd className="text-xs text-(--muted) [overflow-wrap:anywhere]">{r.patterns.topDay.topTxn.label}</dd>
@@ -376,7 +370,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                   <dt className="text-xs font-medium text-(--muted)">Vincolate / libere</dt>
                   <dd className="text-lg font-medium font-mono tabular-nums tracking-tight text-(--ink)">
                     {pctOf(r.patterns.committedMinor, r.totalOutflowMinor)}%
-                    <span className="text-xs text-(--muted) font-sans font-normal ml-1.5">{fmtEur(r.patterns.committedMinor)} fisse</span>
+                    <span className="text-xs text-(--muted) font-sans font-normal ml-1.5">{fmtEur(r.patterns.committedMinor, 0)} fisse</span>
                   </dd>
                 </div>
               )}
@@ -395,7 +389,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                         <li key={m.label} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                           <span className="text-(--ink) [overflow-wrap:anywhere]">{m.label}</span>
                           <span className="font-mono tabular-nums text-(--ink) shrink-0">
-                            {fmtEur(m.totalMinor)}
+                            {fmtEur(m.totalMinor, 0)}
                             <span className="text-(--muted) font-sans text-xs ml-1">×{m.count}</span>
                           </span>
                         </li>
@@ -410,7 +404,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                       {r.ceased.map((c) => (
                         <li key={c.label} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                           <span className="text-(--ink) [overflow-wrap:anywhere]">{c.label}</span>
-                          <span className="font-mono tabular-nums text-(--ink) shrink-0">−{fmtEur(c.monthlyMinor)}/mese</span>
+                          <span className="font-mono tabular-nums text-(--ink) shrink-0">−{fmtEur(c.monthlyMinor, 0)}/mese</span>
                         </li>
                       ))}
                     </ul>
@@ -489,7 +483,7 @@ export default async function ReportsPage({ searchParams }: Props) {
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-(--ink)">
                   {r.uncategorized.count} movimenti senza categoria
-                  <span className="text-(--muted) font-normal"> · {fmtEur(r.uncategorized.totalMinor)}</span>
+                  <span className="text-(--muted) font-normal"> · {fmtEur(r.uncategorized.totalMinor, 0)}</span>
                 </p>
                 <p className="text-xs text-(--muted)">
                   Categorizzarli rende più affidabili confronti e considerazioni.

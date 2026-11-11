@@ -47,16 +47,12 @@ import LifestyleCreepChart  from './LifestyleCreepChart'
 import MonthBridgeChart     from './MonthBridgeChart'
 import PacingChart          from './PacingChart'
 import FixedVariableChart   from './FixedVariableChart'
+import { fmtEur } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0,
-  })
-}
 function fmtPct(n: number | null, dec = 1): string {
   if (n === null) return '—'
   if (!isFinite(n) || isNaN(n)) return '0,0%'
@@ -79,7 +75,6 @@ function fmtYears(years: number | null): string {
   if (m === 0) return `${y} anni`
   return `${y}a ${m}m`
 }
-
 
 const SECTIONS = [
   { id: 'considerazioni', label: 'Considerazioni' },
@@ -253,11 +248,11 @@ export default async function StatistichePage() {
           <KeyFigure
             href="#performance"
             label="Patrimonio netto"
-            value={fmtEur(totalNWMinor)}
+            value={fmtEur(totalNWMinor, 0)}
             sub={headGrowth && headGrowth.changeMinor !== null ? (
               <>
                 <span className={`font-mono tabular-nums ${headGrowth.changeMinor > 0 ? 'text-(--brand-text)' : headGrowth.changeMinor < 0 ? 'text-(--danger-text)' : ''}`}>
-                  {sign(headGrowth.changeMinor)}{fmtEur(headGrowth.changeMinor)}
+                  {sign(headGrowth.changeMinor)}{fmtEur(headGrowth.changeMinor, 0)}
                   {headGrowth.changePct !== null && Math.abs(headGrowth.changePct) < 1000 && <> ({sign(headGrowth.changePct)}{fmtPct(headGrowth.changePct)})</>}
                 </span>
                 {' '}{headGrowth === growth3m ? 'in 3 mesi' : "dall'inizio"}
@@ -279,21 +274,21 @@ export default async function StatistichePage() {
             value={baseRunway ? `${baseRunway.days} gg` : '—'}
             tone={baseRunway && baseRunway.months < 3 ? 'loss' : 'ink'}
             sub={baseRunway
-              ? `~${baseRunway.months} ${baseRunway.months === 1 ? 'mese' : 'mesi'} di liquidità a ${fmtEur(baseRunway.monthlyMinor)}/mese`
+              ? `~${baseRunway.months} ${baseRunway.months === 1 ? 'mese' : 'mesi'} di liquidità a ${fmtEur(baseRunway.monthlyMinor, 0)}/mese`
               : 'servono spese registrate'}
           />
           <KeyFigure
             href="#fire"
             label="Indipendenza finanziaria"
             value={fire.hasData ? `${fire.progressPct}%` : '—'}
-            sub={fire.hasData ? `${fmtEur(fire.currentInvestmentsMinor)} su ${fmtEur(fire.fireNumberMinor)}` : 'servono spese e investimenti'}
+            sub={fire.hasData ? `${fmtEur(fire.currentInvestmentsMinor, 0)} su ${fmtEur(fire.fireNumberMinor, 0)}` : 'servono spese e investimenti'}
           />
           <KeyFigure
             href="#pattern"
             label="Spesa del mese, proiezione"
-            value={pacing.hasData ? fmtEur(pacing.projectedEndMinor) : '—'}
+            value={pacing.hasData ? fmtEur(pacing.projectedEndMinor, 0) : '—'}
             tone={pacing.hasData && pacing.projectedEndMinor > pacing.typicalEndMinor * 1.1 ? 'loss' : 'ink'}
-            sub={pacing.hasData ? `mese tipico ${fmtEur(pacing.typicalEndMinor)}` : 'servono più mesi di storico'}
+            sub={pacing.hasData ? `mese tipico ${fmtEur(pacing.typicalEndMinor, 0)}` : 'servono più mesi di storico'}
           />
         </div>
       </HeroShell>
@@ -357,7 +352,7 @@ export default async function StatistichePage() {
                           {g.changePct !== null ? sign(g.changePct) + fmtPct(g.changePct) : '—'}
                         </p>
                         <p className="text-xs text-(--muted) tabular-nums">
-                          {sign(g.changeMinor)}{fmtEur(g.changeMinor)}
+                          {sign(g.changeMinor)}{fmtEur(g.changeMinor, 0)}
                         </p>
                         {g.cagrPct !== null && (
                           <p className="text-xs text-(--muted)">CAGR {sign(g.cagrPct)}{fmtPct(g.cagrPct)}/anno</p>
@@ -423,9 +418,9 @@ export default async function StatistichePage() {
                   <div>
                     <p className="text-xs text-(--muted) uppercase tracking-wide font-medium">Investimenti attuali</p>
                     <p className="text-3xl font-bold font-mono tabular-nums text-(--ink) mt-1 leading-none">
-                      {fmtEur(fire.currentInvestmentsMinor)}
+                      {fmtEur(fire.currentInvestmentsMinor, 0)}
                     </p>
-                    <p className="text-sm text-(--muted) mt-0.5">su {fmtEur(fire.fireNumberMinor)} obiettivo FI</p>
+                    <p className="text-sm text-(--muted) mt-0.5">su {fmtEur(fire.fireNumberMinor, 0)} obiettivo FI</p>
                   </div>
                   <div className="text-right space-y-0.5">
                     <p className="text-3xl font-bold font-mono tabular-nums" style={{ color: fireColor }}>
@@ -444,12 +439,12 @@ export default async function StatistichePage() {
                 <ProgressBar value={clamp(fire.progressPct, 0, 100)} max={100} color={fireColor} className="h-2.5" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-2 border-t border-(--border)">
-                <Stat label="Spesa annua" value={fmtEur(fire.annualExpensesMinor)} size="sm" />
-                <Stat label="Risparmio netto/anno" value={fmtEur(fire.annualNetMinor)} size="sm" sub="ultimi 12 mesi" />
+                <Stat label="Spesa annua" value={fmtEur(fire.annualExpensesMinor, 0)} size="sm" />
+                <Stat label="Risparmio netto/anno" value={fmtEur(fire.annualNetMinor, 0)} size="sm" sub="ultimi 12 mesi" />
                 <Stat label="CAGR portafoglio"
                   value={fire.portfolioCAGRPct !== null ? sign(fire.portfolioCAGRPct) + fmtPct(fire.portfolioCAGRPct) : '—'}
                   size="sm" />
-                <Stat label="Obiettivo FI" value={fmtEur(fire.fireNumberMinor)} size="sm" sub="investimenti necessari" />
+                <Stat label="Obiettivo FI" value={fmtEur(fire.fireNumberMinor, 0)} size="sm" sub="investimenti necessari" />
               </div>
             </>
           )}
@@ -461,7 +456,7 @@ export default async function StatistichePage() {
             <h3 className="text-sm font-semibold text-(--ink)">Stress Test decumulo — Speranza di vita del capitale</h3>
           </div>
           <p className="text-xs text-(--muted)">
-            Simulazione di quanti anni il patrimonio attuale ({fmtEur(totalNWMinor)}) sostiene la spesa corrente:
+            Simulazione di quanti anni il patrimonio attuale ({fmtEur(totalNWMinor, 0)}) sostiene la spesa corrente:
             scenario normale (crescita al CAGR) e scenario stress (max drawdown storico applicato subito, poi crescita al CAGR).
           </p>
           {!decumulo.hasData ? (
@@ -471,7 +466,7 @@ export default async function StatistichePage() {
               <div className="rounded-xl border border-(--border) p-5 space-y-3">
                 <p className="text-xs font-medium text-(--muted)">Scenario normale</p>
                 <p className="text-xs text-(--muted)">
-                  Crescita al CAGR {cagrPct !== null ? fmtPct(cagrPct) : '—'}/anno · {fmtEur(decumulo.avgMonthlyExpensesMinor)}/mese di spesa
+                  Crescita al CAGR {cagrPct !== null ? fmtPct(cagrPct) : '—'}/anno · {fmtEur(decumulo.avgMonthlyExpensesMinor, 0)}/mese di spesa
                 </p>
                 <p
                   className="text-3xl font-bold font-mono tabular-nums leading-none"
@@ -491,7 +486,7 @@ export default async function StatistichePage() {
                   )}
                 </p>
                 <p className="text-xs text-(--muted)">
-                  {decumulo.stressedNetWorthMinor !== null ? fmtEur(decumulo.stressedNetWorthMinor) : '—'} dopo drawdown · poi CAGR storico
+                  {decumulo.stressedNetWorthMinor !== null ? fmtEur(decumulo.stressedNetWorthMinor, 0) : '—'} dopo drawdown · poi CAGR storico
                 </p>
                 {decumulo.maxDrawdownPct === null ? (
                   <p className="text-sm text-(--faint)">Nessun drawdown storico registrato ancora</p>
@@ -516,7 +511,7 @@ export default async function StatistichePage() {
               <p className="text-sm font-medium text-(--ink)">
                 Imposte patrimoniali stimate {currentYear}:{' '}
                 <span className="font-mono tabular-nums text-(--ink)">
-                  {fmtEur(wealthTaxes.totalMinor)}
+                  {fmtEur(wealthTaxes.totalMinor, 0)}
                 </span>
               </p>
               <p className="text-xs text-(--muted) mt-0.5">Incluse nella proiezione cashflow qui sotto.</p>
@@ -543,19 +538,19 @@ export default async function StatistichePage() {
               Stima basata sulla media degli ultimi {Math.min(txStats.cashflow.length, 3)} mesi di entrate/uscite reali
               (trasferimenti tra conti propri esclusi). Non tiene conto di eventi straordinari.
               {forecast.wealthTaxMonthlyMinor > 0 && (
-                <> Incluse <strong className="text-(--ink)">{fmtEur(forecast.wealthTaxMonthlyMinor)}/mese</strong> di imposte patrimoniali stimate.</>
+                <> Incluse <strong className="text-(--ink)">{fmtEur(forecast.wealthTaxMonthlyMinor, 0)}/mese</strong> di imposte patrimoniali stimate.</>
               )}
               {forecast.plannedTransfersMonthlyMinor > 0 && (
-                <> Considerati <strong className="text-(--ink)">{fmtEur(forecast.plannedTransfersMonthlyMinor)}/mese</strong> di
+                <> Considerati <strong className="text-(--ink)">{fmtEur(forecast.plannedTransfersMonthlyMinor, 0)}/mese</strong> di
                 trasferimenti abituali verso risparmio/investimenti: non sono spesa, ma riducono la liquidità.</>
               )}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              <Stat label="Saldo liquido attuale" value={fmtEur(liquidityMinor)} size="sm" />
+              <Stat label="Saldo liquido attuale" value={fmtEur(liquidityMinor, 0)} size="sm" />
               <div className="space-y-1">
                 <p className="text-xs font-medium text-(--muted)">Tra 30 giorni</p>
                 <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj30Minor >= forecast.thresholdMinor ? 'text-(--ink)' : 'text-(--danger-text)'}`}>
-                  {fmtEur(forecast.proj30Minor)}
+                  {fmtEur(forecast.proj30Minor, 0)}
                 </p>
                 {forecast.proj30Minor < forecast.thresholdMinor && (
                   <p className="text-xs text-(--danger)">sotto 1 mese di spese</p>
@@ -564,7 +559,7 @@ export default async function StatistichePage() {
               <div className="space-y-1">
                 <p className="text-xs font-medium text-(--muted)">Tra 60 giorni</p>
                 <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${forecast.proj60Minor >= forecast.thresholdMinor ? 'text-(--ink)' : 'text-(--danger-text)'}`}>
-                  {fmtEur(forecast.proj60Minor)}
+                  {fmtEur(forecast.proj60Minor, 0)}
                 </p>
                 {forecast.proj60Minor < forecast.thresholdMinor && (
                   <p className="text-xs text-(--danger)">sotto 1 mese di spese</p>
@@ -572,7 +567,7 @@ export default async function StatistichePage() {
               </div>
               <Stat
                 label="Flusso netto/mese"
-                value={(forecast.avgMonthlyNetMinor >= 0 ? '+' : '') + fmtEur(forecast.avgMonthlyNetMinor)}
+                value={(forecast.avgMonthlyNetMinor >= 0 ? '+' : '') + fmtEur(forecast.avgMonthlyNetMinor, 0)}
                 sub={forecast.avgMonthlyNetMinor < 0 ? 'spesa netta mensile' : 'risparmio netto mensile'}
                 size="sm"
               />
@@ -597,8 +592,8 @@ export default async function StatistichePage() {
               <h3 className="text-sm font-semibold text-(--ink)">Smart DCA — Come investire la liquidità in eccesso</h3>
             </div>
             <p className="text-xs text-(--muted)">
-              Hai <strong className="text-(--ink)">{fmtEur(dcaRec.excessCashMinor)}</strong> di liquidità
-              al di sopra del buffer di emergenza ({fmtEur(dcaRec.emergencyBufferMinor)} · 3 mesi di spese).
+              Hai <strong className="text-(--ink)">{fmtEur(dcaRec.excessCashMinor, 0)}</strong> di liquidità
+              al di sopra del buffer di emergenza ({fmtEur(dcaRec.emergencyBufferMinor, 0)} · 3 mesi di spese).
               Per mantenere l&apos;attuale composizione del portafoglio senza vendere nulla, distribuiscila così:
             </p>
             <div className="divide-y divide-(--border)">
@@ -617,7 +612,7 @@ export default async function StatistichePage() {
                     <p className="text-xs text-(--muted) mt-0.5">{r.pctOfPortfolio}% del portafoglio investito</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-base font-medium font-mono tabular-nums text-(--ink)">{fmtEur(r.suggestedMinor)}</p>
+                    <p className="text-base font-medium font-mono tabular-nums text-(--ink)">{fmtEur(r.suggestedMinor, 0)}</p>
                     <p className="text-xs text-(--muted)">{r.currency}</p>
                   </div>
                 </div>
@@ -647,7 +642,7 @@ export default async function StatistichePage() {
             <h3 className="text-sm font-semibold text-(--ink)">Autonomia finanziaria — 3 scenari di spesa</h3>
           </div>
           <p className="text-xs text-(--muted)">
-            Quanti giorni dura la liquidità attuale ({fmtEur(runway.liquidityMinor)}) in tre scenari basati sugli ultimi 12 mesi.
+            Quanti giorni dura la liquidità attuale ({fmtEur(runway.liquidityMinor, 0)}) in tre scenari basati sugli ultimi 12 mesi.
           </p>
           {!runway.hasData ? (
             <p className="text-sm text-(--faint)">Importa movimenti per calcolare l&apos;autonomia finanziaria.</p>
@@ -662,7 +657,7 @@ export default async function StatistichePage() {
                       {s.days} gg
                     </p>
                     <p className="text-xs text-(--muted)">
-                      ~{s.months} {s.months === 1 ? 'mese' : 'mesi'} · {fmtEur(s.monthlyMinor)}/mese
+                      ~{s.months} {s.months === 1 ? 'mese' : 'mesi'} · {fmtEur(s.monthlyMinor, 0)}/mese
                     </p>
                   </div>
                 )
@@ -689,11 +684,11 @@ export default async function StatistichePage() {
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                <Stat label="Buffer emergenza (3 mesi)" value={fmtEur(cashDrag.emergencyBufferMinor)} size="sm" />
-                <Stat label="Liquidità media in eccesso" value={fmtEur(cashDrag.avgExcessLiquidityMinor)} size="sm" />
+                <Stat label="Buffer emergenza (3 mesi)" value={fmtEur(cashDrag.emergencyBufferMinor, 0)} size="sm" />
+                <Stat label="Liquidità media in eccesso" value={fmtEur(cashDrag.avgExcessLiquidityMinor, 0)} size="sm" />
                 <Stat label="Periodo analizzato" value={`${Math.round(cashDrag.periodYears * 10) / 10} anni`} size="sm" />
                 <Stat label="Costo opportunità stimato"
-                  value={cashDrag.opportunityCostMinor !== null ? fmtEur(cashDrag.opportunityCostMinor) : '—'}
+                  value={cashDrag.opportunityCostMinor !== null ? fmtEur(cashDrag.opportunityCostMinor, 0) : '—'}
                   sub={cagrPct !== null ? `al CAGR ${fmtPct(cagrPct)}/anno` : undefined}
                   size="sm" />
               </div>
@@ -744,7 +739,7 @@ export default async function StatistichePage() {
                         <p className={`text-sm font-medium tabular-nums ${pctColor(last.expenseSavingsRate)}`}>
                           {last.expenseSavingsRate !== null ? fmtPct(last.expenseSavingsRate) : '—'}
                         </p>
-                        <p className="text-xs text-(--muted)">{last.month} · Netto {fmtEur(last.net)}</p>
+                        <p className="text-xs text-(--muted)">{last.month} · Netto {fmtEur(last.net, 0)}</p>
                       </div>
                     )
                   })()}
@@ -799,12 +794,12 @@ export default async function StatistichePage() {
                   &ldquo;perché questo mese ho speso {bridge.totalDeltaMinor >= 0 ? 'di più' : 'di meno'}?&rdquo;.
                 </p>
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-6">
-                  <Stat label="Speso nel mese" value={fmtEur(bridge.totalActualMinor)} size="sm" />
-                  <Stat label="Mese tipico" value={fmtEur(bridge.totalTypicalMinor)} size="sm" />
+                  <Stat label="Speso nel mese" value={fmtEur(bridge.totalActualMinor, 0)} size="sm" />
+                  <Stat label="Mese tipico" value={fmtEur(bridge.totalTypicalMinor, 0)} size="sm" />
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-(--muted)">Scostamento</p>
                     <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${bridge.totalDeltaMinor > 0 ? 'text-(--danger-text)' : 'text-(--brand-text)'}`}>
-                      {sign(bridge.totalDeltaMinor)}{fmtEur(bridge.totalDeltaMinor)}
+                      {sign(bridge.totalDeltaMinor)}{fmtEur(bridge.totalDeltaMinor, 0)}
                     </p>
                   </div>
                 </div>
@@ -823,15 +818,15 @@ export default async function StatistichePage() {
                   {pacing.monthsInBaseline} mesi completi) e proiezione a fine mese.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                  <Stat label={`Speso al giorno ${pacing.today}`} value={fmtEur(pacing.actualToDateMinor)} size="sm" />
-                  <Stat label="Tipico a oggi" value={fmtEur(pacing.typicalToDateMinor)} size="sm" />
+                  <Stat label={`Speso al giorno ${pacing.today}`} value={fmtEur(pacing.actualToDateMinor, 0)} size="sm" />
+                  <Stat label="Tipico a oggi" value={fmtEur(pacing.typicalToDateMinor, 0)} size="sm" />
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-(--muted)">Proiezione fine mese</p>
                     <p className={`text-lg font-semibold font-mono tabular-nums leading-none ${pacing.projectedEndMinor > pacing.typicalEndMinor * 1.1 ? 'text-(--danger-text)' : 'text-(--ink)'}`}>
-                      {fmtEur(pacing.projectedEndMinor)}
+                      {fmtEur(pacing.projectedEndMinor, 0)}
                     </p>
                   </div>
-                  <Stat label="Tipico fine mese" value={fmtEur(pacing.typicalEndMinor)} size="sm" />
+                  <Stat label="Tipico fine mese" value={fmtEur(pacing.typicalEndMinor, 0)} size="sm" />
                 </div>
                 <PacingChart data={pacing} />
               </Card>
@@ -852,10 +847,10 @@ export default async function StatistichePage() {
                   tuo punto di pareggio: sotto quell&apos;entrata mensile il mese è strutturalmente in rosso.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                  <Stat label="Fisse / mese" value={fmtEur(fixedVar.fixedMonthlyMinor)} size="sm" sub="punto di pareggio" />
-                  <Stat label="Variabili / mese" value={fmtEur(fixedVar.variableMonthlyMinor)} size="sm" sub="mediana 6 mesi" />
+                  <Stat label="Fisse / mese" value={fmtEur(fixedVar.fixedMonthlyMinor, 0)} size="sm" sub="punto di pareggio" />
+                  <Stat label="Variabili / mese" value={fmtEur(fixedVar.variableMonthlyMinor, 0)} size="sm" sub="mediana 6 mesi" />
                   {fixedVar.medianIncomeMinor !== null && (
-                    <Stat label="Reddito mediano" value={fmtEur(fixedVar.medianIncomeMinor)} size="sm" />
+                    <Stat label="Reddito mediano" value={fmtEur(fixedVar.medianIncomeMinor, 0)} size="sm" />
                   )}
                   {fixedVar.committedRatioPct !== null && (
                     <div className="space-y-1">
@@ -953,9 +948,9 @@ export default async function StatistichePage() {
                     <h3 className="text-sm font-semibold text-(--ink)">Abbonamenti e pagamenti ricorrenti</h3>
                   </div>
                   <div className="text-xs text-(--muted) text-right space-y-0.5">
-                    <p>Totale attivi/anno: <span className="font-medium text-(--ink)">{fmtEur(activeSubs.reduce((s, r) => s + r.yearlyMinor, 0))}</span></p>
+                    <p>Totale attivi/anno: <span className="font-medium text-(--ink)">{fmtEur(activeSubs.reduce((s, r) => s + r.yearlyMinor, 0), 0)}</span></p>
                     {cagrPct !== null && (
-                      <p>Costo opp. 5 anni: <span className="font-medium text-(--ink)">{fmtEur(activeSubs.reduce((s, r) => s + (r.yearly5yMinor ?? 0), 0))}</span></p>
+                      <p>Costo opp. 5 anni: <span className="font-medium text-(--ink)">{fmtEur(activeSubs.reduce((s, r) => s + (r.yearly5yMinor ?? 0), 0), 0)}</span></p>
                     )}
                   </div>
                 </div>
@@ -975,7 +970,7 @@ export default async function StatistichePage() {
                             {r.cadenceLabel && <Badge variant="neutral">{r.cadenceLabel}</Badge>}
                             {r.priceChangePct !== null && r.oldAmountMinor !== null && (
                               <Badge variant={r.priceChangePct > 0 ? 'warning' : 'gain'}>
-                                {r.priceChangePct > 0 ? '▲' : '▼'} {sign(r.priceChangePct)}{fmtPct(r.priceChangePct)} da {fmtEur(r.oldAmountMinor)}
+                                {r.priceChangePct > 0 ? '▲' : '▼'} {sign(r.priceChangePct)}{fmtPct(r.priceChangePct)} da {fmtEur(r.oldAmountMinor, 0)}
                               </Badge>
                             )}
                             {r.status === 'ceased' && <Badge variant="neutral">cessato</Badge>}
@@ -983,7 +978,7 @@ export default async function StatistichePage() {
                           <p className="text-xs text-(--muted) mt-0.5">
                             {r.occurrences} addebiti in {r.months} mesi
                             {r.status === 'ceased'
-                              ? ` · risparmio ${fmtEur(r.yearlyMinor)}/anno`
+                              ? ` · risparmio ${fmtEur(r.yearlyMinor, 0)}/anno`
                               : r.nextExpectedDate ? ` · prossimo ~${fmtShortDate(r.nextExpectedDate)}` : ''}
                           </p>
                           <div className="mt-1">
@@ -992,13 +987,13 @@ export default async function StatistichePage() {
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
                           <p className="text-sm font-medium tabular-nums text-(--ink)">
-                            {fmtEur(r.amountMinor)}
+                            {fmtEur(r.amountMinor, 0)}
                             <span className="text-(--faint) font-normal">
                               {r.cadence === 'monthly' ? '/mese' : r.cadenceLabel ? ` ${r.cadenceLabel}` : ''}
                             </span>
                           </p>
                           {r.status === 'active' && r.yearly5yMinor !== null && (
-                            <p className="text-xs text-(--muted) tabular-nums">{fmtEur(r.yearly5yMinor)} in 5a</p>
+                            <p className="text-xs text-(--muted) tabular-nums">{fmtEur(r.yearly5yMinor, 0)} in 5a</p>
                           )}
                         </div>
                       </div>
@@ -1022,7 +1017,7 @@ export default async function StatistichePage() {
                             </div>
                           </div>
                           <p className="text-sm font-medium tabular-nums text-(--ink) shrink-0">
-                            {fmtEur(r.monthlyEquivalentMinor)}<span className="text-(--faint) font-normal">/mese</span>
+                            {fmtEur(r.monthlyEquivalentMinor, 0)}<span className="text-(--faint) font-normal">/mese</span>
                           </p>
                         </div>
                       ))}
@@ -1065,7 +1060,7 @@ export default async function StatistichePage() {
                           </span>
                         </div>
                         <p className="text-xs text-(--muted) mt-1">
-                          {pair.coOccurrences} co-occorrenze · spesa media in {pair.catB.name}: {fmtEur(pair.avgBSpendMinor)}
+                          {pair.coOccurrences} co-occorrenze · spesa media in {pair.catB.name}: {fmtEur(pair.avgBSpendMinor, 0)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -1102,12 +1097,12 @@ export default async function StatistichePage() {
                           {o.description.length > 50 ? o.description.slice(0, 50) + '…' : o.description}
                         </p>
                         <p className="text-xs text-(--muted)">
-                          {o.booked_date}{o.category_name ? ` · ${o.category_name}` : ''} · mediana {fmtEur(o.categoryMedianMinor)} · z {o.robustZ.toLocaleString('it-IT')}
+                          {o.booked_date}{o.category_name ? ` · ${o.category_name}` : ''} · mediana {fmtEur(o.categoryMedianMinor, 0)} · z {o.robustZ.toLocaleString('it-IT')}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-medium font-mono tabular-nums text-(--ink)">{fmtEur(Math.abs(o.amount_minor))}</p>
-                        <p className="text-xs text-(--muted)">+{fmtEur(o.excessMinor)} vs mediana</p>
+                        <p className="text-sm font-medium font-mono tabular-nums text-(--ink)">{fmtEur(Math.abs(o.amount_minor), 0)}</p>
+                        <p className="text-xs text-(--muted)">+{fmtEur(o.excessMinor, 0)} vs mediana</p>
                       </div>
                     </div>
                   ))}
@@ -1178,7 +1173,7 @@ export default async function StatistichePage() {
                             <p className="text-xs text-(--muted)">{p.txnCount} operazioni · {p.periodYears} anni · {p.currency}</p>
                           </div>
                           {p.currentValueMinor !== null && (
-                            <span className="text-sm tabular-nums text-(--muted) shrink-0">{fmtEur(p.currentValueMinor)}</span>
+                            <span className="text-sm tabular-nums text-(--muted) shrink-0">{fmtEur(p.currentValueMinor, 0)}</span>
                           )}
                           <div className="text-right shrink-0">
                             {p.mwrrPct !== null ? (
@@ -1227,7 +1222,7 @@ export default async function StatistichePage() {
                                   <p className="text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{r.name}</p>
                                   <p className="text-xs text-(--muted)">
                                     <span className="font-mono">{r.symbol}</span>
-                                    {' · '}{r.years} anni · investito {fmtEur(r.totalCostMinor)}
+                                    {' · '}{r.years} anni · investito {fmtEur(r.totalCostMinor, 0)}
                                   </p>
                                 </div>
                                 {!r.hasHistory ? (
@@ -1255,7 +1250,7 @@ export default async function StatistichePage() {
                                   <div>
                                     <p className="text-xs text-(--muted)">Valore DCA oggi</p>
                                     <p className="text-sm font-medium tabular-nums text-(--muted)">
-                                      {r.dcaValueMinor !== null ? fmtEur(r.dcaValueMinor) : '—'}
+                                      {r.dcaValueMinor !== null ? fmtEur(r.dcaValueMinor, 0) : '—'}
                                     </p>
                                   </div>
                                 </div>

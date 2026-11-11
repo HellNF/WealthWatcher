@@ -939,4 +939,3 @@ function buildMonthInsights(i: MonthInsightInputs): Insight[] {
 }
 
 /** Elenco mesi disponibili (YYYY-MM) per utente/conto. Riesportato per comodità. */
-export { availableMonths } from '@/lib/reports'

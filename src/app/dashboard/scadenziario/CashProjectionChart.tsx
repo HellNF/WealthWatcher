@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur, fmtIsoDayMonth } from '@/lib/format'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
@@ -12,14 +12,6 @@ interface Props {
   points:         CashProjectionPoint[]
   thresholdMinor: number
   minDate:        string
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
-function shortDate(iso: string): string {
-  const [, m, d] = iso.split('-')
-  return `${d}/${m}`
 }
 
 type ChartColors = {
@@ -41,9 +33,9 @@ function ProjectionTooltip(
       borderRadius: 10, fontSize: 12, padding: '8px 10px',
       boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)', maxWidth: 240,
     }}>
-      <p style={{ color: colors.tipLabel, marginBottom: 4 }}>{shortDate(p.date)}</p>
+      <p style={{ color: colors.tipLabel, marginBottom: 4 }}>{fmtIsoDayMonth(p.date)}</p>
       <p style={{ color: p.balanceMinor < 0 ? colors.danger : colors.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-        {fmtEur(p.balanceMinor)}
+        {fmtEur(p.balanceMinor, 0)}
       </p>
       {p.events.length > 0 && (
         <ul style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${colors.tipBorder}`, listStyle: 'none' }}>
@@ -51,7 +43,7 @@ function ProjectionTooltip(
             <li key={i} style={{ color: e.direction === 'in' ? colors.brand : colors.ink, fontSize: 11, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.label}</span>
               <span style={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                {e.direction === 'in' ? '+' : '−'}{fmtEur(e.amountMinor)}
+                {e.direction === 'in' ? '+' : '−'}{fmtEur(e.amountMinor, 0)}
               </span>
             </li>
           ))}
@@ -73,7 +65,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
     )
   }
 
-  const data = points.map(p => ({ ...p, label: shortDate(p.date) }))
+  const data = points.map(p => ({ ...p, label: fmtIsoDayMonth(p.date) }))
   const hasNegative = points.some(p => p.balanceMinor < 0)
 
   const colors: ChartColors = isDark
@@ -117,7 +109,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
         {/* Linea dello zero (scoperto) */}
         {hasNegative && <ReferenceLine y={0} stroke={colors.danger} strokeDasharray="2 2" />}
         {/* Giorno del minimo */}
-        <ReferenceLine x={shortDate(minDate)} stroke={colors.axis} strokeOpacity={0.4} strokeDasharray="3 3" />
+        <ReferenceLine x={fmtIsoDayMonth(minDate)} stroke={colors.axis} strokeOpacity={0.4} strokeDasharray="3 3" />
 
         <Area isAnimationActive={false}
           type="monotone" dataKey="balanceMinor" stroke={stroke} strokeWidth={2}

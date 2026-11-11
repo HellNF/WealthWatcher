@@ -6,6 +6,7 @@ import NumberFlow from '@number-flow/react'
 import { Trash2 } from 'lucide-react'
 import { Badge, Button, Card, ConfirmDialog, HeroFigure, Select, Tooltip, toast } from '@/components/ui'
 import type { Fixture, FixtureId } from './fixtures'
+import { fmtEur } from '@/lib/format'
 
 const STATES: { id: FixtureId; label: string }[] = [
   { id: 'demo', label: 'Demo' },
@@ -13,10 +14,6 @@ const STATES: { id: FixtureId; label: string }[] = [
   { id: 'empty', label: 'Vuoto' },
   { id: 'one', label: 'Uno' },
 ]
-
-const fmtEur = (minor: number) => (minor / 100).toLocaleString('it-IT', {
-  style: 'currency', currency: 'EUR', useGrouping: 'always', minimumFractionDigits: 2, maximumFractionDigits: 2,
-})
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

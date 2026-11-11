@@ -21,7 +21,6 @@ export type { StatSize } from './Stat'
 
 export { EmptyState } from './EmptyState'
 
-export { Skeleton, SkeletonCard, SkeletonRow } from './Skeleton'
 
 export {
   TableWrapper,

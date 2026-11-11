@@ -1,23 +1,15 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import type { MonthBridge } from '@/lib/spendingInsights'
-import { useTheme } from '@/components/providers/ThemeProvider'
+import { useChartTheme } from '@/components/charts/chartTheme'
 
 interface Props {
   data: MonthBridge
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 /**
@@ -25,28 +17,7 @@ function fmtEur(minor: number): string {
  * mese tipico (rosso = speso di più, verde = speso di meno).
  */
 export default function MonthBridgeChart({ data }: Props) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
-
-  const colors = isDark
-    ? {
-        grid:  'oklch(0.26 0.01 160)',
-        axis:  'oklch(0.72 0.01 160)',
-        over:  '#f87171',
-        under: '#34d399',
-        zero:  'oklch(0.42 0.01 160)',
-        tooltipBg:     '#1a2421',
-        tooltipBorder: 'oklch(0.26 0.01 160)',
-      }
-    : {
-        grid:  'oklch(0.88 0.005 160)',
-        axis:  'oklch(0.45 0.01 160)',
-        over:  '#dc2626',
-        under: '#059669',
-        zero:  'oklch(0.65 0.008 160)',
-        tooltipBg:     '#ffffff',
-        tooltipBorder: 'oklch(0.88 0.005 160)',
-      }
+  const t = useChartTheme()
 
   const rows = data.items.slice(0, 8).map((i) => ({
     name:    i.categoryName,
@@ -69,18 +40,18 @@ export default function MonthBridgeChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 38 + 30)}>
       <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} horizontal={false} />
         <XAxis
           type="number"
           tickFormatter={(v) => formatAxisMoney(Number(v))}
-          tick={{ fill: colors.axis, fontSize: 11 }}
+          tick={t.tick}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
           type="category"
           dataKey="name"
-          tick={{ fill: colors.axis, fontSize: 12 }}
+          tick={{ fill: t.axis, fontSize: 12 }}
           tickLine={false}
           axisLine={false}
           width={120}
@@ -89,23 +60,17 @@ export default function MonthBridgeChart({ data }: Props) {
           formatter={(value, _name, entry) => {
             const p = entry?.payload as (typeof rows)[number] | undefined
             const detail = p && p.name !== 'Altre categorie'
-              ? ` (speso ${fmtEur(p.actual)} vs tipico ${fmtEur(p.typical)})`
+              ? ` (speso ${fmtEur(p.actual, 0)} vs tipico ${fmtEur(p.typical, 0)})`
               : ''
             const v = Number(value)
-            return [`${v >= 0 ? '+' : ''}${fmtEur(v)}${detail}`, 'vs mese tipico']
+            return [`${v >= 0 ? '+' : ''}${fmtEur(v, 0)}${detail}`, 'vs mese tipico']
           }}
-          contentStyle={{
-            background: colors.tooltipBg,
-            border: `1px solid ${colors.tooltipBorder}`,
-            borderRadius: 10,
-            fontSize: 12,
-            boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
-          }}
+          contentStyle={t.tooltip}
         />
-        <ReferenceLine x={0} stroke={colors.zero} />
+        <ReferenceLine x={0} stroke={t.faint} />
         <Bar isAnimationActive={false} dataKey="delta" radius={[0, 3, 3, 0]} maxBarSize={22}>
           {rows.map((r, i) => (
-            <Cell key={i} fill={r.delta >= 0 ? colors.over : colors.under} opacity={0.85} />
+            <Cell key={i} fill={r.delta >= 0 ? t.danger : t.brand} opacity={0.85} />
           ))}
         </Bar>
       </BarChart>

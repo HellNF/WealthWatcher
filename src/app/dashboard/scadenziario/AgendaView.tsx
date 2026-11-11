@@ -4,7 +4,8 @@ import { CalendarClock } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import type { DeadlineEvent } from '@/lib/calendar'
 import EventRow from './EventRow'
-import { daysUntil, fmtEur } from './eventMeta'
+import { daysUntil } from './eventMeta'
+import { fmtEur } from '@/lib/format'
 
 interface Bucket {
   key:   string
@@ -68,7 +69,7 @@ export default function AgendaView({ events, today }: Props) {
               </h3>
               {net !== 0 && (
                 <span className={`text-xs font-mono tabular-nums ${net >= 0 ? 'text-(--brand-text)' : 'text-(--muted)'}`}>
-                  {net >= 0 ? '+' : '−'}{fmtEur(Math.abs(net))}
+                  {net >= 0 ? '+' : '−'}{fmtEur(Math.abs(net), 0)}
                 </span>
               )}
             </div>

@@ -116,17 +116,6 @@ export async function getScadenziarioEvents(
   return runGenerators(ctx)
 }
 
-/**
- * API legacy retro-compatibile: solo le uscite cash schedulate, come la vecchia
- * implementazione. Usata dai consumatori che sommano gli importi come uscite.
- */
-export async function getFiscalCalendar(
-  userId: number, from: string, to: string,
-): Promise<DeadlineEvent[]> {
-  const events = await getScadenziarioEvents(userId, from, to)
-  return events.filter(e => e.kind === 'cash' && e.direction === 'out')
-}
-
 // ── Bundle completo per la pagina ────────────────────────────────────────────────
 
 /**

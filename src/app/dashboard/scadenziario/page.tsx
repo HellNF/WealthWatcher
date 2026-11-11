@@ -1,25 +1,15 @@
 import { requireUser } from '@/lib/dal'
 import { buildScadenziario } from '@/lib/calendar'
-import { formatMoney } from '@/lib/money'
+import { fmtEur } from '@/lib/format'
 import { Card, Badge, Eyebrow, HeroShell, InsightCard, PageHeader, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AlertTriangle } from 'lucide-react'
 import ScadenziarioView from './ScadenziarioView'
-import { metaFor, countdownLabel, fmtEur as fmtEvt } from './eventMeta'
+import { metaFor, countdownLabel, fmtShort } from './eventMeta'
 import CashProjectionChart from './CashProjectionChart'
 
 export const dynamic = 'force-dynamic'
 
 const HORIZON_DAYS = 90
-
-function fmtEur(minor: number) {
-  return formatMoney(minor, 'EUR')
-}
-
-const MONTHS_SHORT = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
-function fmtDayMonth(iso: string): string {
-  const [, m, d] = iso.split('-')
-  return `${parseInt(d, 10)} ${MONTHS_SHORT[parseInt(m, 10) - 1]}`
-}
 
 const STATUS_META = {
   OK:                { badge: 'success' as const, label: 'Liquidità solida' },
@@ -53,7 +43,7 @@ export default async function ScadenziarioPage() {
       <span className="text-sm text-(--muted)">
         Saldo minimo{' '}
         <span className={`font-mono tabular-nums font-semibold ${statusTone}`}>{fmtEur(summary.minBalanceMinor)}</span>
-        {minBelowStart && <> il {fmtDayMonth(summary.minBalanceDate)}</>}
+        {minBelowStart && <> il {fmtShort(summary.minBalanceDate)}</>}
       </span>
       <span className="ml-auto text-xs text-(--muted)">{status.label}</span>
     </StickyBar>
@@ -87,10 +77,10 @@ export default async function ScadenziarioPage() {
                   {summary.status === 'CRITICAL_SHORTAGE' ? (
                     <>
                       La liquidità proiettata scende sotto zero intorno al{' '}
-                      <strong className="text-(--ink)">{fmtDayMonth(summary.minBalanceDate)}</strong>: anticipa entrate o rimanda alcune uscite.
+                      <strong className="text-(--ink)">{fmtShort(summary.minBalanceDate)}</strong>: anticipa entrate o rimanda alcune uscite.
                     </>
                   ) : minBelowStart ? (
-                    <>È il punto più basso a cui scende la tua liquidità, il <strong className="text-(--ink)">{fmtDayMonth(summary.minBalanceDate)}</strong>.</>
+                    <>È il punto più basso a cui scende la tua liquidità, il <strong className="text-(--ink)">{fmtShort(summary.minBalanceDate)}</strong>.</>
                   ) : (
                     <>La tua liquidità non scende mai sotto il livello di oggi.</>
                   )}
@@ -157,11 +147,11 @@ export default async function ScadenziarioPage() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{e.label}</span>
-                      <span className="block text-xs text-(--muted)">{fmtDayMonth(e.date)} · {countdownLabel(e.date, today)}</span>
+                      <span className="block text-xs text-(--muted)">{fmtShort(e.date)} · {countdownLabel(e.date, today)}</span>
                     </span>
                     {e.amountMinor > 0 && (
                       <span className={`shrink-0 text-sm font-mono tabular-nums ${e.kind === 'cash' && e.direction === 'in' ? 'text-(--brand-text)' : 'text-(--ink)'}`}>
-                        {e.kind === 'cash' ? (e.direction === 'in' ? '+' : '−') : ''}{fmtEvt(e.amountMinor)}
+                        {e.kind === 'cash' ? (e.direction === 'in' ? '+' : '−') : ''}{fmtEur(e.amountMinor, 0)}
                       </span>
                     )}
                   </div>

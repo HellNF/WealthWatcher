@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { AlertTriangle, ChevronDown } from 'lucide-react'
 import { Card, Stat, Badge } from '@/components/ui'
 import type { WealthTaxStats } from '@/lib/tax/wealth'
-import { fmtEur, fmtBollo } from './format'
+
+import { fmtEur } from '@/lib/format'
 
 interface Props {
   year:         string
@@ -48,14 +49,14 @@ export default function WealthTaxSection({ year, isQuarterly, wealthTaxes, taxRe
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
             <Stat
               label={isQuarterly ? 'Per trimestre (×4/anno)' : 'Totale stimato annuo'}
-              value={fmtBollo(isQuarterly ? wealthTaxes.totalMinor / 4 : wealthTaxes.totalMinor)}
+              value={fmtEur(isQuarterly ? wealthTaxes.totalMinor / 4 : wealthTaxes.totalMinor)}
               sub="bollo + IVAFE"
               size="sm"
             />
             {wealthTaxes.totalBolloMinor > 0 && (
               <Stat
                 label="Imposta di bollo (IT)"
-                value={fmtBollo(isQuarterly ? wealthTaxes.totalBolloMinor / 4 : wealthTaxes.totalBolloMinor)}
+                value={fmtEur(isQuarterly ? wealthTaxes.totalBolloMinor / 4 : wealthTaxes.totalBolloMinor)}
                 sub={isQuarterly ? 'per trimestre' : 'conti e titoli italiani'}
                 size="sm"
               />
@@ -63,7 +64,7 @@ export default function WealthTaxSection({ year, isQuarterly, wealthTaxes, taxRe
             {wealthTaxes.totalIvafeMinor > 0 && (
               <Stat
                 label="IVAFE (estero)"
-                value={fmtBollo(isQuarterly ? wealthTaxes.totalIvafeMinor / 4 : wealthTaxes.totalIvafeMinor)}
+                value={fmtEur(isQuarterly ? wealthTaxes.totalIvafeMinor / 4 : wealthTaxes.totalIvafeMinor)}
                 sub={isQuarterly ? 'per trimestre' : 'conti e titoli esteri'}
                 size="sm"
               />
@@ -91,10 +92,10 @@ export default function WealthTaxSection({ year, isQuarterly, wealthTaxes, taxRe
                       <tr key={`${line.kind}-${line.id}`} className="hover:bg-(--surface-2) transition-colors">
                         <td className="px-4 py-2.5 text-sm text-(--ink) font-medium min-w-40 [overflow-wrap:anywhere]">{line.name}</td>
                         <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums text-(--muted)">
-                          {line.kind === 'account' ? `${fmtEur(line.baseEurMinor)} (media)` : fmtEur(line.baseEurMinor)}
+                          {line.kind === 'account' ? `${fmtEur(line.baseEurMinor, 0)} (media)` : fmtEur(line.baseEurMinor, 0)}
                         </td>
                         <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums text-(--ink) font-medium">
-                          {fmtBollo(isQuarterly ? line.taxEurMinor / 4 : line.taxEurMinor)}
+                          {fmtEur(isQuarterly ? line.taxEurMinor / 4 : line.taxEurMinor)}
                           {line.stale && <span className="text-(--warning-text) ml-1">*</span>}
                         </td>
                         <td className="px-4 py-2.5 text-center">

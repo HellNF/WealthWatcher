@@ -4,7 +4,8 @@ import { AlertTriangle } from 'lucide-react'
 import { Card, Stat, ProgressBar } from '@/components/ui'
 import type { IncomeTaxEstimate } from '@/lib/tax/income'
 import type { PensionTaxStatus } from '@/lib/tax/pension'
-import { fmtEurDec, fmtPct } from './format'
+import { fmtPct } from './format'
+import { fmtEur } from '@/lib/format'
 
 interface Props {
   year:      string
@@ -22,13 +23,13 @@ export default function PensionSection({ year, incomeTax, pension }: Props) {
       {showIrpef && (
         <Card className="space-y-5">
           <div className="grid grid-cols-2 gap-5">
-            <Stat label="Imponibile" value={fmtEurDec(incomeTax.taxableMinor)} size="sm" />
-            {incomeTax.irpefMinor > 0 && <Stat label="IRPEF" value={fmtEurDec(incomeTax.irpefMinor)} size="sm" />}
-            {incomeTax.substituteMinor > 0 && <Stat label="Imposta sost." value={fmtEurDec(incomeTax.substituteMinor)} size="sm" />}
-            {incomeTax.addizionaliMinor > 0 && <Stat label="Addizionali" value={fmtEurDec(incomeTax.addizionaliMinor)} size="sm" />}
+            <Stat label="Imponibile" value={fmtEur(incomeTax.taxableMinor)} size="sm" />
+            {incomeTax.irpefMinor > 0 && <Stat label="IRPEF" value={fmtEur(incomeTax.irpefMinor)} size="sm" />}
+            {incomeTax.substituteMinor > 0 && <Stat label="Imposta sost." value={fmtEur(incomeTax.substituteMinor)} size="sm" />}
+            {incomeTax.addizionaliMinor > 0 && <Stat label="Addizionali" value={fmtEur(incomeTax.addizionaliMinor)} size="sm" />}
             <Stat
               label="Totale stimato"
-              value={fmtEurDec(incomeTax.totalMinor)}
+              value={fmtEur(incomeTax.totalMinor)}
               sub={`Aliq. eff. ${fmtPct(incomeTax.effectiveRate)}`}
               size="sm"
             />
@@ -40,8 +41,8 @@ export default function PensionSection({ year, incomeTax, pension }: Props) {
               {incomeTax.brackets.map((b, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-(--muted) font-mono tabular-nums">{fmtPct(b.rate)}</span>
-                  <span className="text-(--faint)">su {fmtEurDec(b.taxedMinor)}</span>
-                  <span className="text-(--ink) font-medium font-mono tabular-nums">{fmtEurDec(b.taxMinor)}</span>
+                  <span className="text-(--faint)">su {fmtEur(b.taxedMinor)}</span>
+                  <span className="text-(--ink) font-medium font-mono tabular-nums">{fmtEur(b.taxMinor)}</span>
                 </div>
               ))}
             </div>
@@ -64,22 +65,22 @@ export default function PensionSection({ year, incomeTax, pension }: Props) {
       {showPension && (
         <Card className="space-y-5">
           <div className="grid grid-cols-2 gap-5">
-            <Stat label={`Contributi versati ${year}`} value={fmtEurDec(pension.contributionsCurrentYearMinor)} size="sm" />
+            <Stat label={`Contributi versati ${year}`} value={fmtEur(pension.contributionsCurrentYearMinor)} size="sm" />
             <Stat
               label="Spazio deducibile residuo"
-              value={fmtEurDec(pension.remainingDeductibleSpaceMinor)}
+              value={fmtEur(pension.remainingDeductibleSpaceMinor)}
               sub={`max €${(pension.maxDeductionLimitMinor / 100).toLocaleString('it-IT')}`}
               size="sm"
             />
             <Stat
               label="Risparmio IRPEF realizzato"
-              value={pension.currentTaxRefundRealizedMinor > 0 ? fmtEurDec(pension.currentTaxRefundRealizedMinor) : '—'}
+              value={pension.currentTaxRefundRealizedMinor > 0 ? fmtEur(pension.currentTaxRefundRealizedMinor) : '—'}
               sub={`aliq. ${((pension.marginalRate ?? 0) * 100).toFixed(0)}%`}
               size="sm"
             />
             <Stat
               label="Risparmio potenziale rimasto"
-              value={pension.potentialTaxRefundRemainingMinor > 0 ? fmtEurDec(pension.potentialTaxRefundRemainingMinor) : '—'}
+              value={pension.potentialTaxRefundRemainingMinor > 0 ? fmtEur(pension.potentialTaxRefundRemainingMinor) : '—'}
               size="sm"
             />
           </div>

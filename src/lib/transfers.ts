@@ -19,7 +19,7 @@
 // come prima dell'introduzione delle conferme.
 import { sqlite } from '@/db'
 
-export const PAIR_WINDOW_DAYS = 3
+const PAIR_WINDOW_DAYS = 3
 const PAIR_MIN_ABS_MINOR = 100 // ignora importi sotto l'unità
 
 export interface TransferLeg {

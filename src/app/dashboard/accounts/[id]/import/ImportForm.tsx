@@ -7,7 +7,7 @@ import {
   type PreviewResult,
   type CommitResult,
 } from './actions'
-import { formatMoney } from '@/lib/money'
+import { formatMoney, fmtIsoDate } from '@/lib/format'
 import {
   Button, Badge,
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
@@ -29,11 +29,6 @@ const STATUS_LABEL: Record<string, string> = {
   new:       'Nuovo',
   duplicate: 'Duplicato',
   suspect:   'Sospetto',
-}
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
 }
 
 export default function ImportForm({
@@ -164,7 +159,7 @@ export default function ImportForm({
                         </Badge>
                       </Td>
                       <Td className="text-(--muted) text-xs tabular-nums">
-                        {formatDate(row.bookedDate)}
+                        {fmtIsoDate(row.bookedDate)}
                       </Td>
                       <Td className="max-w-xs">
                         <span className="[overflow-wrap:anywhere] block text-(--ink)">

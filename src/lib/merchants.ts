@@ -297,7 +297,7 @@ export interface RuleDraft {
 }
 
 /** Lunghezza massima del pattern di una regola (form e server). */
-export const RULE_PATTERN_MAX = 200
+const RULE_PATTERN_MAX = 200
 
 export function createCategoryRule(
   ownerId: number,
@@ -383,8 +383,3 @@ export function deleteCategoryRule(id: number, ownerId: number): void {
     .run(id, ownerId)
 }
 
-export function updateCategoryRulePriority(id: number, ownerId: number, priority: number): void {
-  sqlite
-    .prepare('UPDATE category_rules SET priority = ? WHERE id = ? AND owner_id = ?')
-    .run(priority, id, ownerId)
-}

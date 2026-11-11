@@ -7,10 +7,7 @@ import {
 } from '@/components/ui'
 import { Plus, Target } from 'lucide-react'
 import type { BudgetWithCategory } from '@/lib/budgets'
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR' })
-}
+import { fmtEur } from '@/lib/format'
 
 interface Category { id: number; name: string; kind: string }
 
