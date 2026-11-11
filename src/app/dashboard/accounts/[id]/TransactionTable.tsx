@@ -230,7 +230,7 @@ function DescriptionCell({
         <button
           onClick={() => setEditing(true)}
           aria-label="Modifica descrizione"
-          className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
+          className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-[color,background-color,border-color,opacity,box-shadow,scale,translate]"
         >
           <Pencil className="size-3" />
         </button>

@@ -37,7 +37,7 @@ import {
   Activity, Link2, Clock, Gauge, Shuffle,
   ArrowRight, Wallet, Lightbulb, Scale,
 } from 'lucide-react'
-import { Card, Stat, Badge, EmptyState, InsightCard, PageHeader, SectionNav, StickyBar, Eyebrow, HeroShell, PAGE_SHELL, HeroFigure } from '@/components/ui'
+import { Card, Stat, Badge, EmptyState, InsightCard, PageHeader, SectionNav, StickyBar, Eyebrow, HeroShell, PAGE_SHELL, HeroFigure, ProgressBar } from '@/components/ui'
 import Link from 'next/link'
 import AllocationOverTime   from './AllocationOverTime'
 import CashflowChart        from './CashflowChart'
@@ -80,16 +80,6 @@ function fmtYears(years: number | null): string {
   return `${y}a ${m}m`
 }
 
-function ProgressBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div className="h-2.5 bg-(--surface-2) rounded-full overflow-hidden">
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${clamp(pct, 0, 100)}%`, background: color }}
-      />
-    </div>
-  )
-}
 
 const SECTIONS = [
   { id: 'considerazioni', label: 'Considerazioni' },
@@ -451,7 +441,7 @@ export default async function StatistichePage() {
                     )}
                   </div>
                 </div>
-                <ProgressBar pct={fire.progressPct} color={fireColor} />
+                <ProgressBar value={clamp(fire.progressPct, 0, 100)} max={100} color={fireColor} className="h-2.5" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-2 border-t border-(--border)">
                 <Stat label="Spesa annua" value={fmtEur(fire.annualExpensesMinor)} size="sm" />

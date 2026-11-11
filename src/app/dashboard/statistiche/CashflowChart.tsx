@@ -85,7 +85,7 @@ export default function CashflowChart({ data }: Props) {
           axisLine={false}
           width={88}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
@@ -96,9 +96,9 @@ export default function CashflowChart({ data }: Props) {
           }}
         />
         <ReferenceLine y={0} stroke={colors.zero} strokeDasharray="3 3" />
-        <Bar dataKey="Entrate" fill={colors.inflow}  opacity={0.7} radius={[3,3,0,0]} maxBarSize={32} />
-        <Bar dataKey="Uscite"  fill={colors.outflow} opacity={0.7} radius={[3,3,0,0]} maxBarSize={32} />
-        <Line
+        <Bar isAnimationActive={false} dataKey="Entrate" fill={colors.inflow}  opacity={0.7} radius={[3,3,0,0]} maxBarSize={32} />
+        <Bar isAnimationActive={false} dataKey="Uscite"  fill={colors.outflow} opacity={0.7} radius={[3,3,0,0]} maxBarSize={32} />
+        <Line isAnimationActive={false}
           type="monotone"
           dataKey="Netto"
           stroke={colors.net}

@@ -229,7 +229,7 @@ export default function ImportForm({
       <div className="flex gap-3">
         <Link
           href={`/dashboard/accounts/${accountId}`}
-          className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) transition-all duration-150"
+          className="inline-flex items-center justify-center h-9 px-4 text-sm font-medium rounded-lg border border-(--border) text-(--ink) hover:bg-(--surface-2) transition-[color,background-color,border-color,opacity,box-shadow,scale,translate] duration-150"
         >
           Torna al conto
         </Link>

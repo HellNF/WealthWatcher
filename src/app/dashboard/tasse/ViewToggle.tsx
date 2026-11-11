@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
+import { useSlidingPill } from '@/components/ui/useSlidingPill'
 import { cn } from '@/lib/cn'
 
 /**
@@ -13,8 +13,8 @@ import { cn } from '@/lib/cn'
 export default function ViewToggle() {
   const router = useRouter()
   const sp     = useSearchParams()
-  const reduceMotion = useReducedMotion()
   const advanced = sp.get('vista') === 'avanzata'
+  const { containerRef, pillRef } = useSlidingPill<HTMLDivElement>(advanced ? 'adv' : 'base')
 
   function go(toAdvanced: boolean) {
     const params = new URLSearchParams(sp.toString())
@@ -29,17 +29,19 @@ export default function ViewToggle() {
   ]
 
   return (
-    <LayoutGroup id="tax-view">
-      <div
+    <div
+        ref={containerRef}
         role="tablist"
         aria-label="Livello di dettaglio"
-        className="inline-flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5"
+        className="relative inline-flex items-center gap-0.5 rounded-lg bg-(--surface-2) p-0.5"
       >
+        <span ref={pillRef} aria-hidden className="pointer-events-none absolute left-0 top-0 origin-top-left rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border) opacity-0" />
         {options.map((o) => {
           const active = o.advanced === advanced
           return (
             <button
               key={o.label}
+              data-pill-key={o.advanced ? 'adv' : 'base'}
               type="button"
               role="tab"
               aria-selected={active}
@@ -51,18 +53,10 @@ export default function ViewToggle() {
                 active ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}
             >
-              {active && (
-                <motion.span
-                  layoutId="tax-view-pill"
-                  className="absolute inset-0 rounded-md bg-(--surface) shadow-(--shadow-sm) ring-1 ring-(--border)"
-                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
-                />
-              )}
               <span className="relative">{o.label}</span>
             </button>
           )
         })}
       </div>
-    </LayoutGroup>
   )
 }

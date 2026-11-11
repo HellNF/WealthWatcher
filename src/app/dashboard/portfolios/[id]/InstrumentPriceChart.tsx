@@ -184,7 +184,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
                 axisLine={false}
                 width={64}
               />
-              <Tooltip
+              <Tooltip isAnimationActive={false}
                 formatter={(value) => [formatPrice(Number(value), currency), 'Prezzo']}
                 labelFormatter={(label) => `Data: ${String(label)}`}
                 contentStyle={{
@@ -198,7 +198,7 @@ export default function InstrumentPriceChart({ symbol, name, currency }: Props) 
                 labelStyle={{ color: colors.tooltipLabel }}
                 cursor={{ stroke: colors.grid, strokeWidth: 1 }}
               />
-              <Area
+              <Area isAnimationActive={false}
                 type="monotone"
                 dataKey="close"
                 stroke={colors.brand}

@@ -75,7 +75,7 @@ export default function WeekdayChart({ data }: Props) {
           axisLine={false}
           width={80}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, _name, entry) => {
             const d = entry?.payload as WeekdaySpending | undefined
             const extra = d
@@ -91,7 +91,7 @@ export default function WeekdayChart({ data }: Props) {
             boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
           }}
         />
-        <Bar dataKey="totalMinor" radius={[4, 4, 0, 0]} maxBarSize={40}>
+        <Bar isAnimationActive={false} dataKey="totalMinor" radius={[4, 4, 0, 0]} maxBarSize={40}>
           {sorted.map((entry, i) => (
             <Cell
               key={i}

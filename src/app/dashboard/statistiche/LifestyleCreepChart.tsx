@@ -80,7 +80,7 @@ export default function LifestyleCreepChart({ data }: Props) {
           axisLine={false}
           width={88}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
@@ -91,8 +91,8 @@ export default function LifestyleCreepChart({ data }: Props) {
           }}
         />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-        <Line type="monotone" dataKey="Entrate" stroke={colors.income} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-        <Line type="monotone" dataKey="Uscite"  stroke={colors.spend}  strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Line isAnimationActive={false} type="monotone" dataKey="Entrate" stroke={colors.income} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Line isAnimationActive={false} type="monotone" dataKey="Uscite"  stroke={colors.spend}  strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
       </LineChart>
     </ResponsiveContainer>
   )

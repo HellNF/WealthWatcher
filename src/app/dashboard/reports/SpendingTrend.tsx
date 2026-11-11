@@ -93,7 +93,7 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
             label={{ value: 'media/giorno', position: 'insideTopRight', fill: colors.axis, fontSize: 10 }}
           />
         )}
-        <Bar dataKey="uscite" radius={[3, 3, 0, 0]} maxBarSize={16}>
+        <Bar isAnimationActive={false} dataKey="uscite" radius={[3, 3, 0, 0]} maxBarSize={16}>
           {chartData.map((d) => (
             <Cell
               key={d.day}
@@ -102,7 +102,7 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
             />
           ))}
         </Bar>
-        <Bar dataKey="entrate" fill={colors.inflow} opacity={0.7} radius={[3, 3, 0, 0]} maxBarSize={16} />
+        <Bar isAnimationActive={false} dataKey="entrate" fill={colors.inflow} opacity={0.7} radius={[3, 3, 0, 0]} maxBarSize={16} />
       </BarChart>
     </ResponsiveContainer>
   )

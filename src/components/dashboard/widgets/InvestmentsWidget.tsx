@@ -64,7 +64,7 @@ function ChartStrip({
           </linearGradient>
         </defs>
         <YAxis domain={['auto', 'auto']} hide />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(v) => [fmtEur(Number(v)), 'Valore']}
           labelFormatter={(l) => String(l)}
           contentStyle={{
@@ -76,7 +76,7 @@ function ChartStrip({
           itemStyle={{ color }}
           cursor={{ stroke: tooltipBorder, strokeWidth: 1 }}
         />
-        <Area
+        <Area isAnimationActive={false}
           type="monotone"
           dataKey="value"
           stroke={color}

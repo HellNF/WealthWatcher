@@ -67,9 +67,9 @@ export default function EventRow({ event: e, today, showDate = true }: Props) {
         {e.href && (
           <Link
             href={e.href}
-            className="inline-flex items-center gap-0.5 text-xs font-medium text-(--brand-text) mt-1 hover:gap-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) rounded"
+            className="group/link inline-flex items-center gap-0.5 text-xs font-medium text-(--brand-text) mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring) rounded"
           >
-            Approfondisci <ArrowUpRight className="size-3" strokeWidth={2} />
+            Approfondisci <ArrowUpRight className="size-3 transition-transform duration-150 ease group-hover/link:translate-x-px group-hover/link:-translate-y-px" strokeWidth={2} aria-hidden />
           </Link>
         )}
       </div>

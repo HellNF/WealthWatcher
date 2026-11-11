@@ -73,7 +73,7 @@ export default function FixedVariableChart({ data }: Props) {
           axisLine={false}
           width={88}
         />
-        <Tooltip
+        <Tooltip isAnimationActive={false}
           formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
@@ -83,8 +83,8 @@ export default function FixedVariableChart({ data }: Props) {
             boxShadow: '0 4px 12px oklch(0 0 0 / 0.12)',
           }}
         />
-        <Bar dataKey="Fisse"     stackId="s" fill={colors.fixed}    opacity={0.55} maxBarSize={36} />
-        <Bar dataKey="Variabili" stackId="s" fill={colors.variable} opacity={0.8} radius={[3, 3, 0, 0]} maxBarSize={36} />
+        <Bar isAnimationActive={false} dataKey="Fisse"     stackId="s" fill={colors.fixed}    opacity={0.55} maxBarSize={36} />
+        <Bar isAnimationActive={false} dataKey="Variabili" stackId="s" fill={colors.variable} opacity={0.8} radius={[3, 3, 0, 0]} maxBarSize={36} />
       </BarChart>
     </ResponsiveContainer>
   )
