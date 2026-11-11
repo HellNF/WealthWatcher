@@ -4,6 +4,7 @@
 // Tutte le metriche sulle transazioni escludono i trasferimenti tra conti propri
 // (categoria kind='transfer' + coppie rilevate) tramite FlowContext — vedi spending.ts.
 import { sqlite } from '@/db'
+import { listRecurringDecisions } from '@/lib/recurringDecisions'
 import { listSnapshots } from '@/lib/valuation'
 import {
   buildFlowContext,
@@ -249,6 +250,8 @@ export interface RecurringItem {
   nextExpectedDate: string | null
   priceChangePct:   number | null  // Δ mediana(ultimi 3) vs mediana(primi 3), se ≥ 6 addebiti
   oldAmountMinor:   number | null
+  /** L'utente ha confermato che è un pagamento ricorrente. */
+  confirmed?:       boolean
 }
 
 export interface SpendingOutlier {
@@ -279,7 +282,12 @@ export function transactionStats(userId: number): TransactionStats {
   const ctx      = buildFlowContext(userId)
   const expenses = fetchTrueExpenses(ctx, 24)
   const incomes  = fetchTrueIncomes(ctx, 24)
-  const recurring = detectRecurring(expenses)
+  // Le decisioni dell'utente valgono per tutti i consumatori dei ricorrenti
+  // (statistiche, scadenziario, previsioni, suggerimenti, anomalie).
+  const decisions = listRecurringDecisions(userId)
+  const dismissed = new Set([...decisions].filter(([, d]) => d.status === 'dismissed').map(([k]) => k))
+  const recurring = detectRecurring(expenses, new Date(), dismissed).map((r) =>
+    decisions.get(r.key)?.status === 'confirmed' ? { ...r, confirmed: true } : r)
   return {
     ctx,
     cashflow:  monthlyCashflow(ctx),
@@ -428,7 +436,7 @@ const CADENCE_BANDS: { cadence: RecurringCadence; min: number; max: number; fact
 const RECURRING_MIN_YEARLY_MINOR = 2000  // €20/anno di materialità
 const CEASED_GAP_MULTIPLIER = 1.8
 
-export function detectRecurring(expenses: FlowTxn[], today = new Date()): RecurringItem[] {
+export function detectRecurring(expenses: FlowTxn[], today = new Date(), exclude: ReadonlySet<string> = new Set()): RecurringItem[] {
   // Raggruppa per merchant o per descrizione normalizzata
   const groups = new Map<string, { txns: FlowTxn[]; merchantId: number | null; label: string }>()
   for (const t of expenses) {
@@ -452,6 +460,7 @@ export function detectRecurring(expenses: FlowTxn[], today = new Date()): Recurr
   const result: RecurringItem[] = []
 
   for (const [key, g] of groups) {
+    if (exclude.has(key)) continue   // scartato dall'utente: non è un ricorrente
     const txns = g.txns   // già ordinate per data crescente (fetch ORDER BY)
     const dates = txns.map((t) => t.booked_date)
     const amounts = txns.map((t) => Math.abs(t.amount_minor))

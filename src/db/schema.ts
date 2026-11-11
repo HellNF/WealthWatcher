@@ -772,3 +772,18 @@ export const transferLinks = sqliteTable('transfer_links', {
   index('idx_transfer_links_inflow').on(t.inflow_id),
 ])
 export type TransferLink = InferSelectModel<typeof transferLinks>
+
+// Decisioni dell'utente sui pagamenti ricorrenti rilevati (src/lib/analytics.ts
+// → detectRecurring). `key` è la chiave stabile del ricorrente ('m:<merchantId>'
+// o 'd:<descrizione normalizzata>'); `label` serve a mostrarlo anche quando
+// non viene più rilevato. 'dismissed' = non è un ricorrente: non riproporlo.
+export const recurringDecisions = sqliteTable('recurring_decisions', {
+  id:         integer('id').primaryKey({ autoIncrement: true }),
+  owner_id:   integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  key:        text('key').notNull(),
+  label:      text('label').notNull(),
+  status:     text('status', { enum: ['confirmed', 'dismissed'] as const }).notNull(),
+  created_at: integer('created_at').notNull().default(sql`(unixepoch())`),
+}, (t) => [
+  uniqueIndex('recurring_decisions_owner_key_uniq').on(t.owner_id, t.key),
+])
