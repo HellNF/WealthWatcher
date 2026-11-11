@@ -178,10 +178,13 @@ export const categoryRules = sqliteTable(
     // Optional amount filter — matched against ABS(amount_minor). Both nullable = any amount.
     amount_minor_min: integer('amount_minor_min'),       // inclusive lower bound
     amount_minor_max: integer('amount_minor_max'),       // inclusive upper bound
+    // Condizioni facoltative: solo un conto, solo entrate o solo uscite.
+    // L'unicità (stesso testo e stesse condizioni) è verificata in createCategoryRule.
+    bank_account_id:  integer('bank_account_id').references(() => bankAccounts.id, { onDelete: 'cascade' }),
+    direction:        text('direction', { enum: ['in', 'out'] as const }),
     created_at:       integer('created_at').notNull().default(sql`(unixepoch())`),
   },
   (t) => [
-    uniqueIndex('category_rules_owner_pattern_uniq').on(t.owner_id, t.pattern),
     index('idx_category_rules_owner').on(t.owner_id),
   ],
 )

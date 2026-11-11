@@ -221,21 +221,34 @@ export interface CategoryRuleRow {
   priority:         number
   amount_minor_min: number | null
   amount_minor_max: number | null
+  bank_account_id:  number | null
+  account_name:     string | null
+  direction:        'in' | 'out' | null
   created_at:       number
 }
 
+/** Contesto del movimento per le condizioni facoltative di una regola. */
+export interface RuleContext {
+  bankAccountId?: number
+  /** Importo con segno: negativo = uscita, positivo = entrata. */
+  amountMinor?:   number
+}
+
 /**
- * Check per-user keyword rules against a normalised description and optional amount.
- * `absAmountMinor` should be Math.abs(transaction.amount_minor).
- * Returns the category_id of the highest-priority matching rule, or null.
- * Rules with amount constraints win over unconstrained rules at equal priority.
+ * Check per-user keyword rules against a normalised description, the amount
+ * and the optional context (account, direction). A rule with an account or a
+ * direction condition only matches when the context provides that information.
+ * At equal priority the most specific rule wins: account, then direction, then
+ * amount range, then the longest keyword.
  */
 export function resolveCategoryRule(
   normalizedDesc: string,
   ownerId:        number,
   absAmountMinor?: number,
+  context:        RuleContext = {},
 ): number | null {
-  const amt = absAmountMinor ?? null
+  const amt = absAmountMinor ?? (context.amountMinor !== undefined ? Math.abs(context.amountMinor) : null)
+  const dir = context.amountMinor === undefined ? null : context.amountMinor < 0 ? 'out' : 'in'
   const row = sqlite
     .prepare(
       `SELECT cr.category_id
@@ -244,13 +257,17 @@ export function resolveCategoryRule(
          AND instr(?, cr.pattern) > 0
          AND (cr.amount_minor_min IS NULL OR ? >= cr.amount_minor_min)
          AND (cr.amount_minor_max IS NULL OR ? <= cr.amount_minor_max)
+         AND (cr.bank_account_id IS NULL OR cr.bank_account_id = ?)
+         AND (cr.direction IS NULL OR cr.direction = ?)
        ORDER BY
          cr.priority DESC,
+         (cr.bank_account_id IS NOT NULL) DESC,
+         (cr.direction IS NOT NULL) DESC,
          (cr.amount_minor_min IS NOT NULL OR cr.amount_minor_max IS NOT NULL) DESC,
          length(cr.pattern) DESC, cr.id ASC
        LIMIT 1`,
     )
-    .get(ownerId, normalizedDesc, amt, amt) as { category_id: number } | undefined
+    .get(ownerId, normalizedDesc, amt, amt, context.bankAccountId ?? null, dir) as { category_id: number } | undefined
   return row?.category_id ?? null
 }
 
@@ -258,37 +275,102 @@ export function listCategoryRules(ownerId: number): CategoryRuleRow[] {
   return sqlite
     .prepare(
       `SELECT cr.id, cr.pattern, cr.category_id, c.name AS category_name,
-              cr.priority, cr.amount_minor_min, cr.amount_minor_max, cr.created_at
+              cr.priority, cr.amount_minor_min, cr.amount_minor_max,
+              cr.bank_account_id, ba.name AS account_name, cr.direction, cr.created_at
        FROM category_rules cr
        JOIN categories c ON c.id = cr.category_id
+       LEFT JOIN bank_accounts ba ON ba.id = cr.bank_account_id
        WHERE cr.owner_id = ?
        ORDER BY cr.priority DESC, length(cr.pattern) DESC`,
     )
     .all(ownerId) as CategoryRuleRow[]
 }
 
+export interface RuleDraft {
+  pattern:         string
+  categoryId:      number
+  priority?:       number
+  amountMinorMin?: number | null
+  amountMinorMax?: number | null
+  bankAccountId?:  number | null
+  direction?:      'in' | 'out' | null
+}
+
 export function createCategoryRule(
-  ownerId:         number,
-  pattern:         string,
-  categoryId:      number,
-  priority:        number = 0,
-  amountMinorMin?: number | null,
-  amountMinorMax?: number | null,
+  ownerId: number,
+  draft:   RuleDraft,
 ): { ok: true; id: number } | { ok: false; error: string } {
-  const clean = pattern.trim().toLowerCase()
+  const clean = draft.pattern.trim().toLowerCase()
   if (!clean) return { ok: false, error: 'Il pattern non può essere vuoto.' }
-  try {
-    const result = sqlite
-      .prepare(
-        `INSERT INTO category_rules
-           (owner_id, pattern, category_id, priority, amount_minor_min, amount_minor_max)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .run(ownerId, clean, categoryId, priority, amountMinorMin ?? null, amountMinorMax ?? null)
-    return { ok: true, id: Number(result.lastInsertRowid) }
-  } catch {
-    return { ok: false, error: `Regola già esistente per il pattern "${clean}".` }
+  const accountId = draft.bankAccountId ?? null
+  const direction = draft.direction ?? null
+  if (accountId !== null) {
+    const owned = sqlite.prepare('SELECT 1 FROM bank_accounts WHERE id = ? AND owner_id = ?').get(accountId, ownerId)
+    if (!owned) return { ok: false, error: 'Conto non trovato.' }
   }
+  const duplicate = sqlite.prepare(
+    `SELECT 1 FROM category_rules WHERE owner_id = ? AND pattern = ?
+       AND bank_account_id IS ? AND direction IS ?`,
+  ).get(ownerId, clean, accountId, direction)
+  if (duplicate) return { ok: false, error: `Esiste già una regola per "${clean}" con le stesse condizioni.` }
+  const result = sqlite
+    .prepare(
+      `INSERT INTO category_rules
+         (owner_id, pattern, category_id, priority, amount_minor_min, amount_minor_max, bank_account_id, direction)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(ownerId, clean, draft.categoryId, draft.priority ?? 0,
+      draft.amountMinorMin ?? null, draft.amountMinorMax ?? null, accountId, direction)
+  return { ok: true, id: Number(result.lastInsertRowid) }
+}
+
+export interface RulePreview {
+  /** Movimenti che soddisfano tutte le condizioni. */
+  matches:        number
+  /** Di questi, quanti oggi hanno un'altra categoria e non sono scelte manuali. */
+  wouldChange:    number
+  /** Scelte manuali con un'altra categoria: la regola non le tocca. */
+  manualKept:     number
+  samples: { date: string; description: string; amountMinor: number; currency: string; current: string | null }[]
+}
+
+/**
+ * Anteprima di una regola prima di salvarla, sullo storico dell'utente.
+ * Non considera le altre regole: indica i movimenti che la regola descrive.
+ */
+export function previewCategoryRule(ownerId: number, draft: RuleDraft): RulePreview {
+  const pattern = draft.pattern.trim().toLowerCase()
+  const empty = { matches: 0, wouldChange: 0, manualKept: 0, samples: [] }
+  if (!pattern) return empty
+  const rows = sqlite.prepare(
+    `SELECT t.booked_date, t.description_raw, t.counterparty_raw, t.amount_minor, t.currency,
+            t.bank_account_id, t.category_id, t.category_source, c.name AS category_name
+     FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+     WHERE t.owner_id = ? ORDER BY t.booked_date DESC, t.id DESC`,
+  ).all(ownerId) as {
+    booked_date: string; description_raw: string; counterparty_raw: string | null; amount_minor: number
+    currency: string; bank_account_id: number; category_id: number | null; category_source: string
+    category_name: string | null
+  }[]
+  const result: RulePreview = { ...empty, samples: [] }
+  for (const t of rows) {
+    const abs = Math.abs(t.amount_minor)
+    if (!normalizeDescription(`${t.description_raw} ${t.counterparty_raw ?? ''}`).includes(pattern)) continue
+    if (draft.amountMinorMin != null && abs < draft.amountMinorMin) continue
+    if (draft.amountMinorMax != null && abs > draft.amountMinorMax) continue
+    if (draft.bankAccountId != null && t.bank_account_id !== draft.bankAccountId) continue
+    if (draft.direction && (t.amount_minor < 0 ? 'out' : 'in') !== draft.direction) continue
+    result.matches++
+    if (t.category_id !== draft.categoryId) {
+      if (t.category_source === 'manual') result.manualKept++
+      else result.wouldChange++
+    }
+    if (result.samples.length < 5) {
+      result.samples.push({ date: t.booked_date, description: t.description_raw,
+        amountMinor: t.amount_minor, currency: t.currency, current: t.category_name })
+    }
+  }
+  return result
 }
 
 export function deleteCategoryRule(id: number, ownerId: number): void {
