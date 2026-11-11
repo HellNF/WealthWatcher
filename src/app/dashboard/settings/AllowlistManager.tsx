@@ -36,8 +36,8 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
 
   return (
     <Tr>
-      <Td>
-        <span className="text-sm text-(--ink) font-medium">{entry.email}</span>
+      <Td className="whitespace-normal">
+        <span className="text-sm text-(--ink) font-medium break-all">{entry.email}</span>
         {isSelf && <span className="ml-2 text-xs text-(--muted)">(tu)</span>}
       </Td>
       <Td>

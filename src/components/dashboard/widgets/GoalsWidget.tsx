@@ -55,7 +55,7 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="size-2 rounded-full shrink-0" style={{ background: g.color }} />
-                    <span className="text-xs text-(--ink) truncate">{g.name}</span>
+                    <span className="text-xs text-(--ink) [overflow-wrap:anywhere]">{g.name}</span>
                   </div>
                   <span className="text-xs font-mono tabular-nums text-(--muted) shrink-0">
                     {pct.toFixed(0)}%

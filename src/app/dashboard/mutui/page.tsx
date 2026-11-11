@@ -137,7 +137,7 @@ export default async function MutuiPage() {
           <div className="space-y-1.5">
             <dt className="text-xs font-medium text-(--muted)">Prossima rata</dt>
             <dd className={KEY}>{nextPayment ? fmtDay(nextPayment.next!.date) : '—'}</dd>
-            {nextPayment && mortgages.length > 1 && <dd className="text-xs text-(--muted) truncate">{nextPayment.m.name}</dd>}
+            {nextPayment && mortgages.length > 1 && <dd className="text-xs text-(--muted) [overflow-wrap:anywhere]">{nextPayment.m.name}</dd>}
           </div>
           <div className="space-y-1.5">
             <dt className="text-xs font-medium text-(--muted)">Ultima rata</dt>
@@ -160,7 +160,7 @@ export default async function MutuiPage() {
               <Card key={m.id} noPadding className="flex-1 basis-[30rem] min-w-0 flex flex-col overflow-hidden">
                 <div className="flex items-start justify-between gap-3 p-4 sm:p-5 pb-0 sm:pb-0">
                   <div className="min-w-0">
-                    <h3 className="text-base font-semibold text-(--ink) truncate">{m.name}</h3>
+                    <h3 className="text-base font-semibold text-(--ink) [overflow-wrap:anywhere]">{m.name}</h3>
                     <p className="text-xs text-(--muted) mt-0.5">
                       {m.duration_months} mesi · {rateDisplay}% annuo · dal {fmtDay(m.start_date)}
                     </p>

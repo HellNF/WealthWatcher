@@ -1,8 +1,8 @@
 'use client'
 import { useState, useActionState, useEffect, useRef, useTransition } from 'react'
-import { Pencil, X, RefreshCw } from 'lucide-react'
+import { Pencil, X, RefreshCw, EyeOff, Eye } from 'lucide-react'
 import { Button, Field, Input, Select, Badge, ConfirmDelete } from '@/components/ui'
-import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction } from './assets-actions'
+import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction, setAssetIncludedAction } from './assets-actions'
 import { ASSET_KINDS, KIND_MAP } from './assetKinds'
 import { FUEL_OPTIONS, GEARBOX_OPTIONS, COUNTRY_OPTIONS, DRIVETRAIN_OPTIONS } from './vehicleFields'
 import { formatMoney } from '@/lib/money'
@@ -38,6 +38,8 @@ export default function AssetRow({
   }, [pending, state])
 
   const [refreshPending, startRefresh] = useTransition()
+  const [togglePending, startToggle] = useTransition()
+  const included = asset.include_in_net_worth !== 0
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
   const kind = KIND_MAP[asset.kind] ?? KIND_MAP.other
@@ -164,9 +166,14 @@ export default function AssetRow({
         <Icon className="size-5 text-(--muted)" />
       </div>
       <div className="contents sm:block sm:flex-1 sm:min-w-0">
-        <p className="min-w-0 text-sm font-medium text-(--ink) truncate">{asset.name}</p>
+        <p className={`min-w-0 text-sm font-medium [overflow-wrap:anywhere] ${included ? 'text-(--ink)' : 'text-(--muted)'}`} title={asset.name}>{asset.name}</p>
         <p className="col-span-3 row-start-2 text-xs text-(--muted) leading-relaxed flex items-center gap-x-1.5 gap-y-1 flex-wrap">
           {kind.label}
+          {!included && (
+            <Badge variant="neutral" title="Il bene resta in elenco ma non entra nel patrimonio netto">
+              escluso dal patrimonio
+            </Badge>
+          )}
           {vehicleDetails && (
             <>
               <span>
@@ -201,7 +208,7 @@ export default function AssetRow({
         </p>
       </div>
       <div className="col-start-3 row-start-1 flex flex-col items-end gap-0.5 shrink-0">
-        <span className="font-mono tabular-nums text-sm font-medium text-(--ink)">
+        <span className={`font-mono tabular-nums text-sm font-medium ${included ? 'text-(--ink)' : 'text-(--muted) line-through decoration-(--faint)'}`}>
           {formatMoney(asset.value_minor, asset.currency)}
         </span>
         {vehicleDetails?.purchase_price_minor != null && vehicleDetails.purchase_price_minor > 0 && (() => {
@@ -236,6 +243,17 @@ export default function AssetRow({
             <span className="sm:hidden">Aggiorna stima</span>
           </Button>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          loading={togglePending}
+          aria-label={included ? 'Escludi dal patrimonio' : 'Includi nel patrimonio'}
+          title={included ? 'Escludi dal patrimonio netto (il bene resta in elenco)' : 'Includi di nuovo nel patrimonio netto'}
+          onClick={() => startToggle(() => setAssetIncludedAction(asset.id, !included))}
+        >
+          {included ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+          <span className="sm:hidden">{included ? 'Escludi' : 'Includi'}</span>
+        </Button>
         <Button variant="ghost" size="sm" onClick={() => setEditing(true)} aria-label="Modifica">
           <Pencil className="size-3.5" />
           <span className="sm:hidden">Modifica</span>
@@ -244,7 +262,7 @@ export default function AssetRow({
         <ConfirmDelete
           action={deleteAssetAction.bind(null, asset.id)}
           label=""
-          confirmText="Eliminare questo bene?"
+          confirmText={vehicleDetails ? 'Eliminare il veicolo e lo storico delle stime?' : 'Eliminare questo bene?'}
         />
         </span>
       </div>

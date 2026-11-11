@@ -132,10 +132,10 @@ export default async function PortfolioPage({ params }: Props) {
         description={institution ? `Portafoglio d'investimento · ${institution.name}` : "Portafoglio d'investimento"}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem] min-[131rem]:grid-cols-[minmax(0,1fr)_32rem] gap-x-8 2xl:gap-x-10 gap-y-8 items-start">
+      <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_28rem] min-[131rem]:grid-cols-[minmax(0,1fr)_32rem] gap-x-8 2xl:gap-x-10 gap-y-8 items-start">
 
         {/* ══ Colonna principale: andamento, posizioni, operazioni ══════════ */}
-        <div className="order-2 xl:order-1 min-w-0 space-y-8">
+        <div className="order-2 2xl:order-1 min-w-0 space-y-8">
           {openPositions.length > 0 && (
             <Card className="space-y-4">
               <h2 className="text-sm font-semibold text-(--ink)">Andamento prezzi</h2>
@@ -175,7 +175,7 @@ export default async function PortfolioPage({ params }: Props) {
         </div>
 
         {/* ══ Riepilogo: resta in vista mentre scorri la colonna principale ══ */}
-        <aside className="order-1 xl:order-2 min-w-0 flex flex-col gap-6 xl:sticky xl:top-16 xl:max-h-[calc(100dvh-5rem)] xl:overflow-y-auto xl:pb-1">
+        <aside className="order-1 2xl:order-2 min-w-0 flex flex-col gap-6 2xl:sticky 2xl:top-16 2xl:max-h-[calc(100dvh-5rem)] 2xl:overflow-y-auto 2xl:pb-1">
           <HeroShell innerClassName="p-5 sm:p-6 gap-5">
             <div className="space-y-3">
               <Eyebrow>Valutazione ai prezzi disponibili</Eyebrow>

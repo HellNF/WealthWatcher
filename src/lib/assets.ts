@@ -2,7 +2,7 @@
 // Concorrono al patrimonio netto. Owner-scoped (nessuna condivisione per ora).
 import { and, desc, eq } from 'drizzle-orm'
 import { db } from '@/db'
-import { assets, vehicleDetails } from '@/db/schema'
+import { assets, vehicleDetails, assetValuations } from '@/db/schema'
 import { convertToEur } from '@/lib/fx/convert'
 import type { Asset, VehicleDetails } from '@/db/schema'
 import type { FuelType, GearboxType, Country, Confidence } from '@/lib/prices/autoscout24'
@@ -67,12 +67,36 @@ export function updateAsset(
   return res.changes > 0
 }
 
+// Lo storico stime (asset_valuations) non ha ON DELETE CASCADE per restare
+// immutabile finché il bene esiste: va rimosso a mano, altrimenti con
+// foreign_keys=ON l'eliminazione di un veicolo già stimato fallisce.
 export function deleteAsset(userId: number, id: number): boolean {
+  return db.transaction((tx) => {
+    const owned = tx
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(eq(assets.id, id), eq(assets.owner_id, userId)))
+      .get()
+    if (!owned) return false
+    tx.delete(assetValuations).where(eq(assetValuations.asset_id, id)).run()
+    tx.delete(vehicleDetails).where(eq(vehicleDetails.asset_id, id)).run()
+    const res = tx.delete(assets).where(eq(assets.id, id)).run()
+    return res.changes > 0
+  })
+}
+
+/** Include o esclude un bene dal calcolo del patrimonio netto. */
+export function setAssetIncluded(userId: number, id: number, included: boolean): boolean {
   const res = db
-    .delete(assets)
+    .update(assets)
+    .set({ include_in_net_worth: included ? 1 : 0, updated_at: Math.floor(Date.now() / 1000) })
     .where(and(eq(assets.id, id), eq(assets.owner_id, userId)))
     .run()
   return res.changes > 0
+}
+
+export function isAssetIncluded(asset: Pick<Asset, 'include_in_net_worth'>): boolean {
+  return asset.include_in_net_worth !== 0
 }
 
 // ── vehicle_details ───────────────────────────────────────────────────────────
@@ -147,7 +171,7 @@ export function markVehicleEstimated(assetId: number, atEpoch: number, source: s
     .run()
 }
 
-// Somma di tutti i beni convertita in EUR. `stale` = qualche cambio mancante.
+// Somma dei beni inclusi nel patrimonio, convertita in EUR. `stale` = qualche cambio mancante.
 export async function getAssetsValueEur(
   userId: number,
   date: string,
@@ -155,6 +179,7 @@ export async function getAssetsValueEur(
   let total = 0
   let stale = false
   for (const a of listAssets(userId)) {
+    if (!isAssetIncluded(a)) continue
     const eur = await convertToEur(a.value_minor, a.currency, date)
     if (eur === null) stale = true
     else total += eur

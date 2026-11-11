@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { PrivacyToggle } from '@/components/ui/PrivacyToggle'
 import { cn } from '@/lib/cn'
 
 interface NavItem {
@@ -137,6 +138,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
   const userFooter = (
     <div className="px-3 py-3 border-t border-(--border) space-y-2">
       <ThemeToggle mode="icon+label" className="w-full justify-center" />
+      <PrivacyToggle mode="label" className="w-full justify-start" />
       <div className="flex items-center gap-2">
         <Link
           href="/dashboard/profilo"
@@ -226,7 +228,8 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
         >
           <BrandMark size="sm" showName />
         </Link>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1.5">
+          <PrivacyToggle />
           <ThemeToggle mode="icon" />
         </div>
       </header>

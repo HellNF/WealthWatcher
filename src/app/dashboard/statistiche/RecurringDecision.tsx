@@ -45,7 +45,7 @@ export function DismissedRecurring({ items }: { items: { key: string; label: str
       <ul className="flex flex-wrap gap-x-4 gap-y-1">
         {items.map((d) => (
           <li key={d.key} className="text-xs text-(--muted) inline-flex items-center gap-1.5">
-            <span className="truncate max-w-48">{d.label}</span>
+            <span className="[overflow-wrap:anywhere]">{d.label}</span>
             <button type="button" disabled={pending} className={cn(linkClass, 'text-(--brand-text)')}
               onClick={() => start(() => clearRecurringDecisionAction(d.key))}>
               <Undo2 className="size-3" aria-hidden /> ripristina

@@ -463,6 +463,6 @@ export async function confirmKidAction(
     VALUES (?, ?, ?, ?, 'confirmed', ?)
   `).run(user.id, instr.id, filename, extracted_json, model)
 
-  revalidatePath(`/dashboard/portfolios`, 'page')
+  revalidatePath('/dashboard/portfolios/[id]', 'page')
   return { success: 'Dati KID salvati correttamente' }
 }

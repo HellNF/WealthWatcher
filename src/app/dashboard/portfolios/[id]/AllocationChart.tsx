@@ -1,6 +1,6 @@
 'use client'
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Position } from '@/lib/investments/fifo'
 import { useTheme } from '@/components/providers/ThemeProvider'
 
@@ -28,11 +28,6 @@ function formatVal(minor: number, currency: string): string {
   })
 }
 
-// Tronca nomi lunghi per la legenda.
-function shortName(name: string): string {
-  return name.length > 22 ? name.slice(0, 20) + '…' : name
-}
-
 export default function AllocationChart({ positions }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
@@ -50,7 +45,7 @@ export default function AllocationChart({ positions }: Props) {
   }
 
   const data = active.map((p) => ({
-    name:     shortName(p.name),
+    name:     p.name,
     fullName: p.name,
     value:    p.marketValueMinor ?? p.costBasisMinor,
     currency: p.currency,
@@ -72,14 +67,14 @@ export default function AllocationChart({ positions }: Props) {
     <div className="relative w-full">
       {/* Totale al centro della ciambella — solo se le posizioni condividono la stessa valuta */}
       {singleCurrency && (
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center" style={{ paddingBottom: 40 }}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center justify-center" style={{ height: 200 }}>
           <span className="text-[10px] font-medium uppercase tracking-widest text-(--faint)">Totale</span>
           <span className="font-mono tabular-nums text-lg font-semibold text-(--ink)">
             {formatVal(total, singleCurrency)}
           </span>
         </div>
       )}
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={200}>
         <PieChart>
           <Pie
             data={data}
@@ -104,17 +99,20 @@ export default function AllocationChart({ positions }: Props) {
             itemStyle={{ color: isDark ? '#d1fae5' : '#065f46' }}
             labelStyle={{ color: isDark ? 'oklch(0.62 0.01 160)' : 'oklch(0.45 0.01 160)' }}
           />
-          <Legend
-            iconType="circle"
-            iconSize={8}
-            formatter={(value) => (
-              <span style={{ fontSize: 12, color: isDark ? 'oklch(0.75 0.01 160)' : 'oklch(0.35 0.01 160)' }}>
-                {value}
-              </span>
-            )}
-          />
         </PieChart>
       </ResponsiveContainer>
+      {/* Legenda in HTML: nomi interi che vanno a capo (quella di recharts li troncava) */}
+      <ul className="mt-3 space-y-1.5">
+        {data.map((d, i) => (
+          <li key={d.symbol} className="flex items-start gap-2 text-xs">
+            <span className="mt-1 size-2 rounded-full shrink-0" style={{ background: PALETTE[i % PALETTE.length] }} aria-hidden />
+            <span className="flex-1 min-w-0 text-(--ink) [overflow-wrap:anywhere]">{d.fullName}</span>
+            <span className="shrink-0 tabular-nums text-(--muted)">
+              {total > 0 ? ((d.value / total) * 100).toLocaleString('it-IT', { maximumFractionDigits: 1 }) : '0'}%
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

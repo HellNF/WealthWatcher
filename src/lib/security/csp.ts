@@ -18,6 +18,7 @@ export const THEME_SCRIPT = `
     var s = localStorage.getItem('ww-theme');
     var dark = s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (dark) document.documentElement.classList.add('dark');
+    if (localStorage.getItem('ww-privacy') === 'on') document.documentElement.dataset.privacy = 'on';
   } catch(e){}
 })();
 `

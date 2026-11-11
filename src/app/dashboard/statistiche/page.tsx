@@ -619,7 +619,7 @@ export default async function StatistichePage() {
                       <p className="text-sm font-medium text-(--ink)">
                         <span className="font-mono">{r.symbol}</span>
                       </p>
-                      <span className="text-xs text-(--muted) truncate hidden sm:block">{r.name}</span>
+                      <span className="text-xs text-(--muted) [overflow-wrap:anywhere] hidden sm:block">{r.name}</span>
                       <span className="inline-flex items-center rounded-md bg-(--surface-2) px-1.5 py-0.5 text-xs text-(--muted)">
                         {r.cluster}
                       </span>
@@ -981,7 +981,7 @@ export default async function StatistichePage() {
                         <span className="text-xs tabular-nums text-(--faint) w-5 shrink-0 text-right">{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-sm text-(--ink) truncate font-medium">{r.merchant_name ?? r.description}</p>
+                            <p className="text-sm text-(--ink) [overflow-wrap:anywhere] font-medium">{r.merchant_name ?? r.description}</p>
                             {r.cadenceLabel && <Badge variant="neutral">{r.cadenceLabel}</Badge>}
                             {r.priceChangePct !== null && r.oldAmountMinor !== null && (
                               <Badge variant={r.priceChangePct > 0 ? 'warning' : 'gain'}>
@@ -1025,7 +1025,7 @@ export default async function StatistichePage() {
                       {habits.map((r) => (
                         <div key={r.key} className="flex items-center gap-3 py-2 first:pt-0 last:pb-0">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-(--ink) truncate">{r.merchant_name ?? r.description}</p>
+                            <p className="text-sm text-(--ink) [overflow-wrap:anywhere]">{r.merchant_name ?? r.description}</p>
                             <p className="text-xs text-(--muted)">{r.occurrences} acquisti in {r.months} mesi</p>
                             <div className="mt-1">
                               <RecurringDecision itemKey={r.key} label={r.merchant_name ?? r.description} confirmed={r.confirmed} />
@@ -1108,7 +1108,7 @@ export default async function StatistichePage() {
                     <div key={o.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                       <AlertCircle className="size-4 text-(--muted) shrink-0" strokeWidth={1.75} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-(--ink) truncate">
+                        <p className="text-sm text-(--ink) [overflow-wrap:anywhere]">
                           {o.description.length > 50 ? o.description.slice(0, 50) + '…' : o.description}
                         </p>
                         <p className="text-xs text-(--muted)">
@@ -1184,7 +1184,7 @@ export default async function StatistichePage() {
                       {mwrr.map((p) => (
                         <div key={p.portfolioId} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-(--ink) truncate">{p.portfolioName}</p>
+                            <p className="text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{p.portfolioName}</p>
                             <p className="text-xs text-(--muted)">{p.txnCount} operazioni · {p.periodYears} anni · {p.currency}</p>
                           </div>
                           {p.currentValueMinor !== null && (
@@ -1234,7 +1234,7 @@ export default async function StatistichePage() {
                             <div key={r.instrumentId} className="py-3 first:pt-0 last:pb-0 space-y-1">
                               <div className="flex items-start gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-(--ink) truncate">{r.name}</p>
+                                  <p className="text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{r.name}</p>
                                   <p className="text-xs text-(--muted)">
                                     <span className="font-mono">{r.symbol}</span>
                                     {' · '}{r.years} anni · investito {fmtEur(r.totalCostMinor)}

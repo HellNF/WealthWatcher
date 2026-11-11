@@ -134,7 +134,7 @@ function PortfolioRow({ pf, color, isSelected, canExpand, isDark, onToggle }: Ro
         </div>
 
         {/* Nome */}
-        <span className="flex-1 min-w-0 text-xs font-medium text-(--ink) truncate">
+        <span className="flex-1 min-w-0 text-xs font-medium text-(--ink) [overflow-wrap:anywhere]">
           {pf.name}
         </span>
 

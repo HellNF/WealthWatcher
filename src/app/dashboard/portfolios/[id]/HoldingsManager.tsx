@@ -84,7 +84,7 @@ function CoinSearchBox({ onSelect }: { onSelect: (coin: CoinSearchResult) => voi
                 <img src={coin.thumb} alt="" className="size-6 rounded-full shrink-0" />
               )}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-(--ink) truncate group-hover:text-(--brand) transition-colors">
+                <p className="text-sm font-medium text-(--ink) [overflow-wrap:anywhere] group-hover:text-(--brand) transition-colors">
                   {coin.name}
                 </p>
                 <p className="text-xs text-(--muted)">{coin.symbol}</p>
@@ -211,6 +211,7 @@ export default function HoldingsManager({
   const [refreshPending, startRefresh]  = useTransition()
 
   const active = positions.filter((p) => parseFloat(p.remainingQty) > 0)
+  const hasCostBasis = active.some((p) => p.costBasisMinor > 0)
 
   function handleRemove(instrumentId: number) {
     startRemove(async () => {
@@ -275,6 +276,7 @@ export default function HoldingsManager({
             })()}
 
             {/* ── Desktop: tabella ─────────────────────────────────────────── */}
+            {/* Senza costo di carico (modalità holdings) la colonna P.M. sarebbe tutta "—": la si omette per lasciare spazio ai dati. */}
             <div className="hidden sm:block">
               <TableWrapper className="rounded-xl border border-(--border) overflow-hidden">
                 <Table>
@@ -282,7 +284,7 @@ export default function HoldingsManager({
                     <Tr>
                       <Th>Cripto</Th>
                       <Th className="text-right">Quantità</Th>
-                      <Th className="text-right">P.M. carico</Th>
+                      {hasCostBasis && <Th className="text-right">P.M. carico</Th>}
                       <Th className="text-right">Prezzo att.</Th>
                       <Th className="text-right">Valore EUR</Th>
                       <Th className="text-right">P/L</Th>
@@ -296,7 +298,7 @@ export default function HoldingsManager({
                       const pl = pos.unrealizedPlMinor
                       return (
                         <Tr key={pos.instrumentId}>
-                          <Td>
+                          <Td className="whitespace-normal min-w-40">
                             <p className="font-medium text-(--ink)">{pos.name}</p>
                             <p className="text-xs text-(--muted)">{pos.symbol}</p>
                           </Td>
@@ -305,7 +307,7 @@ export default function HoldingsManager({
                               maximumFractionDigits: 8,
                             })}
                           </Td>
-                          <Td numeric>
+                          {hasCostBasis && <Td numeric>
                             <span className="text-(--muted) text-xs">
                               {avgCost > 0
                                 ? avgCost.toLocaleString('it-IT', {
@@ -314,8 +316,8 @@ export default function HoldingsManager({
                                   })
                                 : '—'}
                             </span>
-                          </Td>
-                          <Td numeric>
+                          </Td>}
+                          <Td numeric className="whitespace-normal">
                             {pos.lastPrice ? (
                               <div className="text-right">
                                 <span className="text-(--ink)">
@@ -339,14 +341,16 @@ export default function HoldingsManager({
                           </Td>
                           <Td numeric>
                             {pl !== null ? (
-                              <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
-                                {pl >= 0 ? '+' : ''}{formatMoney(pl, 'EUR')}
+                              <span className="inline-flex flex-col items-end gap-0.5">
+                                <Badge variant={pl >= 0 ? 'gain' : 'loss'}>
+                                  {pl >= 0 ? '+' : ''}{formatMoney(pl, 'EUR')}
+                                </Badge>
                                 {pos.unrealizedPlPct && (
-                                  <span className="ml-1 opacity-75">
-                                    ({pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%)
+                                  <span className="text-xs text-(--muted) tabular-nums">
+                                    {pl >= 0 ? '+' : ''}{pos.unrealizedPlPct}%
                                   </span>
                                 )}
-                              </Badge>
+                              </span>
                             ) : (
                               <span className="text-(--faint) text-xs">—</span>
                             )}

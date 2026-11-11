@@ -81,18 +81,18 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
 
   return (
     <Tr>
-      <Td>
-        <code className="text-xs bg-(--surface-2) border border-(--border) rounded px-1.5 py-0.5 text-(--ink) font-mono">
+      <Td className="whitespace-normal">
+        <code className="break-all text-xs bg-(--surface-2) border border-(--border) rounded px-1.5 py-0.5 text-(--ink) font-mono">
           {rule.pattern}
         </code>
       </Td>
       <Td>
         <AmountFilter min={rule.amount_minor_min} max={rule.amount_minor_max} />
       </Td>
-      <Td>
+      <Td className="whitespace-normal min-w-32">
         <Conditions rule={rule} />
       </Td>
-      <Td>
+      <Td className="whitespace-normal">
         <Badge variant="neutral">{rule.category_name}</Badge>
       </Td>
       <Td>

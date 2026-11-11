@@ -185,7 +185,7 @@ export default async function ObiettiviPage() {
                 <div className="flex items-start justify-between gap-3 p-4 sm:p-5 pb-0 sm:pb-0">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="size-2.5 rounded-full shrink-0" style={{ background: g.color_hex }} aria-hidden />
-                    <h3 className="text-base font-semibold text-(--ink) truncate">{g.name}</h3>
+                    <h3 className="text-base font-semibold text-(--ink) [overflow-wrap:anywhere]">{g.name}</h3>
                     {done && <Badge variant="success">Completato</Badge>}
                   </div>
                   <ConfirmDelete

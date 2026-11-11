@@ -156,7 +156,7 @@ export default async function ScadenziarioPage() {
                       <Icon className="size-4 text-(--muted)" strokeWidth={1.75} aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-(--ink) truncate">{e.label}</span>
+                      <span className="block text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{e.label}</span>
                       <span className="block text-xs text-(--muted)">{fmtDayMonth(e.date)} · {countdownLabel(e.date, today)}</span>
                     </span>
                     {e.amountMinor > 0 && (

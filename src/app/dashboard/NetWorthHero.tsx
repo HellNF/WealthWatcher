@@ -28,6 +28,8 @@ interface Props {
   stale: boolean
   /** Pulsante di ricalcolo (server action) */
   refresh?: React.ReactNode
+  /** Azione accanto al titolo (es. il pulsante della modalità privacy). */
+  headerAction?: React.ReactNode
   /** Composizione del patrimonio, a destra del numero */
   aside?: React.ReactNode
   /** Riga in fondo alla card del grafico */
@@ -76,7 +78,7 @@ function niceTicks(lo: number, hi: number, count = 4): number[] {
   return out
 }
 
-export default function NetWorthHero({ points, stale, refresh, aside, footer, valueId }: Props) {
+export default function NetWorthHero({ points, stale, refresh, headerAction, aside, footer, valueId }: Props) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const reduceMotion = useReducedMotion()
@@ -157,7 +159,10 @@ export default function NetWorthHero({ points, stale, refresh, aside, footer, va
       <div className="px-6 sm:px-8 pt-6 sm:pt-8 pb-2 space-y-5">
         <div className="flex items-start justify-between gap-x-6 gap-y-4 flex-wrap">
           <div className="space-y-4 min-w-0">
-            <h1><Eyebrow>Patrimonio netto</Eyebrow></h1>
+            <div className="flex items-center gap-2 -my-1.5">
+              <h1><Eyebrow>Patrimonio netto</Eyebrow></h1>
+              {headerAction}
+            </div>
             <HeroFigure id={valueId} value={fmtEur(shown.value)} size="xl" className="text-(--ink)" aria-live="off" />
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-h-6 text-sm text-(--muted)">
               {data.length >= 2 && !atBase && (

@@ -89,7 +89,7 @@ export default function WealthTaxSection({ year, isQuarterly, wealthTaxes, taxRe
                   <tbody className="divide-y divide-(--border)">
                     {lines.map((line) => (
                       <tr key={`${line.kind}-${line.id}`} className="hover:bg-(--surface-2) transition-colors">
-                        <td className="px-4 py-2.5 text-sm text-(--ink) font-medium max-w-[240px] truncate">{line.name}</td>
+                        <td className="px-4 py-2.5 text-sm text-(--ink) font-medium min-w-40 [overflow-wrap:anywhere]">{line.name}</td>
                         <td className="px-4 py-2.5 text-right text-xs font-mono tabular-nums text-(--muted)">
                           {line.kind === 'account' ? `${fmtEur(line.baseEurMinor)} (media)` : fmtEur(line.baseEurMinor)}
                         </td>

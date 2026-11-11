@@ -78,9 +78,9 @@ export default function TxnList({
                     <Td className="text-(--muted) text-xs tabular-nums whitespace-nowrap">
                       {txn.trade_date}
                     </Td>
-                    <Td>
-                      <span className="font-medium text-(--ink)">{txn.symbol}</span>
-                      <span className="text-(--faint) ml-1.5 text-xs">{txn.instrument_name}</span>
+                    <Td className="whitespace-normal min-w-40">
+                      <p className="font-medium text-(--ink)">{txn.symbol}</p>
+                      <p className="text-(--faint) text-xs">{txn.instrument_name}</p>
                     </Td>
                     <Td>
                       <Badge variant={TYPE_VARIANT[txn.type] ?? 'neutral'}>

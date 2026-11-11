@@ -81,7 +81,7 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
             <span className="size-2 rounded-full shrink-0" style={{ background: dot }} />
 
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-(--ink) truncate leading-snug">{ev.label}</p>
+              <p className="text-xs text-(--ink) [overflow-wrap:anywhere] leading-snug">{ev.label}</p>
               <p className="text-[10px] text-(--faint) mt-0.5">
                 {SOURCE_LABEL[ev.source] ?? ev.source}
               </p>

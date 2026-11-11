@@ -1,6 +1,10 @@
 import { cn } from '@/lib/cn'
 
 /* ─── Wrapper con scroll orizzontale ───────────────────────────────────────── */
+// `overflow-x-auto` va per ultimo: i chiamanti passano spesso `overflow-hidden`
+// per arrotondare i bordi, e in quel caso le colonne in eccesso venivano tagliate
+// invece di restare raggiungibili con lo scroll. Lo scroll ritaglia comunque sul
+// bordo arrotondato.
 
 interface TableWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
@@ -9,7 +13,7 @@ interface TableWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
 export function TableWrapper({ className, children, ...props }: TableWrapperProps) {
   return (
     <div
-      className={cn('w-full overflow-x-auto -mx-0.5 px-0.5', className)}
+      className={cn('w-full -mx-0.5 px-0.5', className, 'overflow-x-auto')}
       {...props}
     >
       {children}

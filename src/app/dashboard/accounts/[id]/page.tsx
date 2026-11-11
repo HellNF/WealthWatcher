@@ -179,10 +179,10 @@ export default async function AccountPage({ params, searchParams }: Props) {
 
       {/* Due colonne: movimenti a sinistra, riepilogo a destra. Su desktop la lista
           scorre dentro il proprio pannello e finisce esattamente dove finisce il riepilogo. */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem] min-[131rem]:grid-cols-[minmax(0,1fr)_32rem] gap-x-8 2xl:gap-x-10 gap-y-8 xl:items-stretch">
+      <div className="grid grid-cols-1 min-[90rem]:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem] min-[131rem]:grid-cols-[minmax(0,1fr)_32rem] gap-x-8 2xl:gap-x-10 gap-y-8 min-[90rem]:items-stretch">
 
         {/* ── Movimenti ────────────────────────────────────────────────────── */}
-        <section className="order-2 xl:order-1 min-w-0 flex flex-col gap-4">
+        <section className="order-2 min-[90rem]:order-1 min-w-0 flex flex-col gap-4">
           <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
             <h2 className="text-base font-semibold text-(--ink)">Movimenti</h2>
 <nav aria-label="Revisione movimenti" className="flex flex-wrap gap-3 text-sm mb-3">
@@ -197,8 +197,8 @@ export default async function AccountPage({ params, searchParams }: Props) {
             {review === 'duplicates' && <p className="text-xs text-(--muted) mb-3">Movimenti dello stesso conto con data, importo e valuta uguali. Possono essere pagamenti legittimi: confronta descrizioni e categorie prima di intervenire. Nessuna eliminazione automatica.</p>}
             {!reviewTransfers && <TxnFilters from={from} to={to} review={review} shown={transactions.length} total={totalCount} />}
           </div>
-          <div className="relative xl:flex-1 xl:min-h-[32rem]">
-            <div className="xl:absolute xl:inset-0 xl:overflow-y-auto xl:rounded-2xl xl:[&_thead_th]:sticky xl:[&_thead_th]:top-0 xl:[&_thead_th]:z-[1] xl:[&_thead_th]:bg-(--surface)">
+          <div className="relative min-[90rem]:flex-1 min-[90rem]:min-h-[32rem]">
+            <div className="min-[90rem]:absolute min-[90rem]:inset-0 min-[90rem]:overflow-y-auto min-[90rem]:rounded-2xl min-[90rem]:[&_thead_th]:sticky min-[90rem]:[&_thead_th]:top-0 min-[90rem]:[&_thead_th]:z-[1] min-[90rem]:[&_thead_th]:bg-(--surface)">
               {reviewTransfers
                 ? <TransferReview suggestions={transferSuggestions} confirmed={confirmedTransfers}
                     categoryNames={Object.fromEntries(categories.map((c) => [c.id, c.name]))} />
@@ -208,7 +208,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
         </section>
 
         {/* ── Riepilogo ────────────────────────────────────────────────────── */}
-        <aside className="order-1 xl:order-2 min-w-0 flex flex-col gap-6">
+        <aside className="order-1 min-[90rem]:order-2 min-w-0 flex flex-col gap-6">
           <HeroShell innerClassName="p-5 sm:p-6 gap-5">
             <div className="space-y-3">
               <Eyebrow>Saldo</Eyebrow>
@@ -256,7 +256,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
                 {catTop.map(([name, value]) => (
                   <li key={name} className="space-y-1.5">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="text-(--ink) truncate">{name}</span>
+                      <span className="text-(--ink) [overflow-wrap:anywhere]">{name}</span>
                       <span className="shrink-0 font-mono tabular-nums text-(--ink)">
                         {money(value)}
                         <span className="ml-2 inline-block w-9 text-right text-xs font-sans text-(--muted)">
@@ -292,7 +292,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
                       const net = r.inMinor - r.outMinor
                       return (
                         <tr key={m}>
-                          <th scope="row" className="py-2 text-left font-normal text-(--ink) whitespace-nowrap">
+                          <th scope="row" className="py-2 pr-2 text-left font-normal text-(--ink)">
                             {monthLabel(m)}
                             <span className="block h-0.5 mt-1.5 rounded-full bg-(--muted)/60" style={{ width: `${Math.max(4, (r.outMinor / monthMaxOut) * 100)}%` }} aria-hidden />
                           </th>

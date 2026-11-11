@@ -62,7 +62,7 @@ function TxnList({ txns }: { txns: MonthTxn[] }) {
       {txns.map((t) => (
         <li key={t.id} className="flex items-baseline gap-3 py-2 text-sm">
           <span className="text-xs text-(--muted) tabular-nums w-12 shrink-0">{fmtDate(t.booked_date)}</span>
-          <span className="text-(--ink) truncate flex-1 min-w-0">{t.label}</span>
+          <span className="text-(--ink) [overflow-wrap:anywhere] flex-1 min-w-0">{t.label}</span>
           <span className="font-mono tabular-nums text-(--ink) shrink-0">{fmtEur(t.amountMinor, 2)}</span>
         </li>
       ))}
@@ -79,7 +79,7 @@ function CategoryRow({ cat, totalOutflow }: { cat: MonthCategoryRow; totalOutflo
       <summary className={`${SUMMARY} flex-wrap gap-y-2`}>
         <span className="size-2 rounded-full shrink-0" style={{ background: color }} aria-hidden />
         <span className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-sm text-(--ink) truncate">{cat.categoryName}</span>
+          <span className="text-sm text-(--ink) [overflow-wrap:anywhere]">{cat.categoryName}</span>
           {cat.deltaMinor !== null && cat.typicalMinor !== null && Math.abs(cat.deltaMinor) >= 1000 && (
             <DeltaBadge deltaMinor={cat.deltaMinor} baseMinor={cat.typicalMinor} />
           )}
@@ -112,7 +112,7 @@ function MerchantRow({ m, rank, totalOutflow }: { m: MonthMerchantRow; rank: num
         <span className="text-xs tabular-nums text-(--faint) w-5 shrink-0 text-right">{rank}</span>
         <span className="flex-1 min-w-0">
           <span className="flex items-center gap-2">
-            <span className="text-sm text-(--ink) truncate">{m.label}</span>
+            <span className="text-sm text-(--ink) [overflow-wrap:anywhere]">{m.label}</span>
             {m.isNew && <Badge variant="neutral">nuovo</Badge>}
           </span>
           {m.categoryName && <span className="block text-xs text-(--muted)">{m.categoryName}</span>}
@@ -161,7 +161,7 @@ export default async function ReportsPage({ searchParams }: Props) {
           title="Nessun movimento da raccontare"
           description="Il report mensile si costruisce sui movimenti bancari: collega un conto o importa un CSV per iniziare."
           action={
-            <Link href="/dashboard/accounts">
+            <Link href="/dashboard">
               <Button variant="secondary">Vai ai conti</Button>
             </Link>
           }
@@ -356,7 +356,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                     <span className="text-xs text-(--muted) font-sans font-normal ml-1.5">{fmtEur(r.patterns.topDay.totalMinor)}</span>
                   </dd>
                   {r.patterns.topDay.topTxn && (
-                    <dd className="text-xs text-(--muted) truncate">{r.patterns.topDay.topTxn.label}</dd>
+                    <dd className="text-xs text-(--muted) [overflow-wrap:anywhere]">{r.patterns.topDay.topTxn.label}</dd>
                   )}
                 </div>
               )}
@@ -393,7 +393,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                     <ul className="divide-y divide-(--border)">
                       {r.newMerchants.map((m) => (
                         <li key={m.label} className="flex items-baseline justify-between gap-3 py-2 text-sm">
-                          <span className="text-(--ink) truncate">{m.label}</span>
+                          <span className="text-(--ink) [overflow-wrap:anywhere]">{m.label}</span>
                           <span className="font-mono tabular-nums text-(--ink) shrink-0">
                             {fmtEur(m.totalMinor)}
                             <span className="text-(--muted) font-sans text-xs ml-1">×{m.count}</span>
@@ -409,7 +409,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                     <ul className="divide-y divide-(--border)">
                       {r.ceased.map((c) => (
                         <li key={c.label} className="flex items-baseline justify-between gap-3 py-2 text-sm">
-                          <span className="text-(--ink) truncate">{c.label}</span>
+                          <span className="text-(--ink) [overflow-wrap:anywhere]">{c.label}</span>
                           <span className="font-mono tabular-nums text-(--ink) shrink-0">−{fmtEur(c.monthlyMinor)}/mese</span>
                         </li>
                       ))}
@@ -423,7 +423,7 @@ export default async function ReportsPage({ searchParams }: Props) {
                       {r.priceMoves.map((p) => (
                         <li key={p.label} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                           <span className="min-w-0">
-                            <span className="block text-(--ink) truncate">{p.label}</span>
+                            <span className="block text-(--ink) [overflow-wrap:anywhere]">{p.label}</span>
                             <span className="block text-xs text-(--muted) font-mono tabular-nums">
                               {fmtEur(p.baseMedianMinor, 2)} → {fmtEur(p.monthMedianMinor, 2)}
                             </span>
@@ -496,10 +496,12 @@ export default async function ReportsPage({ searchParams }: Props) {
                 </p>
               </div>
               <Link
-                href={accountId !== null ? `/dashboard/accounts/${accountId}` : '/dashboard/accounts'}
+                href={(accountId ?? (accounts.length === 1 ? accounts[0].id : null)) !== null
+                  ? `/dashboard/accounts/${accountId ?? accounts[0].id}`
+                  : '/dashboard'}
                 className="shrink-0 inline-flex items-center gap-1.5 text-xs text-(--brand-text) hover:underline"
               >
-                Sistemali dal conto →
+                {accountId !== null || accounts.length === 1 ? 'Sistemali dal conto →' : 'Scegli il conto →'}
               </Link>
             </Card>
           )}
