@@ -228,3 +228,27 @@ html[data-privacy="on"] :is(input, select, textarea).tabular-nums { filter: none
 @media (prefers-reduced-motion: no-preference) {
   * { scroll-behavior: smooth; }
 }
+
+/* ─── Popup di base-ui (Select, Tooltip, AlertDialog) ──────────────────────────
+   I popup vanno in un portale in fondo al body: `.app-root` crea un contesto di
+   impilamento proprio, così nessuno z-index della pagina li copre. Su iOS 26+
+   i fondali dei dialoghi sono `absolute` e serve il body posizionato. */
+.app-root { isolation: isolate; }
+body { position: relative; }
+
+/* ─── Toast (Sonner) con i token dell'app ───────────────────────────────────── */
+html [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--surface);
+  --normal-border: var(--border);
+  --normal-text: var(--ink);
+  --border-radius: 0.75rem;
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+}
+[data-sonner-toaster] .ww-toast {
+  box-shadow: var(--shadow-md), var(--highlight);
+}
+[data-sonner-toaster] [data-close-button] {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--muted);
+}

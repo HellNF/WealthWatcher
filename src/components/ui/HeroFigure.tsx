@@ -23,9 +23,12 @@ export type HeroFigureSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 const CHAR_EM = 0.64
 
 export function HeroFigure({
-  value, size = 'lg', className, containerClassName, fitChars, id, as: Tag = 'p', ...rest
+  value, size = 'lg', className, containerClassName, fitChars, id, as: Tag = 'p', children, ...rest
 }: {
+  /** Il numero già formattato: serve anche a calcolare la dimensione */
   value:      string
+  /** Al posto del testo (es. una cifra animata); la dimensione resta calcolata su `value` */
+  children?:  React.ReactNode
   size?:      HeroFigureSize
   className?: string
   /** Classi del contenitore: es. `flex-1` per stare in riga con un badge. */
@@ -47,7 +50,7 @@ export function HeroFigure({
           className,
         )}
       >
-        {value}
+        {children ?? value}
       </Tag>
     </div>
   )

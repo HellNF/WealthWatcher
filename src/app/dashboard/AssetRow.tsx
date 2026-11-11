@@ -1,7 +1,7 @@
 'use client'
 import { useState, useActionState, useEffect, useRef, useTransition } from 'react'
 import { Pencil, X, RefreshCw, EyeOff, Eye } from 'lucide-react'
-import { Button, Field, Input, Select, Badge, ConfirmDelete } from '@/components/ui'
+import { Button, Field, Input, Select, Badge, ConfirmDelete, Tooltip } from '@/components/ui'
 import { updateAssetAction, deleteAssetAction, refreshVehicleEstimateAction, setAssetIncludedAction } from './assets-actions'
 import { ASSET_KINDS, KIND_MAP } from './assetKinds'
 import { FUEL_OPTIONS, GEARBOX_OPTIONS, COUNTRY_OPTIONS, DRIVETRAIN_OPTIONS } from './vehicleFields'
@@ -170,9 +170,11 @@ export default function AssetRow({
         <p className="col-span-3 row-start-2 text-xs text-(--muted) leading-relaxed flex items-center gap-x-1.5 gap-y-1 flex-wrap">
           {kind.label}
           {!included && (
-            <Badge variant="neutral" title="Il bene resta in elenco ma non entra nel patrimonio netto">
-              escluso dal patrimonio
-            </Badge>
+            <Tooltip content="Il bene resta in elenco ma non entra nel patrimonio netto">
+              <Badge variant="neutral">
+                escluso dal patrimonio
+              </Badge>
+            </Tooltip>
           )}
           {vehicleDetails && (
             <>
@@ -188,12 +190,13 @@ export default function AssetRow({
                   <>
                     <span>· stima {formatDateIt(vehicleDetails.last_estimate_at)}</span>
                     {vehicleDetails.last_estimate_confidence && CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence] && (
-                      <Badge
-                        variant={CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].variant}
-                        title={CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].title}
-                      >
-                        {CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].label}
-                      </Badge>
+                      <Tooltip content={CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].title}>
+                        <Badge
+                          variant={CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].variant}
+                        >
+                          {CONFIDENCE_BADGE[vehicleDetails.last_estimate_confidence].label}
+                        </Badge>
+                      </Tooltip>
                     )}
                   </>
                 ) : (
@@ -202,7 +205,7 @@ export default function AssetRow({
               ) : (
                 <Badge variant="neutral">stima manuale</Badge>
               )}
-              {refreshError && <Badge variant="warning" title={refreshError}>stale</Badge>}
+              {refreshError && <Tooltip content={refreshError}><Badge variant="warning">stale</Badge></Tooltip>}
             </>
           )}
         </p>
@@ -217,9 +220,11 @@ export default function AssetRow({
           // il patrimonio netto usa sempre asset.value_minor, mai questo prezzo.
           const pct = ((asset.value_minor - vehicleDetails.purchase_price_minor) / vehicleDetails.purchase_price_minor) * 100
           return (
-            <Badge variant={pct >= 0 ? 'gain' : 'loss'} title="Rispetto al prezzo pagato">
-              {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
-            </Badge>
+            <Tooltip content="Rispetto al prezzo pagato">
+              <Badge variant={pct >= 0 ? 'gain' : 'loss'}>
+                {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
+              </Badge>
+            </Tooltip>
           )
         })()}
       </div>
@@ -243,17 +248,18 @@ export default function AssetRow({
             <span className="sm:hidden">Aggiorna stima</span>
           </Button>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          loading={togglePending}
-          aria-label={included ? 'Escludi dal patrimonio' : 'Includi nel patrimonio'}
-          title={included ? 'Escludi dal patrimonio netto (il bene resta in elenco)' : 'Includi di nuovo nel patrimonio netto'}
-          onClick={() => startToggle(() => setAssetIncludedAction(asset.id, !included))}
-        >
-          {included ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-          <span className="sm:hidden">{included ? 'Escludi' : 'Includi'}</span>
-        </Button>
+        <Tooltip content={included ? 'Escludi dal patrimonio netto (il bene resta in elenco)' : 'Includi di nuovo nel patrimonio netto'}>
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={togglePending}
+            aria-label={included ? 'Escludi dal patrimonio' : 'Includi nel patrimonio'}
+            onClick={() => startToggle(() => setAssetIncludedAction(asset.id, !included))}
+          >
+            {included ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+            <span className="sm:hidden">{included ? 'Escludi' : 'Includi'}</span>
+          </Button>
+        </Tooltip>
         <Button variant="ghost" size="sm" onClick={() => setEditing(true)} aria-label="Modifica">
           <Pencil className="size-3.5" />
           <span className="sm:hidden">Modifica</span>

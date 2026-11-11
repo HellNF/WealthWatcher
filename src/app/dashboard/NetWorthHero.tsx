@@ -9,6 +9,7 @@ import { useId, useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { Info } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { Badge, Eyebrow, HeroShell, HeroFigure } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -163,7 +164,18 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
               <h1><Eyebrow>Patrimonio netto</Eyebrow></h1>
               {headerAction}
             </div>
-            <HeroFigure id={valueId} value={fmtEur(shown.value)} size="xl" className="text-(--ink)" aria-live="off" />
+            {/* Le cifre scorrono quando il valore cambia da solo (ricalcolo, fine dello
+                scrub); durante lo scrub seguono il dito 1:1, senza animazione. */}
+            <HeroFigure id={valueId} value={fmtEur(shown.value)} size="xl" className="text-(--ink)" aria-live="off">
+              <NumberFlow
+                value={shown.value / 100}
+                locales="it-IT"
+                format={{ style: 'currency', currency: 'EUR', useGrouping: 'always', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+                animated={scrub === null}
+                transformTiming={{ duration: 550, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+                spinTiming={{ duration: 550, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }}
+              />
+            </HeroFigure>
             <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-h-6 text-sm text-(--muted)">
               {data.length >= 2 && !atBase && (
                 shown.stale || base.stale ? (<span className="text-(--muted)">Variazione non confrontabile: dati incompleti o da verificare</span>) : delta === 0 ? (
@@ -215,7 +227,7 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
                           onClick={() => { setRange(r.id); setScrub(null) }}
                           className={cn(
                             'relative h-7 pointer-coarse:h-9 min-w-10 px-2.5 rounded-md text-xs font-medium cursor-pointer select-none',
-                            'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.96]',
+                            'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.96]',
                             'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                             selected ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
                           )}

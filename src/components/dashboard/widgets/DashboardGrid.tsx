@@ -147,7 +147,7 @@ export default function DashboardGrid({ data, initialLayout }: Props) {
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-(--border) bg-(--surface) text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,color,background-color] duration-150 ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-(--border) bg-(--surface) text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,scale,translate,color,background-color] duration-150 ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
           >
             <Settings2 className="size-3.5" strokeWidth={1.75} />
             Personalizza

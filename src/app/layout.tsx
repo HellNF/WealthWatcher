@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { Geist, Geist_Mono, Bricolage_Grotesque } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
+import { TooltipProvider } from '@/components/ui/Tooltip'
 import { THEME_SCRIPT } from '@/lib/security/csp'
 import './globals.css'
 
@@ -40,9 +41,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="font-sans antialiased bg-(--bg) text-(--ink) min-h-screen">
         <ThemeProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <TooltipProvider>
+            <ToastProvider>
+              <div className="app-root">{children}</div>
+            </ToastProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

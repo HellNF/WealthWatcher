@@ -82,7 +82,7 @@ export function SummaryTiles({ analyses, history }: { analyses: CachedAnalysis[]
             >
               <span className="flex items-center justify-between gap-2 text-xs font-medium text-(--muted)">
                 {SHORT_TITLE[a.key] ?? a.title}
-                <ArrowRight className="size-3.5 text-(--faint) transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
+                <ArrowRight className="size-3.5 text-(--faint) transition-[color,transform,scale,translate] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
               </span>
               <span className="text-2xl sm:text-3xl font-extrabold font-display leading-none tracking-[-0.02em] text-(--ink) [text-wrap:balance]">
                 {STANCE_META[a.stance].label}

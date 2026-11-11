@@ -47,7 +47,7 @@ export function HeroLink({ href, children, className }: { href: string; children
       className={cn(
         'group inline-flex items-center gap-2.5 rounded-full pl-4 pr-1.5 py-1.5 text-sm font-medium text-(--ink)',
         'bg-(--surface-2) ring-1 ring-inset ring-(--border) hover:bg-(--surface)',
-        'transition-[transform,background-color] duration-300 ease-drawer active:scale-[0.98]',
+        'transition-[transform,scale,translate,background-color] duration-300 ease-drawer active:scale-[0.98]',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)',
         className,
       )}

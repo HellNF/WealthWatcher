@@ -2,7 +2,7 @@
 
 import { useActionState, useTransition } from 'react'
 import { addAllowedEmailAction, removeAllowedEmailAction, updateAllowedEmailRoleAction } from './actions'
-import { Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge } from '@/components/ui'
+import { Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge, Select, Tooltip, ConfirmDialog } from '@/components/ui'
 import { UserPlus, Trash2 } from 'lucide-react'
 import { formatDateIt } from '@/lib/formatDate'
 
@@ -17,6 +17,11 @@ interface Props {
   currentEmail: string | null
 }
 
+const ROLE_OPTIONS = [
+  { value: 'member', label: 'Membro' },
+  { value: 'admin',  label: 'Amministratore' },
+]
+
 function fmtDate(epoch: number): string {
   return formatDateIt(epoch)
 }
@@ -24,14 +29,8 @@ function fmtDate(epoch: number): string {
 function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
   const [, startTransition] = useTransition()
 
-  function handleRoleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const role = e.target.value
+  function handleRoleChange(role: string) {
     startTransition(async () => { await updateAllowedEmailRoleAction(entry.email, role) })
-  }
-
-  function handleRemove() {
-    if (!confirm(`Rimuovere ${entry.email} dalla whitelist?`)) return
-    startTransition(async () => { await removeAllowedEmailAction(entry.email) })
   }
 
   return (
@@ -42,32 +41,43 @@ function EmailRow({ entry, isSelf }: { entry: AllowedEntry; isSelf: boolean }) {
       </Td>
       <Td>
         {isSelf ? (
-          <Badge variant={entry.role === 'admin' ? 'gain' : 'neutral'}>{entry.role}</Badge>
+          <Badge variant="neutral">{ROLE_OPTIONS.find((r) => r.value === entry.role)?.label ?? entry.role}</Badge>
         ) : (
-          <select
+          <Select
+            size="sm"
+            className="w-auto"
+            aria-label={`Ruolo di ${entry.email}`}
             defaultValue={entry.role}
-            onChange={handleRoleChange}
-            className="text-xs rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 py-1 focus:outline-none focus:ring-2 focus:ring-(--ring)"
-          >
-            <option value="member">member</option>
-            <option value="admin">admin</option>
-          </select>
+            onValueChange={handleRoleChange}
+            options={ROLE_OPTIONS}
+          />
         )}
       </Td>
       <Td>
         <span className="text-xs text-(--muted)">{fmtDate(entry.created_at)}</span>
       </Td>
       <Td>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRemove}
-          disabled={isSelf}
-          title={isSelf ? 'Non puoi rimuovere te stesso' : `Rimuovi ${entry.email}`}
-          className="text-(--danger) hover:bg-(--danger-subtle) disabled:opacity-30"
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+        {isSelf ? (
+          <Tooltip content="Non puoi rimuovere te stesso">
+            <span tabIndex={0} className="inline-flex rounded-md focus-visible:outline-2 focus-visible:outline-(--ring)">
+              <Button variant="ghost" size="sm" disabled aria-label="Rimuovi (non disponibile per il tuo account)" className="disabled:opacity-30">
+                <Trash2 className="size-3.5" />
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <ConfirmDialog
+            title={`Rimuovere ${entry.email}?`}
+            description="Non potrà più accedere a WealthWatcher finché non la aggiungi di nuovo."
+            confirmLabel="Rimuovi"
+            onConfirm={() => removeAllowedEmailAction(entry.email)}
+            trigger={
+              <Button variant="ghost" size="sm" aria-label={`Rimuovi ${entry.email}`} className="hover:text-(--danger-text) hover:bg-(--danger-subtle)">
+                <Trash2 className="size-3.5" />
+              </Button>
+            }
+          />
+        )}
       </Td>
     </Tr>
   )
@@ -118,15 +128,8 @@ export default function AllowlistManager({ entries, currentEmail }: Props) {
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-(--muted)">Ruolo</label>
-          <select
-            name="role"
-            defaultValue="member"
-            className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)"
-          >
-            <option value="member">member</option>
-            <option value="admin">admin</option>
-          </select>
+          <label htmlFor="new-role" className="block text-xs font-medium text-(--muted)">Ruolo</label>
+          <Select id="new-role" name="role" defaultValue="member" className="w-auto min-w-36" options={ROLE_OPTIONS} />
         </div>
         <Button type="submit" variant="primary" size="sm" loading={isPending} disabled={isPending}>
           <UserPlus className="size-3.5" />

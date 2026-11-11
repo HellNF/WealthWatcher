@@ -1,6 +1,7 @@
 import { Check, CheckCheck, Trash2 } from 'lucide-react'
 import type { Message } from '@/lib/messages'
 import { formatTimeIt } from '@/lib/formatDate'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 interface Props {
   message: Message
@@ -44,24 +45,26 @@ export default function ChatBubble({ message, isOwn, isAdmin = false, onResolve,
         {/* Azioni admin — visibili al hover */}
         {isAdmin && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0">
-            <button
-              onClick={() => onResolve?.(!isResolved)}
-              title={isResolved ? 'Segna come aperto' : 'Segna come elaborato'}
-              className={`p-1 rounded-md transition-colors ${
-                isResolved
-                  ? 'text-emerald-500 hover:text-zinc-400 hover:bg-zinc-700'
-                  : 'text-zinc-500 hover:text-emerald-400 hover:bg-zinc-700'
-              }`}
-            >
-              <Check className="size-3.5" />
-            </button>
-            <button
-              onClick={() => onDelete?.()}
-              title="Elimina"
-              className="p-1 rounded-md text-zinc-600 hover:text-red-400 hover:bg-zinc-700 transition-colors"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+            <Tooltip content={isResolved ? 'Segna come aperto' : 'Segna come elaborato'}>
+              <button aria-label={isResolved ? 'Segna come aperto' : 'Segna come elaborato'}
+                onClick={() => onResolve?.(!isResolved)}
+                className={`p-1 rounded-md transition-colors ${
+                  isResolved
+                    ? 'text-emerald-500 hover:text-zinc-400 hover:bg-zinc-700'
+                    : 'text-zinc-500 hover:text-emerald-400 hover:bg-zinc-700'
+                }`}
+              >
+                <Check className="size-3.5" />
+              </button>
+            </Tooltip>
+            <Tooltip content="Elimina">
+              <button aria-label="Elimina"
+                onClick={() => onDelete?.()}
+                className="p-1 rounded-md text-zinc-600 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </Tooltip>
           </div>
         )}
       </div>

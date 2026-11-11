@@ -141,6 +141,7 @@ function parseRuleDraft(formData: FormData): RuleDraft | { error: string } {
   const direction  = dirRaw === 'in' || dirRaw === 'out' ? dirRaw : null
 
   if (!pattern)          return { error: 'Il pattern non può essere vuoto.' }
+  if (pattern.length > 200) return { error: 'Il pattern può avere al massimo 200 caratteri.' }
   if (isNaN(categoryId)) return { error: 'Seleziona una categoria.' }
   if (accountId !== null && !Number.isSafeInteger(accountId)) return { error: 'Conto non valido.' }
   if (amtMin !== null && amtMax !== null && amtMin > amtMax) {

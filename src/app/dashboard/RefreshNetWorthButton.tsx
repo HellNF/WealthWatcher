@@ -7,20 +7,22 @@
 import { useTransition } from 'react'
 import { refreshNetWorthAction } from './actions'
 import { RefreshCw } from 'lucide-react'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 export default function RefreshNetWorthButton() {
   const [isPending, startTransition] = useTransition()
 
   return (
-    <button
-      type="button"
-      onClick={() => startTransition(() => refreshNetWorthAction())}
-      disabled={isPending}
-      title="Ricalcola il patrimonio netto"
-      aria-label="Ricalcola il patrimonio netto"
-      className="relative inline-flex items-center justify-center size-5 rounded-md text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 disabled:opacity-50 disabled:active:scale-100 transition-[transform,color,background-color] duration-150 ease-out-strong shrink-0 after:absolute after:-inset-2.5"
-    >
-      <RefreshCw className={`size-3 ${isPending ? 'animate-spin' : ''}`} strokeWidth={1.75} />
-    </button>
+    <Tooltip content="Ricalcola il patrimonio netto">
+      <button
+        type="button"
+        onClick={() => startTransition(() => refreshNetWorthAction())}
+        disabled={isPending}
+        aria-label="Ricalcola il patrimonio netto"
+        className="relative inline-flex items-center justify-center size-5 rounded-md text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-90 disabled:opacity-50 disabled:active:scale-100 transition-[transform,scale,translate,color,background-color] duration-150 ease-out-strong shrink-0 after:absolute after:-inset-2.5"
+      >
+        <RefreshCw className={`size-3 ${isPending ? 'animate-spin' : ''}`} strokeWidth={1.75} />
+      </button>
+    </Tooltip>
   )
 }

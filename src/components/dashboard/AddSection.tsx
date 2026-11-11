@@ -28,7 +28,7 @@ export function AddSection({ title, subtitle, addLabel = 'Aggiungi', icon, form,
           type="button"
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
-          className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-(--border) bg-(--surface-1) px-3 py-1.5 text-sm font-medium text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,background-color] duration-150 ease-out-strong"
+          className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-(--border) bg-(--surface-1) px-3 py-1.5 text-sm font-medium text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[transform,scale,translate,background-color] duration-150 ease-out-strong"
         >
           <Plus
             className="size-4 transition-transform duration-200 ease-out-strong"
@@ -39,7 +39,7 @@ export function AddSection({ title, subtitle, addLabel = 'Aggiungi', icon, form,
         </button>
       </div>
       {open && (
-        <div className="origin-top-right transition-[opacity,transform] duration-200 ease-out-strong starting:opacity-0 starting:-translate-y-1.5 starting:scale-[0.99] motion-reduce:starting:translate-y-0 motion-reduce:starting:scale-100">
+        <div className="origin-top-right transition-[opacity,transform,scale,translate] duration-200 ease-out-strong starting:opacity-0 starting:-translate-y-1.5 starting:scale-[0.99] motion-reduce:starting:translate-y-0 motion-reduce:starting:scale-100">
           {form}
         </div>
       )}

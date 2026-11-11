@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { Select } from '@/components/ui/Select'
 
 interface AccountOption { id: number; name: string }
 
@@ -57,7 +58,7 @@ function Step({ target, accountId, dir, href }: { target: string | null; account
       className={cn(
         base,
         'text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.94] active:bg-(--surface-2)',
-        'transition-[transform,color,background-color] duration-150 ease-out-strong',
+        'transition-[transform,scale,translate,color,background-color] duration-150 ease-out-strong',
       )}
     >
       <Icon className="size-4" strokeWidth={1.75} />
@@ -108,16 +109,13 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
         <Step target={prev} accountId={accountId} dir="prev" href={href} />
 
         <label className="sr-only" htmlFor="month-select">Mese</label>
-        <select
+        <Select
           id="month-select"
           value={month}
-          onChange={(e) => router.push(href(e.target.value, accountId), { scroll: false })}
-          className={cn(CONTROL, 'bg-(--surface-2) px-2.5 text-sm font-medium text-(--ink) tabular-nums cursor-pointer')}
-        >
-          {months.map((m) => (
-            <option key={m} value={m}>{label(m)}</option>
-          ))}
-        </select>
+          onValueChange={(v) => router.push(href(v, accountId), { scroll: false })}
+          className="h-8 pointer-coarse:h-10 w-auto px-2.5 font-medium tabular-nums privacy-keep"
+          options={months.map((m) => ({ value: m, label: label(m) }))}
+        />
 
         <Step target={next} accountId={accountId} dir="next" href={href} />
       </nav>
@@ -137,7 +135,7 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
                     title={acc.name}
                     className={cn(
                       'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-sm whitespace-nowrap select-none min-w-0 max-w-full',
-                      'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                      'transition-[color,scale] duration-150 ease-out-strong active:scale-[0.97]',
                       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                       active ? 'text-(--ink) font-medium' : 'text-(--muted) hover:text-(--ink)',
                     )}
@@ -158,20 +156,13 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
         ) : (
           <>
             <label className="sr-only" htmlFor="report-account">Conto</label>
-            <select
+            <Select
               id="report-account"
-              value={accountId ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                router.push(href(month, v === '' ? null : Number(v)), { scroll: false })
-              }}
-              className={cn(CONTROL, 'bg-(--surface-2) px-2.5 text-sm text-(--ink) cursor-pointer')}
-            >
-              <option value="">Tutti i conti</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
-              ))}
-            </select>
+              value={accountId === null ? '' : String(accountId)}
+              onValueChange={(v) => router.push(href(month, v === '' ? null : Number(v)), { scroll: false })}
+              className="h-8 pointer-coarse:h-10 w-auto max-w-64 px-2.5"
+              options={[{ value: '', label: 'Tutti i conti' }, ...accounts.map((acc) => ({ value: String(acc.id), label: acc.name }))]}
+            />
           </>
         )
       )}

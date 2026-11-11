@@ -89,7 +89,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
   const KEY = 'text-2xl sm:text-3xl font-extrabold font-display tabular-nums leading-none tracking-[-0.02em] text-(--ink)'
   const ROW = 'group flex items-center gap-3.5 px-4 sm:px-5 py-3.5 hover:bg-(--surface-2) active:bg-(--surface-2) transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)'
   const TILE = 'size-9 rounded-xl bg-(--surface-2) ring-1 ring-(--border) flex items-center justify-center shrink-0'
-  const CHEVRON = 'size-4 text-(--faint) shrink-0 transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5'
+  const CHEVRON = 'size-4 text-(--faint) shrink-0 transition-[color,transform,scale,translate] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5'
 
   return (
     <>

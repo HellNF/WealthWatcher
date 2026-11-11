@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import type { DeadlineEvent } from '@/lib/calendar'
 import EventRow from './EventRow'
 import { fmtFull, fmtEur } from './eventMeta'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 interface Props {
   date:        string
@@ -34,14 +35,15 @@ export default function DayDetailPanel({ date, events, today, onAddEvent }: Prop
               : `${events.length} ${events.length === 1 ? 'voce' : 'voci'}${net !== 0 ? ` · ${net >= 0 ? '+' : '−'}${fmtEur(Math.abs(net))}` : ''}`}
           </p>
         </div>
-        <button
-          onClick={() => onAddEvent(date)}
-          className="flex size-6 shrink-0 items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
-          aria-label="Aggiungi evento in questa data"
-          title="Aggiungi evento"
-        >
-          <Plus className="size-3.5" />
-        </button>
+        <Tooltip content="Aggiungi evento">
+          <button
+            onClick={() => onAddEvent(date)}
+            className="flex size-6 shrink-0 items-center justify-center rounded-lg text-(--muted) hover:text-(--ink) hover:bg-(--surface) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ring)"
+            aria-label="Aggiungi evento in questa data"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </Tooltip>
       </div>
 
       {events.length > 0 ? (

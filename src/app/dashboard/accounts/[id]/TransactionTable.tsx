@@ -11,7 +11,7 @@ import type { TransactionRow } from '@/lib/transactions'
 import {
   TableWrapper, Table, TableHead, TableBody, Th, Tr, Td,
   EmptyState,
-  DataCard, DataCardHeader, DataRow,
+  DataCard, DataCardHeader, DataRow, Select, Tooltip, ConfirmDialog,
 } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { ReceiptText, Wand2, X, Check, Pencil, Trash2 } from 'lucide-react'
@@ -56,8 +56,7 @@ function CategorySelect({
   const [ruleMsg,    setRuleMsg]       = useState<string | null>(null)
   const [confirmed,  setConfirmed]     = useState(false)
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val   = e.target.value
+  function handleChange(val: string) {
     const catId = val === '' ? null : parseInt(val, 10)
     setSelectedId(catId)
     setConfirmed(true)
@@ -88,22 +87,14 @@ function CategorySelect({
 
   return (
     <div className="space-y-1.5 w-full">
-      <select
-        value={selectedId ?? ''}
-        onChange={handleChange}
+      <Select
+        size="sm"
+        aria-label="Categoria del movimento"
+        value={selectedId === null ? '' : String(selectedId)}
+        onValueChange={handleChange}
         disabled={isPending}
-        className={cn(
-          'text-xs bg-(--surface-2) border border-(--border) rounded-md px-2 py-1',
-          'text-(--ink) hover:border-(--brand) focus:outline-none focus:border-(--brand)',
-          'focus:ring-1 focus:ring-(--ring) disabled:opacity-50 transition-colors duration-100',
-          'w-full cursor-pointer',
-        )}
-      >
-        <option value="">— nessuna —</option>
-        {categories.map((cat) => (
-          <option key={cat.id} value={cat.id}>{cat.name}</option>
-        ))}
-      </select>
+        options={[{ value: '', label: 'Nessuna' }, ...categories.map((cat) => ({ value: String(cat.id), label: cat.name }))]}
+      />
 
       {source === 'learned' && selectedId !== null && !confirmed && (
         <button
@@ -130,21 +121,25 @@ function CategorySelect({
             )}
             onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmRule() }}
           />
-          <button
-            onClick={handleConfirmRule}
-            disabled={isCreating || !keyword.trim()}
-            title="Salva regola"
-            className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
-          >
-            <Check className="size-3.5" />
-          </button>
-          <button
-            onClick={() => { setShowRule(false); setRuleMsg(null) }}
-            title="Ignora"
-            className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
-          >
-            <X className="size-3.5" />
-          </button>
+          <Tooltip content="Salva regola">
+            <button
+              aria-label="Salva regola"
+              onClick={handleConfirmRule}
+              disabled={isCreating || !keyword.trim()}
+              className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
+            >
+              <Check className="size-3.5" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Ignora">
+            <button
+              aria-label="Ignora"
+              onClick={() => { setShowRule(false); setRuleMsg(null) }}
+              className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
+            >
+              <X className="size-3.5" />
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -196,21 +191,25 @@ function DescriptionCell({
             'text-(--ink) focus:outline-none focus:border-(--brand) focus:ring-1 focus:ring-(--ring)',
           )}
         />
-        <button
-          onClick={handleSave}
-          disabled={isPending || !value.trim()}
-          title="Salva"
-          className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
-        >
-          <Check className="size-3.5" />
-        </button>
-        <button
-          onClick={() => { setValue(descriptionRaw); setEditing(false) }}
-          title="Annulla"
-          className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
-        >
-          <X className="size-3.5" />
-        </button>
+        <Tooltip content="Salva">
+          <button
+            aria-label="Salva"
+            onClick={handleSave}
+            disabled={isPending || !value.trim()}
+            className="size-6 flex items-center justify-center rounded text-(--brand-text) hover:bg-(--brand-subtle) disabled:opacity-40 transition-colors"
+          >
+            <Check className="size-3.5" />
+          </button>
+        </Tooltip>
+        <Tooltip content="Annulla">
+          <button
+            aria-label="Annulla"
+            onClick={() => { setValue(descriptionRaw); setEditing(false) }}
+            className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
+          >
+            <X className="size-3.5" />
+          </button>
+        </Tooltip>
       </div>
     )
   }
@@ -227,53 +226,35 @@ function DescriptionCell({
           <span className="text-(--ink)">{value}</span>
         )}
       </div>
-      <button
-        onClick={() => setEditing(true)}
-        title="Modifica descrizione"
-        aria-label="Modifica descrizione"
-        className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
-      >
-        <Pencil className="size-3" />
-      </button>
+      <Tooltip content="Modifica descrizione">
+        <button
+          onClick={() => setEditing(true)}
+          aria-label="Modifica descrizione"
+          className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
+        >
+          <Pencil className="size-3" />
+        </button>
+      </Tooltip>
     </div>
   )
 }
 
 function DeleteButton({ txnId }: { txnId: number }) {
-  const [confirm,    setConfirm]    = useState(false)
-  const [isPending,  startTransition] = useTransition()
-
-  if (confirm) {
-    return (
-      <div className="flex items-center gap-1">
-        <span className="text-[10px] text-(--danger-text)">Eliminare?</span>
-        <button
-          onClick={() => startTransition(() => deleteTransactionAction(txnId))}
-          disabled={isPending}
-          title="Conferma"
-          className="size-6 flex items-center justify-center rounded text-(--danger-text) hover:bg-(--danger-subtle) disabled:opacity-40 transition-colors"
-        >
-          <Check className="size-3.5" />
-        </button>
-        <button
-          onClick={() => setConfirm(false)}
-          title="Annulla"
-          className="size-6 flex items-center justify-center rounded text-(--muted) hover:bg-(--surface-2) transition-colors"
-        >
-          <X className="size-3.5" />
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <button
-      onClick={() => setConfirm(true)}
-      title="Elimina transazione"
-      className="size-7 flex items-center justify-center rounded-md text-(--muted) hover:text-(--danger-text) hover:bg-(--danger-subtle) active:scale-90 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,color,background-color,transform] duration-150 ease-out-strong"
-    >
-      <Trash2 className="size-3.5" />
-    </button>
+    <ConfirmDialog
+      title="Eliminare questo movimento?"
+      description="Sparisce anche dai report e dal patrimonio netto. L’operazione non si può annullare."
+      onConfirm={() => deleteTransactionAction(txnId)}
+      tooltip="Elimina movimento"
+      trigger={
+        <button
+          aria-label="Elimina movimento"
+          className="size-7 flex items-center justify-center rounded-md text-(--muted) hover:text-(--danger-text) hover:bg-(--danger-subtle) active:scale-90 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 [@media(hover:none)]:opacity-100 transition-[opacity,color,background-color,scale] duration-150 ease-out-strong"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      }
+    />
   )
 }
 

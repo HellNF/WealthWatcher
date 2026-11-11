@@ -46,7 +46,7 @@ export default function ViewToggle() {
               onClick={() => go(o.advanced)}
               className={cn(
                 'relative h-8 rounded-md px-3 text-sm font-medium cursor-pointer select-none',
-                'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
+                'transition-[color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.97]',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                 active ? 'text-(--ink)' : 'text-(--muted) hover:text-(--ink)',
               )}

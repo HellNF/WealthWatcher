@@ -33,7 +33,7 @@ export function StickyBar({ watchId, children, interactive }: Props) {
         className={cn(
           'absolute inset-x-0 top-0 h-12 flex items-center border-b',
           'bg-(--bg)/75 backdrop-blur-xl backdrop-saturate-150 border-(--border)/70',
-          'motion-safe:transition-[opacity,transform] duration-200 ease-out-strong motion-reduce:transition-opacity',
+          'motion-safe:transition-[opacity,transform,scale,translate] duration-200 ease-out-strong motion-reduce:transition-opacity',
           '[@media(prefers-reduced-transparency:reduce)]:bg-(--bg) [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none',
           shown ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none motion-reduce:translate-y-0',
         )}

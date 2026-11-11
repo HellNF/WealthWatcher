@@ -66,7 +66,7 @@ export default function TxnFilters({ from, to, shown, total, review }: Props) {
       {hasFilter && (
         <button
           onClick={() => navigate()}
-          className="self-end h-8 px-2 rounded-md text-xs text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[color,background-color,transform] duration-150 ease-out-strong"
+          className="self-end h-8 px-2 rounded-md text-xs text-(--muted) hover:text-(--ink) hover:bg-(--surface-2) active:scale-[0.97] transition-[color,background-color,transform,scale,translate] duration-150 ease-out-strong"
         >
           Rimuovi filtri
         </button>

@@ -254,7 +254,7 @@ export default async function PortfolioPage({ params }: Props) {
               <span className="block text-sm font-medium text-(--ink)">Analisi fiscale</span>
               <span className="block text-xs text-(--muted) mt-0.5">Zainetto, harvesting, simulatore di vendita.</span>
             </span>
-            <ChevronRight className="size-4 text-(--faint) shrink-0 transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" aria-hidden />
+            <ChevronRight className="size-4 text-(--faint) shrink-0 transition-[color,transform,scale,translate] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" aria-hidden />
           </Link>
 
           <Card className="space-y-4">

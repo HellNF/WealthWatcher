@@ -115,7 +115,7 @@ function KeyFigure({ href, label, value, sub, tone = 'ink' }: {
     >
       <span className="flex items-center justify-between gap-2 text-xs font-medium text-(--muted)">
         {label}
-        <ArrowRight className="size-3.5 text-(--faint) transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
+        <ArrowRight className="size-3.5 text-(--faint) transition-[color,transform,scale,translate] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
       </span>
       <HeroFigure value={value} size="sm" as="span" className={toneClass} />
       {sub && <span className="text-xs text-(--muted)">{sub}</span>}

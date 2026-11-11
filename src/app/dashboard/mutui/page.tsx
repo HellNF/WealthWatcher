@@ -205,7 +205,7 @@ export default async function MutuiPage() {
                   className="group mt-auto flex items-center justify-between gap-3 border-t border-(--border) px-4 sm:px-5 py-3 text-sm font-medium text-(--ink) hover:bg-(--surface-2) active:bg-(--surface-2) transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)"
                 >
                   Piano di ammortamento
-                  <ChevronRight className="size-4 text-(--faint) transition-[color,transform] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" aria-hidden />
+                  <ChevronRight className="size-4 text-(--faint) transition-[color,transform,scale,translate] duration-200 ease-out-strong group-hover:text-(--ink) group-hover:translate-x-0.5" aria-hidden />
                 </Link>
               </Card>
             )

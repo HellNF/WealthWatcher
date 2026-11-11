@@ -8,7 +8,7 @@ import {
 } from './actions'
 import type { IsinResult } from '@/lib/isin'
 import type { KidExtraction } from '@/lib/kid/extract'
-import { Button, Field, Input, Select, Badge, Card, CardHeader, CardTitle } from '@/components/ui'
+import { Button, Field, Input, Select, Badge, Card, CardHeader, CardTitle, Tooltip } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 const CLUSTER_LABELS: Record<string, string> = {
@@ -531,7 +531,7 @@ export default function AddTxnForm({
               id="txn-cluster"
               name="cluster"
               value={instr.cluster}
-              onChange={setField('cluster')}
+              onValueChange={(v) => setInstr((p) => ({ ...p, cluster: v }))}
             >
               {Object.entries(CLUSTER_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
@@ -554,7 +554,7 @@ export default function AddTxnForm({
               id="txn-source"
               name="price_source"
               value={instr.price_source}
-              onChange={setField('price_source')}
+              onValueChange={(v) => setInstr((p) => ({ ...p, price_source: v }))}
             >
               {Object.entries(SOURCE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
@@ -616,15 +616,16 @@ export default function AddTxnForm({
                   )}
                 </label>
                 {!isFetching && instr.symbol && (
-                  <button
-                    type="button"
-                    onClick={() => fetchDetails(instr.symbol)}
-                    className="text-xs text-(--faint) hover:text-(--brand) transition-colors flex items-center gap-1"
-                    title="Ricarica prezzo corrente"
-                  >
-                    <RefreshCw className="size-3" />
-                    aggiorna
-                  </button>
+                  <Tooltip content="Ricarica prezzo corrente">
+                    <button aria-label="Ricarica prezzo corrente"
+                      type="button"
+                      onClick={() => fetchDetails(instr.symbol)}
+                      className="text-xs text-(--faint) hover:text-(--brand) transition-colors flex items-center gap-1"
+                    >
+                      <RefreshCw className="size-3" />
+                      aggiorna
+                    </button>
+                  </Tooltip>
                 )}
               </div>
               <Input

@@ -23,6 +23,7 @@ import { BrandMark } from '@/components/ui/BrandMark'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { PrivacyToggle } from '@/components/ui/PrivacyToggle'
 import { cn } from '@/lib/cn'
+import { Tooltip } from '@/components/ui/Tooltip'
 
 interface NavItem {
   label: string
@@ -107,7 +108,7 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-[color,background-color,transform] duration-150 ease-out-strong active:scale-[0.98]',
+                    'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-[color,background-color,transform,scale,translate] duration-150 ease-out-strong active:scale-[0.98]',
                     active
                       ? 'text-(--brand-text) font-medium'
                       : 'text-(--muted) hover:bg-(--surface-2) hover:text-(--ink)',
@@ -160,14 +161,15 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           </div>
         </Link>
         <form action={signOutAction} className="shrink-0">
-          <button
-            type="submit"
-            className="p-1 rounded-md text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) active:scale-90 transition-all duration-150"
-            title="Esci"
-            aria-label="Esci dall'account"
-          >
-            <LogOut className="size-4" />
-          </button>
+          <Tooltip content="Esci">
+            <button
+              type="submit"
+              className="p-1 rounded-md text-(--faint) hover:text-(--danger) hover:bg-(--danger-subtle) active:scale-90 transition-all duration-150"
+              aria-label="Esci dall'account"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </Tooltip>
         </form>
       </div>
     </div>
