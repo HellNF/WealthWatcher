@@ -168,8 +168,8 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
                   <Link key={acc.id} href={`/dashboard/accounts/${acc.id}`} className={ROW}>
                     <span className={TILE} aria-hidden><CreditCard className="size-4 text-(--muted)" strokeWidth={1.75} /></span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-medium text-(--ink) truncate">{acc.name}</span>
-                      <span className="block text-xs text-(--muted) truncate">{meta}</span>
+                      <span className="block text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{acc.name}</span>
+                      <span className="block text-xs text-(--muted) [overflow-wrap:anywhere]">{meta}</span>
                     </span>
                     <span className="text-right shrink-0 flex flex-col items-end gap-0.5">
                       <span className="font-mono tabular-nums text-sm font-medium text-(--ink)">
@@ -211,7 +211,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
                   <Link key={p.id} href={`/dashboard/portfolios/${p.id}`} className={ROW}>
                     <span className={TILE} aria-hidden><TrendingUp className="size-4 text-(--muted)" strokeWidth={1.75} /></span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-medium text-(--ink) truncate">{p.name}</span>
+                      <span className="block text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{p.name}</span>
                       <span className="block text-xs text-(--muted)">{p.currency}</span>
                     </span>
                     <span className="text-right shrink-0 flex flex-col items-end gap-0.5">

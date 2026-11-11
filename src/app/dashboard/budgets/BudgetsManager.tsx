@@ -56,7 +56,7 @@ export default function BudgetsManager({ budgets, categories }: Props) {
                 {b.category_color
                   ? <span className="size-2.5 rounded-full shrink-0" style={{ background: b.category_color }} aria-hidden />
                   : <Target className="size-3.5 shrink-0 text-(--muted)" strokeWidth={1.75} aria-hidden />}
-                <span className="truncate">{b.category_name ?? <span className="font-medium">Tetto mensile complessivo</span>}</span>
+                <span className="[overflow-wrap:anywhere]">{b.category_name ?? <span className="font-medium">Tetto mensile complessivo</span>}</span>
               </span>
               <span className="shrink-0 text-sm font-mono tabular-nums text-(--ink)">{fmtEur(b.amount_minor)}</span>
               <DeleteBudgetBtn budget={b} />

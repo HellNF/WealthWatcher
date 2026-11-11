@@ -30,7 +30,7 @@ export function DataCardHeader({ title, subtitle, badge, actions }: DataCardHead
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {/* min-w-0 + max-w-full: senza, un titolo senza spazi non si tronca e allarga la pagina */}
-          <span className="text-sm font-semibold text-(--ink) truncate min-w-0 max-w-full">{title}</span>
+          <span className="text-sm font-semibold text-(--ink) [overflow-wrap:anywhere] min-w-0 max-w-full">{title}</span>
           {badge}
         </div>
         {subtitle && (

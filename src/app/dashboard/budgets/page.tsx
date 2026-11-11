@@ -170,7 +170,7 @@ export default async function BudgetsPage({ searchParams }: Props) {
                 <li key={i} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
                   <div className="flex items-baseline gap-2.5">
                     {cat.color && <span className="size-2.5 rounded-full shrink-0 self-center" style={{ background: cat.color }} aria-hidden />}
-                    <span className="text-sm font-medium text-(--ink) truncate">{cat.category_name ?? 'Senza categoria'}</span>
+                    <span className="text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{cat.category_name ?? 'Senza categoria'}</span>
                     <span className="ml-auto shrink-0 text-sm font-mono tabular-nums text-(--ink)">
                       {fmtEur(cat.spent_minor)} <span className="text-(--muted)">/ {fmtEur(cat.limit_minor)}</span>
                     </span>

@@ -253,6 +253,13 @@
       "when": 1794389342595,
       "tag": "0035_purple_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1794404139558,
+      "tag": "0036_asset_net_worth_toggle",
+      "breakpoints": true
     }
   ]
 }

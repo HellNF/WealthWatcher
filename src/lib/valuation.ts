@@ -7,7 +7,7 @@ import { and, eq, desc, gte } from 'drizzle-orm'
 import type { ValuationSnapshot } from '@/db/schema'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
-import { listAssets } from '@/lib/assets'
+import { listAssets, isAssetIncluded } from '@/lib/assets'
 import { convertToEur } from '@/lib/fx/convert'
 import { summarizePriceQuality } from '@/lib/prices/quality'
 import { refreshFxRates } from '@/lib/fx/rates'
@@ -129,7 +129,8 @@ export async function computeNetWorth(userId: number, date: string): Promise<Net
   }
 
   // ── Altri beni (liquidità, immobili, veicoli, altro) ──
-  for (const asset of listAssets(userId)) {
+  // I beni esclusi dall'utente restano in elenco ma non entrano nel patrimonio.
+  for (const asset of listAssets(userId).filter(isAssetIncluded)) {
     const eur = await convertToEur(asset.value_minor, asset.currency, date)
     if (eur === null) {
       stale = true

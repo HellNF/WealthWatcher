@@ -20,11 +20,15 @@ function fmtDate(epoch: number | null): string {
 function PlCell({ minor, pct, currency }: { minor: number | null; pct: string | null; currency: string }) {
   if (minor === null) return <span className="text-(--faint) text-xs">—</span>
   const positive = minor >= 0
+  // Importo e percentuale su due righe: affiancati allargavano la colonna fino a
+  // spingere fuori dalla tabella le altre sui portatili da 13".
   return (
-    <Badge variant={positive ? 'gain' : 'loss'}>
-      {positive ? '+' : ''}{formatMoney(minor, currency)}
-      {pct && <span className="ml-1 opacity-75">({positive ? '+' : ''}{pct}%)</span>}
-    </Badge>
+    <span className="inline-flex flex-col items-end gap-0.5">
+      <Badge variant={positive ? 'gain' : 'loss'}>
+        {positive ? '+' : ''}{formatMoney(minor, currency)}
+      </Badge>
+      {pct && <span className="text-xs text-(--muted) tabular-nums">{positive ? '+' : ''}{pct}%</span>}
+    </span>
   )
 }
 
@@ -87,7 +91,7 @@ export default function PositionsTable({
                 const avgCost = Number(fromMinor(pos.costBasisMinor, pos.currency)) / Math.max(parseFloat(pos.remainingQty), 0.00000001)
                 return (
                   <Tr key={pos.symbol}>
-                    <Td>
+                    <Td className="whitespace-normal min-w-40">
                       <p className="font-medium text-(--ink)">{pos.name}</p>
                       <p className="text-xs text-(--muted)">{pos.symbol} · {pos.currency}</p>
                     </Td>
@@ -106,7 +110,7 @@ export default function PositionsTable({
                         })}
                       </span>
                     </Td>
-                    <Td numeric>
+                    <Td numeric className="whitespace-normal min-w-32">
                       {pos.lastPrice ? (
                         <div className="text-right">
                           <span className="text-(--ink)">

@@ -3,7 +3,9 @@
 import { sqlite } from '@/db'
 import {
   listAssets, createAsset, updateAsset, deleteAsset, getAssetForUser, getAssetsValueEur,
+  setAssetIncluded, upsertVehicleDetails, getVehicleDetails,
 } from '@/lib/assets'
+import { appendAssetValuation } from '@/lib/assetValuations'
 import { computeNetWorth } from '@/lib/valuation'
 
 let userId: number
@@ -45,6 +47,37 @@ describe('assets CRUD + ownership', () => {
     expect(deleteAsset(OTHER, a.id)).toBe(false)
     expect(deleteAsset(userId, a.id)).toBe(true)
     expect(getAssetForUser(userId, a.id)).toBeUndefined()
+  })
+})
+
+describe('delete di un veicolo con storico stime', () => {
+  test('rimuove anche dettagli e stime (foreign_keys ON, nessun cascade sullo storico)', () => {
+    const a = createAsset(userId, { name: 'Polo', kind: 'vehicle', valueMinor: 900000, currency: 'EUR' })
+    upsertVehicleDetails(a.id, { make: 'VW', model: 'Polo', year: 2016, country: 'IT', mileageKm: 90000 })
+    appendAssetValuation(a.id, '2026-01-01', 910000, 'EUR', 'manual')
+    expect(deleteAsset(userId, a.id)).toBe(true)
+    expect(getAssetForUser(userId, a.id)).toBeUndefined()
+    expect(getVehicleDetails(a.id)).toBeUndefined()
+    const left = sqlite.prepare(`SELECT COUNT(*) AS n FROM asset_valuations WHERE asset_id = ?`).get(a.id) as { n: number }
+    expect(left.n).toBe(0)
+  })
+})
+
+describe('esclusione dal patrimonio', () => {
+  test('un bene escluso resta in elenco ma non conta', async () => {
+    createAsset(userId, { name: 'Contanti', kind: 'cash', valueMinor: 50000, currency: 'EUR' })
+    const auto = createAsset(userId, { name: 'Auto', kind: 'vehicle', valueMinor: 800000, currency: 'EUR' })
+    expect(setAssetIncluded(OTHER, auto.id, false)).toBe(false)
+    expect(setAssetIncluded(userId, auto.id, false)).toBe(true)
+
+    expect(listAssets(userId)).toHaveLength(2)
+    expect((await getAssetsValueEur(userId, '2024-01-01')).eurMinor).toBe(50000)
+    const r = await computeNetWorth(userId, '2024-01-01')
+    expect(r.otherAssetsEurMinor).toBe(50000)
+    expect(r.breakdown.otherAssets.map((x) => x.name)).toEqual(['Contanti'])
+
+    setAssetIncluded(userId, auto.id, true)
+    expect((await computeNetWorth(userId, '2024-01-01')).otherAssetsEurMinor).toBe(850000)
   })
 })
 

@@ -85,7 +85,7 @@ export default async function SettingsPage() {
       </HeroShell>
 
       {/* Due colonne bilanciate dal browser: ogni scheda resta intera */}
-      <div className="xl:columns-2 gap-6 [&>*]:break-inside-avoid [&>*]:mb-6 [&>*]:scroll-mt-20">
+      <div className="2xl:columns-2 gap-6 [&>*]:break-inside-avoid [&>*]:mb-6 [&>*]:scroll-mt-20">
       <Card id="fiscale">
         <CardHeader>
           <div>

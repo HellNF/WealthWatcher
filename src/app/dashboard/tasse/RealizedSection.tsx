@@ -59,7 +59,7 @@ export default function RealizedSection({ year, currentYear, realizedTax, fiscal
                   <tbody className="divide-y divide-(--border)">
                     {realizedTax.events.map((ev, i) => (
                       <tr key={i} className="hover:bg-(--surface-2) transition-colors">
-                        <td className="px-3 py-2 text-(--ink) max-w-[200px] truncate">{ev.instrumentName}</td>
+                        <td className="px-3 py-2 text-(--ink) min-w-36 [overflow-wrap:anywhere]">{ev.instrumentName}</td>
                         <td className={`px-3 py-2 text-right font-mono tabular-nums font-medium ${ev.gainEurMinor >= 0 ? 'text-(--brand-text)' : 'text-(--danger)'}`}>
                           {sign(ev.gainEurMinor)}{fmtEurDec(ev.gainEurMinor)}
                         </td>

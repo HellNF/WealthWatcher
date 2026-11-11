@@ -1,0 +1,1 @@
+ALTER TABLE `assets` ADD `include_in_net_worth` integer DEFAULT 1 NOT NULL;

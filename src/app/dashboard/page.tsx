@@ -32,6 +32,7 @@ import { getMarketNews } from '@/lib/prices/yahoo'
 import { getDashboardLayout } from '@/lib/userSettings'
 import { getOwnerInstrumentSymbols } from '@/lib/instruments'
 import DashboardGrid from '@/components/dashboard/widgets/DashboardGrid'
+import { PrivacyToggle } from '@/components/ui/PrivacyToggle'
 import type { DashboardWidgetsData } from '@/components/dashboard/widgets/types'
 
 export const dynamic = 'force-dynamic'
@@ -80,8 +81,8 @@ function EntityRow({ href, name, sub, value, accent }: {
         {name[0]?.toUpperCase()}
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-medium text-(--ink) truncate">{name}</span>
-        {sub && <span className="block text-xs text-(--muted) truncate">{sub}</span>}
+        <span className="block text-sm font-medium text-(--ink) [overflow-wrap:anywhere]">{name}</span>
+        {sub && <span className="block text-xs text-(--muted) [overflow-wrap:anywhere]">{sub}</span>}
       </span>
       <span className="font-mono tabular-nums text-sm font-medium text-(--ink) shrink-0">{value}</span>
       <ChevronRight className="size-4 text-(--faint) group-hover:text-(--ink) group-hover:translate-x-0.5 transition-[color,transform] duration-200 [transition-timing-function:var(--ease-spring)] shrink-0" />
@@ -304,6 +305,7 @@ export default async function DashboardPage() {
             ]}
             stale={latest?.stale === 1}
             refresh={<RefreshNetWorthButton />}
+            headerAction={<PrivacyToggle />}
             aside={<CompositionBar parts={composition} className="xl:hidden" />}
             footer={
               <div className="flex items-center gap-x-8 gap-y-3 flex-wrap border-t border-(--border) px-6 sm:px-8 py-4 text-sm">
@@ -427,7 +429,7 @@ export default async function DashboardPage() {
       <AddSection
         title="Altri beni"
         icon={<Wallet className="size-4 text-(--muted)" strokeWidth={1.75} />}
-        subtitle="Liquidità, immobili, veicoli e altro — concorrono al patrimonio netto."
+        subtitle="Liquidità, immobili, veicoli e altro — concorrono al patrimonio netto, salvo quelli che escludi."
         addLabel="Aggiungi"
         form={
           <Card>

@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
 import {
-  createAsset, updateAsset, deleteAsset, getAssetForUser,
+  createAsset, updateAsset, deleteAsset, getAssetForUser, setAssetIncluded,
   getVehicleDetails, upsertVehicleDetails, deleteVehicleDetails,
 } from '@/lib/assets'
 import { refreshNetWorth } from '@/lib/valuation'
@@ -46,6 +46,13 @@ export async function updateAssetAction(
 export async function deleteAssetAction(assetId: number): Promise<void> {
   const user = await requireUser()
   deleteAsset(user.id, assetId)
+  await refreshNetWorth(user.id)
+  revalidatePath('/dashboard')
+}
+
+export async function setAssetIncludedAction(assetId: number, included: boolean): Promise<void> {
+  const user = await requireUser()
+  if (!setAssetIncluded(user.id, assetId, included)) return
   await refreshNetWorth(user.id)
   revalidatePath('/dashboard')
 }

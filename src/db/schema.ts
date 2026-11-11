@@ -531,6 +531,8 @@ export const assets = sqliteTable(
     value_minor: integer('value_minor').notNull(),          // valore corrente, con segno
     currency:    text('currency').notNull().default('EUR'),
     note:        text('note'),
+    // 0 = bene tenuto in elenco (e, se veicolo, stimato) ma fuori dal patrimonio netto
+    include_in_net_worth: integer('include_in_net_worth').notNull().default(1),
     updated_at:  integer('updated_at').notNull().default(sql`(unixepoch())`),
     created_at:  integer('created_at').notNull().default(sql`(unixepoch())`),
   },

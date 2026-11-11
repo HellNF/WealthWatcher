@@ -203,7 +203,7 @@ export default async function MortgageDetailPage({ params }: Props) {
                     return (
                       <Tr key={i}>
                         <Td className="tabular-nums">{fmtDate(t.booked_date)}</Td>
-                        <Td className="text-(--muted) truncate max-w-[200px]">{t.description_raw}</Td>
+                        <Td className="text-(--muted) whitespace-normal min-w-40 [overflow-wrap:anywhere]">{t.description_raw}</Td>
                         <Td className="text-right tabular-nums">{fmtEur(Math.abs(t.amount_minor))}</Td>
                         <Td className="text-right font-mono tabular-nums">{schedRow ? fmtEur(schedRow.interestMinor) : '—'}</Td>
                         <Td className="text-right font-mono tabular-nums">{schedRow ? fmtEur(schedRow.principalMinor) : '—'}</Td>

@@ -88,7 +88,7 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
                     className="size-2 rounded-full shrink-0"
                     style={{ background: cat.color ?? 'var(--muted)' }}
                   />
-                  <span className="text-xs text-(--ink) truncate">
+                  <span className="text-xs text-(--ink) [overflow-wrap:anywhere]">
                     {cat.name ?? 'Senza categoria'}
                   </span>
                 </div>

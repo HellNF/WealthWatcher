@@ -217,7 +217,7 @@ function DescriptionCell({
 
   return (
     <div className="flex items-center gap-1.5 group/desc min-w-0">
-      <div className="truncate min-w-0" title={merchantName ? `${merchantName} · ${value}` : value}>
+      <div className="min-w-0 [overflow-wrap:anywhere]">
         {merchantName ? (
           <>
             <span className="font-medium text-(--ink)">{merchantName}</span>
@@ -315,14 +315,14 @@ export default function TransactionTable({
                   <Td className="text-(--muted) text-xs whitespace-nowrap tabular-nums">
                     {formatDate(txn.booked_date)}
                   </Td>
-                  <Td className="max-w-xs">
+                  <Td className="whitespace-normal min-w-48">
                     <DescriptionCell
                       txnId={txn.id}
                       merchantName={txn.merchant_name}
                       descriptionRaw={txn.description_raw}
                     />
                   </Td>
-                  <Td>
+                  <Td className="whitespace-normal w-44 min-w-36">
                     <p className="text-xs text-(--muted) mb-1">{sourceLabel(txn.category_source)}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</p>
                     <CategorySelect
                       txnId={txn.id}

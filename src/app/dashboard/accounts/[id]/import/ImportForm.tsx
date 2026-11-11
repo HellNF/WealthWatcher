@@ -167,7 +167,7 @@ export default function ImportForm({
                         {formatDate(row.bookedDate)}
                       </Td>
                       <Td className="max-w-xs">
-                        <span className="truncate block text-(--ink)">
+                        <span className="[overflow-wrap:anywhere] block text-(--ink)">
                           {row.descriptionRaw}
                         </span>
                       </Td>

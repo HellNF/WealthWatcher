@@ -209,6 +209,18 @@ body {
   }
 }
 
+/* ─── Modalità privacy ───────────────────────────────────────────────────────
+   <html data-privacy="on"> (vedi PrivacyToggle): sfoca ogni cifra. Gli importi
+   dell'app sono tutti in `tabular-nums`; `data-sensitive` copre i casi isolati,
+   `.privacy-keep` esenta controlli e date. Nei grafici si sfocano assi e
+   tooltip, le forme restano: l'andamento si legge, i valori no. */
+html[data-privacy="on"] :is(.tabular-nums, .tabular, [data-sensitive],
+  .recharts-cartesian-axis-tick-value, .recharts-tooltip-wrapper, .recharts-label, .recharts-label-list):not(.privacy-keep) {
+  filter: blur(7px);
+  user-select: none;
+}
+html[data-privacy="on"] :is(input, select, textarea).tabular-nums { filter: none; }
+
 /* ─── Tabular numbers su tutte le cifre ────────────────────────────────────── */
 .tabular { font-variant-numeric: tabular-nums; }
 
