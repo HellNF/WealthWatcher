@@ -17,6 +17,7 @@ import {
 } from '@/lib/merchants'
 import { insertBatch, type InsertableTransaction } from '@/lib/transactions'
 import { setAccountBalanceAnchor } from '@/lib/accounts'
+import { fillLearnedCategories } from '@/lib/learnedCategories'
 import { getEnableBankingKey } from '@/lib/userSettings'
 import type { BankAccount, EbConnection } from '@/db/schema'
 import { sqlite } from '@/db'
@@ -239,7 +240,8 @@ async function syncAccount(
     return { accountId: account.id, insertedCount: 0, duplicateCount: 0, balanceUpdated, error: 'Impossibile recuperare i movimenti da Enable Banking' }
   }
 
-  const rows = mapTransactions(ownerId, account.id, transactions)
+  // Quello che la catena deterministica non categorizza, lo prova lo storico.
+  const rows = fillLearnedCategories(ownerId, mapTransactions(ownerId, account.id, transactions))
   const diagnostics = summarizeMapping(rows)
   const result = insertBatch({
     ownerId,

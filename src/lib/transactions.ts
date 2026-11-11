@@ -33,7 +33,7 @@ export interface InsertableTransaction {
   legacy_dedup_hash?: string
   merchant_id?:     number | null
   category_id?:     number | null
-  category_source?: 'legacy' | 'manual' | 'rule' | 'automatic'
+  category_source?: 'legacy' | 'manual' | 'rule' | 'automatic' | 'learned'
   mcc?:             string | null
   btc_sub_code?:    string | null
 }
@@ -221,7 +221,7 @@ export interface TransactionRow {
 export interface ListTransactionsOpts {
   from?:  string   // ISO YYYY-MM-DD — incluso
   to?:    string   // ISO YYYY-MM-DD — incluso
-  review?: 'uncategorized' | 'duplicates'
+  review?: 'uncategorized' | 'duplicates' | 'learned'
   limit?: number   // default 50
 }
 
@@ -237,6 +237,7 @@ export function listTransactions(
   if (to)   { conds.push('t.booked_date <= ?'); args.push(to)   }
   if (opts.review === 'uncategorized') conds.push('t.category_id IS NULL')
   if (opts.review === 'duplicates') conds.push(DUPLICATE_SQL)
+  if (opts.review === 'learned') conds.push("t.category_source = 'learned'")
   args.push(limit)
 
   return sqlite
@@ -268,6 +269,7 @@ export function countTransactions(
   if (to)   { conds.push('booked_date <= ?'); args.push(to)   }
   if (opts.review === 'uncategorized') conds.push('t.category_id IS NULL')
   if (opts.review === 'duplicates') conds.push(DUPLICATE_SQL)
+  if (opts.review === 'learned') conds.push("t.category_source = 'learned'")
   const row = sqlite
     .prepare(`SELECT COUNT(*) AS n FROM transactions t WHERE ${conds.join(' AND ')}`)
     .get(...args) as { n: number }

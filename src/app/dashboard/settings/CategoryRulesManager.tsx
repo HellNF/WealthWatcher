@@ -97,7 +97,7 @@ function RecategorizeButton() {
             const next = new Set(selected); if (e.target.checked) next.add(p.id); else next.delete(p.id); setSelected(next)
           }} />
           <span><span className="block">{p.date} · {p.description} · {formatMoney(p.amountMinor, p.currency)}</span>
-            <span className="text-(--muted)">{p.before ?? 'Senza categoria'} → {p.after ?? 'Senza categoria'} · {p.source === 'rule' ? 'Regola' : 'Automatica'}</span>
+            <span className="text-(--muted)">{p.before ?? 'Senza categoria'} → {p.after ?? 'Senza categoria'} · {p.source === 'rule' ? 'Regola' : p.source === 'learned' ? `Dallo storico · confidenza ${Math.round((p.confidence ?? 0) * 100)}%` : 'Automatica'}</span>
           </span>
         </label>)}
       </div>
