@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAxisMoney } from '@/lib/money'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -89,7 +90,7 @@ export default function AllocationOverTime({ data }: Props) {
           interval="preserveStartEnd"
         />
         <YAxis
-          tickFormatter={(v) => fmtEur(v)}
+          tickFormatter={(v) => formatAxisMoney(Number(v))}
           tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}

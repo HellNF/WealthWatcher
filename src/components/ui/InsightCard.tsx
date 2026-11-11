@@ -39,13 +39,13 @@ export function InsightCard({ insight, linkLabel = 'Approfondisci', className }:
   const meta = INSIGHT_META[insight.severity]
   const Icon = INSIGHT_ICONS[insight.icon]
   return (
-    <Card className={cn('flex flex-col gap-2', className)}>
+    <Card className={cn('flex flex-col gap-2 min-w-0', className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-lg', meta.tile)}>
             <Icon className="size-4" strokeWidth={1.75} aria-hidden />
           </span>
-          <h3 className="text-sm font-semibold text-(--ink) text-wrap-balance">{insight.title}</h3>
+          <h3 className="min-w-0 text-sm font-semibold text-(--ink) text-wrap-balance [overflow-wrap:anywhere]">{insight.title}</h3>
         </div>
         {insight.severity === 'critical'
           ? <Badge variant="danger" className="shrink-0">{meta.label}</Badge>

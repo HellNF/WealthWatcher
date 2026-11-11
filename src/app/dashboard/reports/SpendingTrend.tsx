@@ -2,6 +2,7 @@
 
 // Andamento giornaliero del mese su calendario completo: i giorni a zero
 // esistono (il "ritmo" è reale) e la media è per giorno di calendario.
+import { formatAxisMoney } from '@/lib/money'
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -59,7 +60,7 @@ export default function SpendingTrend({ data, avgDailyMinor, currency }: Props) 
           interval={tickInterval - 1}
         />
         <YAxis
-          tickFormatter={(v) => fmt(v, currency)}
+          tickFormatter={(v) => formatAxisMoney(Number(v), currency)}
           tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}

@@ -217,7 +217,7 @@ function DescriptionCell({
 
   return (
     <div className="flex items-center gap-1.5 group/desc min-w-0">
-      <div className="truncate min-w-0">
+      <div className="truncate min-w-0" title={merchantName ? `${merchantName} · ${value}` : value}>
         {merchantName ? (
           <>
             <span className="font-medium text-(--ink)">{merchantName}</span>
@@ -230,7 +230,8 @@ function DescriptionCell({
       <button
         onClick={() => setEditing(true)}
         title="Modifica descrizione"
-        className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
+        aria-label="Modifica descrizione"
+        className="shrink-0 size-5 flex items-center justify-center rounded text-(--faint) opacity-0 group-hover/desc:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 hover:text-(--ink) hover:bg-(--surface-2) transition-all"
       >
         <Pencil className="size-3" />
       </button>

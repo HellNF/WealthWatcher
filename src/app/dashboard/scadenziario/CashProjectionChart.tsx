@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAxisMoney } from '@/lib/money'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
@@ -98,7 +99,7 @@ export default function CashProjectionChart({ points, thresholdMinor, minDate }:
           tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={40}
         />
         <YAxis
-          tickFormatter={(v) => fmtEur(v)} tick={{ fill: colors.axis, fontSize: 11 }}
+          tickFormatter={(v) => formatAxisMoney(Number(v))} tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false} axisLine={false} width={78}
         />
         <Tooltip

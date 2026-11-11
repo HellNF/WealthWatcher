@@ -103,7 +103,7 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
   const accountOptions = [{ id: null as number | null, name: 'Tutti i conti' }, ...accounts]
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-3 flex-wrap min-w-0 max-w-full">
       <nav aria-label="Mese" className="flex items-center gap-1.5">
         <Step target={prev} accountId={accountId} dir="prev" href={href} />
 
@@ -125,7 +125,7 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
       {accounts.length > 1 && (
         accounts.length <= 3 ? (
           <LayoutGroup id="report-account">
-            <nav aria-label="Filtro conto" className="flex gap-0.5 flex-wrap p-0.5 bg-(--surface-2) rounded-lg">
+            <nav aria-label="Filtro conto" className="flex gap-0.5 flex-wrap p-0.5 bg-(--surface-2) rounded-lg min-w-0 max-w-full">
               {accountOptions.map((acc) => {
                 const active = accountId === acc.id
                 return (
@@ -134,8 +134,9 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
                     href={href(month, acc.id)}
                     scroll={false}
                     aria-current={active ? 'true' : undefined}
+                    title={acc.name}
                     className={cn(
-                      'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-sm whitespace-nowrap select-none',
+                      'relative h-7 pointer-coarse:h-9 px-3 flex items-center rounded-md text-sm whitespace-nowrap select-none min-w-0 max-w-full',
                       'transition-[color,transform] duration-150 ease-out-strong active:scale-[0.97]',
                       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ring)',
                       active ? 'text-(--ink) font-medium' : 'text-(--muted) hover:text-(--ink)',
@@ -148,7 +149,7 @@ export default function MonthNav({ months, month, accounts, accountId, compact, 
                         transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0 }}
                       />
                     )}
-                    <span className="relative">{acc.name}</span>
+                    <span className="relative truncate max-w-[16rem]">{acc.name}</span>
                   </Link>
                 )
               })}

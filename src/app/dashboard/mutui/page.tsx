@@ -5,8 +5,7 @@ import { listAccounts } from '@/lib/accounts'
 import MortgageForm from './MortgageForm'
 import { deleteMortgageAction } from './actions'
 import {
-  Card, ConfirmDelete, ProgressBar, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
-} from '@/components/ui'
+  Card, ConfirmDelete, ProgressBar, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AddSection } from '@/components/dashboard/AddSection'
 import Link from 'next/link'
 import { ChevronRight, Home, CalendarClock, TrendingDown, Landmark } from 'lucide-react'
@@ -119,9 +118,7 @@ export default async function MutuiPage() {
       <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
         <div className="space-y-5 min-w-0">
           <Eyebrow>Capitale residuo</Eyebrow>
-          <p id="mutui-remaining" className="text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
-            {fmtEur(totalRemaining)}
-          </p>
+          <HeroFigure id="mutui-remaining" value={fmtEur(totalRemaining)} className="text-(--ink)" />
           <div className="space-y-2 max-w-xl">
             <ProgressBar value={totalInitial - totalRemaining} max={totalInitial} color="var(--ink)" />
             <p className="text-sm text-(--muted)">

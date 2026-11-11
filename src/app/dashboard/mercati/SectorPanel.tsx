@@ -20,9 +20,9 @@ function DriverRow({ d }: { d: Driver }) {
     <li className="flex items-start gap-2 py-1.5">
       <span className="mt-1.5 size-2 rounded-full shrink-0" style={{ background: style.dot }} aria-hidden />
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm text-(--ink)">{d.label}</span>
-          <span className="text-xs font-mono tabular-nums text-(--muted) shrink-0">{d.detail}</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <span className="text-sm text-(--ink) min-w-0">{d.label}</span>
+          <span className="text-xs font-mono tabular-nums text-(--muted) min-w-0 text-right">{d.detail}</span>
         </div>
         {d.explain && <p className="text-xs text-(--muted) leading-relaxed mt-0.5 max-w-[70ch]">{d.explain}</p>}
         {d.source !== 'sintesi' && (

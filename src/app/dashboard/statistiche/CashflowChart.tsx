@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAxisMoney } from '@/lib/money'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -78,7 +79,7 @@ export default function CashflowChart({ data }: Props) {
           interval="preserveStartEnd"
         />
         <YAxis
-          tickFormatter={(v) => fmtEur(v)}
+          tickFormatter={(v) => formatAxisMoney(Number(v))}
           tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}

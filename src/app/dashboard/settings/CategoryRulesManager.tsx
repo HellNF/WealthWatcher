@@ -290,15 +290,15 @@ export default function CategoryRulesManager({ rules, categories, accounts }: Pr
             </select>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0 max-w-full">
             <label htmlFor="rule-account" className="block text-xs font-medium text-(--muted)">Conto</label>
             <select id="rule-account" name="bank_account_id"
-              className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
+              className="h-9 w-full max-w-64 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
               <option value="">Tutti i conti</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0 max-w-full">
             <label htmlFor="rule-direction" className="block text-xs font-medium text-(--muted)">Movimenti</label>
             <select id="rule-direction" name="direction"
               className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">

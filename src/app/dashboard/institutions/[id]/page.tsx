@@ -17,8 +17,7 @@ import ConnectBankButton from '@/app/dashboard/banking/ConnectBankButton'
 import SyncButton from '@/app/dashboard/banking/SyncButton'
 import { listSyncRuns, summarizeSyncRun } from '@/lib/banking/syncRuns'
 import {
-  Card, EmptyState, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL,
-} from '@/components/ui'
+  Card, EmptyState, Badge, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
 import { AddSection } from '@/components/dashboard/AddSection'
 import { getInstitutionValueEur } from '@/lib/institutionValuation'
 import Link from 'next/link'
@@ -121,9 +120,7 @@ export default async function InstitutionPage({ params, searchParams }: Props) {
       <HeroShell innerClassName="grid gap-x-14 gap-y-8 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end p-6 sm:p-8">
         <div className="space-y-4 min-w-0">
           <Eyebrow>Valore complessivo</Eyebrow>
-          <p id="inst-value" className="text-5xl sm:text-6xl font-extrabold font-display tabular-nums leading-none tracking-[-0.03em] text-(--ink)">
-            {formatMoney(instValue.valueEurMinor, 'EUR')}
-          </p>
+          <HeroFigure id="inst-value" value={formatMoney(instValue.valueEurMinor, 'EUR')} className="text-(--ink)" />
           <p className="text-sm text-(--muted)">
             {accounts.length} {accounts.length === 1 ? 'conto' : 'conti'} e {portfolios.length}{' '}
             {portfolios.length === 1 ? 'portafoglio' : 'portafogli'}

@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAxisMoney } from '@/lib/money'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
@@ -68,7 +69,7 @@ export default function WeekdayChart({ data }: Props) {
           axisLine={false}
         />
         <YAxis
-          tickFormatter={(v) => fmtEur(v)}
+          tickFormatter={(v) => formatAxisMoney(Number(v))}
           tick={{ fill: colors.axis, fontSize: 11 }}
           tickLine={false}
           axisLine={false}
