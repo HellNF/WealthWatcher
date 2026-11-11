@@ -123,6 +123,9 @@ export default function AllowlistManager({ entries, currentEmail }: Props) {
             name="email"
             type="email"
             required
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="utente@esempio.com"
             className="w-full h-9 rounded-lg border border-(--border) bg-(--surface-2) px-3 text-sm text-(--ink) placeholder:text-(--faint) focus:outline-none focus:ring-2 focus:ring-(--ring) focus:border-(--brand) transition-colors duration-150"
           />

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { headers } from 'next/headers'
 import { Geist, Geist_Mono, Bricolage_Grotesque } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
@@ -15,6 +15,23 @@ const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-bric
 export const metadata: Metadata = {
   title: 'WealthWatcher',
   description: 'Il tuo patrimonio netto, sempre sotto controllo.',
+}
+
+// Mobile: `viewport-fit=cover` disegna fino ai bordi (notch, barra home) e le
+// barre fisse si scostano con env(safe-area-inset-*); `resizes-content` fa sì
+// che su Android la tastiera rimpicciolisca il layout come su iOS. Lo zoom resta
+// libero: gli input a 16px su touch (globals.css) evitano lo zoom automatico.
+// theme-color = colore della barra in cima (--surface), uno per tema; se il tema
+// scelto nell'app differisce dal sistema lo allinea ThemeProvider.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)',  color: '#0d100e' },
+  ],
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -39,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             rilegga (e trovi vuoto) l'attributo per il confronto di hydration. */}
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="font-sans antialiased bg-(--bg) text-(--ink) min-h-screen">
+      <body className="font-sans antialiased bg-(--bg) text-(--ink) min-h-dvh">
         <ThemeProvider>
           <TooltipProvider>
             <ToastProvider>

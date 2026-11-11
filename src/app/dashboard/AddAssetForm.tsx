@@ -46,7 +46,7 @@ export default function AddAssetForm() {
             <Input id="asset-vehicle-model" name="vehicle_model" required placeholder="es. Golf" maxLength={50} />
           </Field>
           <Field label="Anno" htmlFor="asset-vehicle-year">
-            <Input id="asset-vehicle-year" name="vehicle_year" type="number" required placeholder="2020" className="max-w-24" />
+            <Input id="asset-vehicle-year" name="vehicle_year" type="number" min="0" required placeholder="2020" className="max-w-24" />
           </Field>
           <Field label="Alimentazione" htmlFor="asset-vehicle-fuel">
             <Select id="asset-vehicle-fuel" name="vehicle_fuel" defaultValue="">
@@ -65,16 +65,16 @@ export default function AddAssetForm() {
             </Select>
           </Field>
           <Field label="Potenza CV (opz.)" htmlFor="asset-vehicle-power">
-            <Input id="asset-vehicle-power" name="vehicle_power_hp" type="number" placeholder="150" className="max-w-28" />
+            <Input id="asset-vehicle-power" name="vehicle_power_hp" type="number" min="0" placeholder="150" className="max-w-28" />
           </Field>
           <Field label="Cilindrata cc (opz.)" htmlFor="asset-vehicle-displacement">
-            <Input id="asset-vehicle-displacement" name="vehicle_displacement_cc" type="number" placeholder="1968" className="max-w-28" />
+            <Input id="asset-vehicle-displacement" name="vehicle_displacement_cc" type="number" min="0" placeholder="1968" className="max-w-28" />
           </Field>
           <Field label="Km attuali" htmlFor="asset-vehicle-mileage">
-            <Input id="asset-vehicle-mileage" name="vehicle_mileage" type="number" required placeholder="98000" className="max-w-28" />
+            <Input id="asset-vehicle-mileage" name="vehicle_mileage" type="number" min="0" required placeholder="98000" className="max-w-28" />
           </Field>
           <Field label="Km/anno (opz.)" htmlFor="asset-vehicle-annual-km">
-            <Input id="asset-vehicle-annual-km" name="vehicle_annual_km" type="number" placeholder="15000" className="max-w-28" />
+            <Input id="asset-vehicle-annual-km" name="vehicle_annual_km" type="number" min="0" placeholder="15000" className="max-w-28" />
           </Field>
           <Field label="Prezzo pagato (opz.)" htmlFor="asset-vehicle-purchase-price">
             <Input id="asset-vehicle-purchase-price" name="vehicle_purchase_price" type="number" step="0.01" placeholder="25000.00" className="max-w-32" />
