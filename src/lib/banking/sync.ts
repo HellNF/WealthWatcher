@@ -21,28 +21,48 @@ import { getEnableBankingKey } from '@/lib/userSettings'
 import type { BankAccount, EbConnection } from '@/db/schema'
 import { sqlite } from '@/db'
 import { autoMergeRenewalDuplicates, type RenewalMerge } from '@/lib/accountMerge'
-import { getAccountDetails, getBalances, getTransactions } from './client'
+import { checkSession, getAccountDetails, getBalances, getTransactions } from './client'
 import type { EbBalance, EbTransaction, EnableBankingCredentials } from './types'
 import {
-  ebAccountKey, listAccountsForConnection, markConnectionSynced, setAccountKey, setConnectionStatus,
+  decryptSessionId, ebAccountKey, listAccountsForConnection, markConnectionSynced, setAccountKey,
+  setConnectionStatus, setConnectionValidUntil,
 } from './connections'
 
 // ── Mapping EbTransaction → InsertableTransaction ─────────────────────────
 
 // Ordine di preferenza dei tipi di saldo Berlin Group/NextGenPSD2: il saldo
 // contabile chiuso è il più "autorevole"; a scendere via via meno definitivo.
+// I saldi disponibili vengono dopo quelli contabili perché alcune banche vi
+// includono il fido accordato, gonfiando la liquidità.
 const BALANCE_TYPE_PRIORITY = [
   'CLBD', 'closingBooked', 'ITBD', 'interimBooked',
   'CLAV', 'closingAvailable', 'ITAV', 'interimAvailable',
-  'XPCD', 'expected', 'OPBD', 'openingBooked',
+  'XPCD', 'expected', 'PRCD', 'previouslyClosedBooked', 'OPBD', 'openingBooked',
 ]
+// Mai usati come saldo del conto, nemmeno come ultimo ripiego: futuri
+// (FWAV) o puramente informativi (INFO, OTHR).
+const NEVER_BALANCE_TYPES = new Set(['FWAV', 'forwardAvailable', 'INFO', 'information', 'OTHR', 'other'])
 
-export function pickBalance(balances: EbBalance[]): EbBalance | null {
+const DECIMAL_AMOUNT = /^-?\d+(\.\d+)?$/
+
+/**
+ * Sceglie il saldo da usare come riferimento del conto. Con `accountCurrency`
+ * considera solo i saldi in quella valuta (i conti multivaluta riportano un
+ * saldo per valuta sotto lo stesso tipo) e restituisce null se non ce n'è
+ * nessuno: un saldo in un'altra valuta salvato come riferimento sarebbe
+ * sbagliato. Importi non numerici vengono scartati invece di far fallire la sync.
+ */
+export function pickBalance(balances: EbBalance[], accountCurrency?: string): EbBalance | null {
+  const usable = balances.filter((b) =>
+    DECIMAL_AMOUNT.test(b.balance_amount?.amount?.trim() ?? '')
+    && /^[A-Z]{3}$/.test(b.balance_amount?.currency ?? '')
+    && !NEVER_BALANCE_TYPES.has(b.balance_type)
+    && (!accountCurrency || b.balance_amount.currency === accountCurrency))
   for (const type of BALANCE_TYPE_PRIORITY) {
-    const found = balances.find((b) => b.balance_type === type)
+    const found = usable.find((b) => b.balance_type === type)
     if (found) return found
   }
-  return balances[0] ?? null
+  return usable[0] ?? null
 }
 
 /**
@@ -205,9 +225,9 @@ async function syncAccount(
   let balanceUpdated = false
   const balances = await getBalances(creds, uid)
   if (balances && balances.length > 0) {
-    const chosen = pickBalance(balances)
+    const chosen = pickBalance(balances, account.currency)
     if (chosen) {
-      const minor = toMinor(chosen.balance_amount.amount, chosen.balance_amount.currency)
+      const minor = toMinor(chosen.balance_amount.amount.trim(), chosen.balance_amount.currency)
       const date  = chosen.reference_date ?? new Date().toISOString().slice(0, 10)
       setAccountBalanceAnchor(ownerId, account.id, minor, date)
       balanceUpdated = true
@@ -265,6 +285,19 @@ export async function syncConnection(connection: EbConnection): Promise<Connecti
   const creds = getEnableBankingKey(connection.owner_id)
   if (!creds) {
     return { connectionId: connection.id, status: 'no-credentials', accounts: [] }
+  }
+
+  // Un consenso revocato o chiuso dall'utente presso la banca non cambia la
+  // scadenza salvata in locale: lo si scopre solo chiedendo lo stato della
+  // sessione. Gli stati terminali richiedono comunque un nuovo consenso, quindi
+  // finiscono tutti su 'expired' (la UI propone "Ricollega").
+  const session = await checkSession(creds, decryptSessionId(connection))
+  if (session.kind === 'dead') {
+    setConnectionStatus(connection.id, 'expired')
+    return { connectionId: connection.id, status: 'expired', accounts: [] }
+  }
+  if (session.kind === 'alive' && session.validUntil !== null && session.validUntil !== connection.valid_until) {
+    setConnectionValidUntil(connection.id, session.validUntil)
   }
 
   const dateFrom = connection.last_synced_at

@@ -114,6 +114,50 @@ export async function deleteSession(creds: EnableBankingCredentials, sessionId: 
   return del(creds, `/sessions/${encodeURIComponent(sessionId)}`)
 }
 
+// Codici di ErrorResponse.error che indicano una sessione non più utilizzabile.
+const DEAD_SESSION_ERRORS = new Set([
+  'EXPIRED_SESSION', 'REVOKED_SESSION', 'CLOSED_SESSION', 'SESSION_DOES_NOT_EXIST',
+])
+// SessionStatus terminali: serve un nuovo consenso dell'utente.
+const DEAD_SESSION_STATUSES = new Set(['EXPIRED', 'REVOKED', 'CANCELLED', 'CLOSED', 'INVALID'])
+
+export type SessionCheck =
+  | { kind: 'alive'; validUntil: number | null }
+  | { kind: 'dead'; reason: string }
+  // Errore di rete, rate limit, chiave applicativa errata (401) ecc.: non dice
+  // nulla sullo stato del consenso, quindi la sync prosegue come prima.
+  | { kind: 'unknown' }
+
+/**
+ * Stato della sessione presso Enable Banking (GET /sessions/{id}). È l'unico
+ * modo documentato per accorgersi di un consenso revocato o chiuso prima
+ * della data di scadenza salvata in locale. Un errore su un singolo conto
+ * non basta a considerare morta l'intera connessione.
+ */
+export async function checkSession(creds: EnableBankingCredentials, sessionId: string): Promise<SessionCheck> {
+  const path = `/sessions/${encodeURIComponent(sessionId)}`
+  try {
+    const res = await fetchWithTimeout(`${BASE}${path}`, { headers: authHeaders(creds), cache: 'no-store' })
+    if (!res.ok) {
+      console.warn(`[enablebanking] GET /sessions/… → ${res.status}`)
+      const body = await res.json().catch(() => null) as { error?: unknown } | null
+      const code = typeof body?.error === 'string' ? body.error : null
+      if (code && DEAD_SESSION_ERRORS.has(code)) return { kind: 'dead', reason: code }
+      if (res.status === 404) return { kind: 'dead', reason: 'SESSION_DOES_NOT_EXIST' }
+      return { kind: 'unknown' }
+    }
+    const data = await res.json() as { status?: unknown; access?: { valid_until?: unknown } }
+    const status = typeof data.status === 'string' ? data.status : null
+    if (status && DEAD_SESSION_STATUSES.has(status)) return { kind: 'dead', reason: status }
+    if (status !== 'AUTHORIZED') return { kind: 'unknown' }
+    const parsed = typeof data.access?.valid_until === 'string' ? Date.parse(data.access.valid_until) : NaN
+    return { kind: 'alive', validUntil: Number.isFinite(parsed) ? Math.floor(parsed / 1000) : null }
+  } catch (err) {
+    console.warn(`[enablebanking] GET /sessions/… failed:`, err instanceof Error ? err.message : 'errore sconosciuto')
+    return { kind: 'unknown' }
+  }
+}
+
 /** Dettagli del conto (stessa forma degli account di Session), incluso `identification_hash`. */
 export async function getAccountDetails(
   creds:      EnableBankingCredentials,
