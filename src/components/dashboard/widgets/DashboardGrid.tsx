@@ -25,15 +25,17 @@ const WIDGET_META: Record<WidgetId, { title: string; href?: string }> = {
   news:        { title: 'Notizie di mercato' },
 }
 
-// Classi per ogni dimensione:
-//   col-span  → larghezza nella griglia a 6 colonne
-//   md:h-*    → altezza fissa su desktop (allinea widget affiancati)
-// Mobile: sempre full-width, altezza auto.
-// SM e MD hanno la stessa altezza fissa (320px) così rimangono allineati
-// quando affiancati nella stessa riga. LG ha altezza libera (tutta la riga).
+// Classi per ogni dimensione, sulla larghezza della griglia (container query),
+// non della finestra: con la colonna laterale la griglia può essere stretta
+// anche su uno schermo largo.
+//   < 36rem  → tutti a tutta larghezza, altezza libera (si legge come lista)
+//   ≥ 36rem  → S e M a metà riga; ≥ 56rem → S a un terzo
+// S e M affiancati hanno la stessa altezza, legata al viewport (min 20rem,
+// max 30rem): le liste dentro mostrano quante righe ci stanno. L ha altezza libera.
+const FIXED_H = '@xl:h-[clamp(20rem,40svh,30rem)]'
 const ITEM_CLASS: Record<WidgetSize, string> = {
-  sm: 'col-span-6 md:col-span-2 md:h-[22rem]',
-  md: 'col-span-6 md:col-span-3 md:h-[22rem]',
+  sm: `col-span-6 @xl:col-span-3 @4xl:col-span-2 ${FIXED_H}`,
+  md: `col-span-6 @xl:col-span-3 ${FIXED_H}`,
   lg: 'col-span-6',
 }
 
@@ -58,7 +60,9 @@ function DraggableWidget({ id, isEditing, size, onHide, onResize, data }: Dragga
       value={id}
       dragControls={controls}
       dragListener={false}
-      layout
+      // Solo la posizione: animare la dimensione (S/M/L) con Motion la fa per
+      // scala e deforma il testo dentro; la nuova misura arriva subito.
+      layout="position"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
@@ -130,7 +134,7 @@ export default function DashboardGrid({ data, initialLayout }: Props) {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="@container space-y-4">
 
       {/* Intestazione */}
       <div className="flex items-center justify-between gap-3">

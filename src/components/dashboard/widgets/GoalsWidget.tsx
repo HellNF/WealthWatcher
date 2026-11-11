@@ -3,12 +3,14 @@
 import { Target } from 'lucide-react'
 import { ProgressBar, EmptyState } from '@/components/ui'
 import type { GoalsWidgetData, WidgetSize } from './types'
+import { FitList, plural } from './FitList'
 
 function fmtEur(minor: number) {
   return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
 }
 
-const GOALS_VISIBLE: Record<WidgetSize, number> = { sm: 0, md: 4, lg: 8 }
+// Massimo di righe; quante se ne vedono davvero lo decide FitList (spazio del widget)
+const GOALS_VISIBLE: Record<WidgetSize, number> = { sm: 8, md: 8, lg: 12 }
 
 export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: WidgetSize }) {
   const { goals, summary } = data
@@ -16,6 +18,7 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
   if (goals.length === 0) {
     return (
       <EmptyState
+        className="flex-1 py-6 sm:py-6"
         icon={Target}
         title="Nessun obiettivo"
         description="Crea il tuo primo obiettivo finanziario."
@@ -27,9 +30,9 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
   const limit = GOALS_VISIBLE[size]
 
   return (
-    <div className="space-y-4">
+    <div className="flex-1 min-h-0 flex flex-col gap-4">
       {/* KPI row — sempre visibile */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 shrink-0">
         <div className="rounded-xl bg-(--surface-2) px-3 py-2.5">
           <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">Liquidità libera</p>
           <p className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
@@ -45,9 +48,12 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
         </div>
       </div>
 
-      {/* Goals list — nascosta in sm */}
+      {/* Lista obiettivi: quanti entrano nello spazio del widget */}
       {limit > 0 && (
-        <div className="space-y-3">
+        <FitList
+          className="space-y-3"
+          more={(n) => plural(n + Math.max(0, goals.length - limit), 'altro obiettivo', 'altri obiettivi')}
+        >
           {goals.slice(0, limit).map((g) => {
             const pct = g.target > 0 ? Math.min(100, (g.current / g.target) * 100) : 0
             return (
@@ -65,10 +71,7 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
               </div>
             )
           })}
-          {goals.length > limit && (
-            <p className="text-xs text-(--faint) text-center">+{goals.length - limit} altri obiettivi</p>
-          )}
-        </div>
+        </FitList>
       )}
     </div>
   )

@@ -3,6 +3,7 @@
 import { CalendarClock } from 'lucide-react'
 import { EmptyState } from '@/components/ui'
 import type { DeadlinesWidgetData, WidgetSize } from './types'
+import { FitList, plural } from './FitList'
 
 function fmtEur(minor: number) {
   return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
@@ -52,7 +53,8 @@ const SOURCE_LABEL: Record<string, string> = {
   franchigia_crypto:'Crypto',
 }
 
-const ITEMS_VISIBLE: Record<WidgetSize, number> = { sm: 3, md: 4, lg: 8 }
+// Massimo di righe; quante se ne vedono davvero lo decide FitList
+const ITEMS_VISIBLE: Record<WidgetSize, number> = { sm: 8, md: 8, lg: 8 }
 
 export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; size: WidgetSize }) {
   const { upcoming } = data
@@ -62,6 +64,7 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
   if (upcoming.length === 0) {
     return (
       <EmptyState
+        className="flex-1 py-6 sm:py-6"
         icon={CalendarClock}
         title="Nessuna scadenza imminente"
         description="Nessuna scadenza nei prossimi 30 giorni."
@@ -70,7 +73,10 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
   }
 
   return (
-    <div className="divide-y divide-(--border) -mx-4 sm:-mx-5">
+    <FitList
+      className="divide-y divide-(--border) -mx-4 sm:-mx-5"
+      more={(n) => plural(n + upcoming.length - visible.length, 'altra scadenza', 'altre scadenze')}
+    >
       {visible.map((ev, i) => {
         const days   = daysUntil(ev.date)
         const urgent = days <= 3
@@ -98,11 +104,6 @@ export function DeadlinesWidget({ data, size }: { data: DeadlinesWidgetData; siz
           </div>
         )
       })}
-      {upcoming.length > limit && (
-        <p className="px-4 sm:px-5 py-2.5 text-xs text-(--faint)">
-          +{upcoming.length - limit} altre scadenze
-        </p>
-      )}
-    </div>
+    </FitList>
   )
 }

@@ -3,6 +3,7 @@
 import { Wallet } from 'lucide-react'
 import { ProgressBar, EmptyState } from '@/components/ui'
 import type { BudgetWidgetData, WidgetSize } from './types'
+import { FitList, plural } from './FitList'
 
 function fmtEur(minor: number) {
   return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
@@ -25,7 +26,8 @@ function barColor(pct: number | null): string {
   return 'var(--brand)'
 }
 
-const CATS_VISIBLE: Record<WidgetSize, number> = { sm: 0, md: 2, lg: 4 }
+// Massimo di categorie; quante se ne vedono davvero lo decide FitList
+const CATS_VISIBLE: Record<WidgetSize, number> = { sm: 6, md: 6, lg: 8 }
 
 export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: WidgetSize }) {
   const { month, total, topCategories, daysRemainingInMonth } = data
@@ -34,6 +36,7 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
   if (!hasLimit && topCategories.length === 0) {
     return (
       <EmptyState
+        className="flex-1 py-6 sm:py-6"
         icon={Wallet}
         title="Nessun budget configurato"
         description="Imposta un limite mensile per iniziare il tracciamento."
@@ -48,9 +51,9 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
   const catsLimit = CATS_VISIBLE[size]
 
   return (
-    <div className="space-y-4">
+    <div className="flex-1 min-h-0 flex flex-col gap-4">
       {/* Mese + totale */}
-      <div className="flex items-end justify-between gap-2">
+      <div className="flex items-end justify-between gap-2 shrink-0">
         <div>
           <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">
             {monthLabel(month)}
@@ -77,9 +80,12 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
         <ProgressBar value={total.spentMinor} max={total.limitMinor!} color={barColor(total.pct)} />
       )}
 
-      {/* Categorie — visibili solo in md / lg */}
+      {/* Categorie: quante entrano nello spazio del widget */}
       {catsLimit > 0 && topCategories.length > 0 && (
-        <div className="space-y-2.5">
+        <FitList
+          className="space-y-2.5"
+          more={(n) => plural(n + Math.max(0, topCategories.length - catsLimit), 'altra categoria', 'altre categorie')}
+        >
           {topCategories.slice(0, catsLimit).map((cat, i) => (
             <div key={i} className="space-y-1">
               <div className="flex items-center justify-between gap-2">
@@ -99,7 +105,7 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
               <ProgressBar value={cat.spentMinor} max={cat.limitMinor} color={barColor(cat.pct)} />
             </div>
           ))}
-        </div>
+        </FitList>
       )}
     </div>
   )

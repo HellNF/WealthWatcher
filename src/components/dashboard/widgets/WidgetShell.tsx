@@ -86,8 +86,9 @@ export function WidgetShell({
         </div>
       </div>
 
-      {/* Content — occupa lo spazio residuo, scorribile se overflow */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+      {/* Contenuto: occupa lo spazio residuo senza scorrere. Le liste dentro
+          (FitList) mostrano solo le righe che entrano per intero. */}
+      <div className="flex-1 min-h-0 flex flex-col">
         {children}
       </div>
     </Card>
