@@ -108,7 +108,7 @@ export function mapTransactions(
     const merchant    = resolveMerchant(normalized)
     // Priorità: regola utente → alias merchant → MCC (transazioni carta) →
     // bank_transaction_code (transazioni senza carta, dove l'MCC non arriva mai).
-    const ruleCategory = resolveCategoryRule(normalized, ownerId, absMinor)
+    const ruleCategory = resolveCategoryRule(normalized, ownerId, absMinor, { bankAccountId, amountMinor })
     const categoryId  = ruleCategory
       ?? merchant?.categoryId
       ?? resolveMccCategory(t.merchant_category_code)

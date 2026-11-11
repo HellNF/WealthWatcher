@@ -19,7 +19,7 @@ export async function createRuleFromCorrectionAction(
   categoryId: number,
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser()
-  const result = createCategoryRule(user.id, pattern, categoryId)
+  const result = createCategoryRule(user.id, { pattern, categoryId })
   if (!result.ok) return { ok: false, error: result.error }
   revalidatePath('/dashboard/settings')
   return { ok: true }

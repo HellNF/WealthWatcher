@@ -28,7 +28,7 @@ export function previewRecategorization(ownerId: number, bankAccountId?: number)
   let model: ReturnType<typeof trainCategoryModel> | undefined
   return txns.flatMap(txn => {
     const normalized = normalizeDescription(txn.description_raw + ' ' + (txn.counterparty_raw ?? ''))
-    const rule = resolveCategoryRule(normalized, ownerId, Math.abs(txn.amount_minor))
+    const rule = resolveCategoryRule(normalized, ownerId, Math.abs(txn.amount_minor), { bankAccountId: txn.bank_account_id, amountMinor: txn.amount_minor })
     const merchant = resolveMerchant(normalized)
     const deterministic = rule ?? merchant?.categoryId ?? resolveMccCategory(txn.mcc)
       ?? resolveBankTransactionCategory(undefined, txn.btc_sub_code)

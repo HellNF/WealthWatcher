@@ -12,6 +12,7 @@ import OpenAiKeyForm from './OpenAiKeyForm'
 import EnableBankingKeyForm from './EnableBankingKeyForm'
 import AllowlistManager from './AllowlistManager'
 import CategoryRulesManager from './CategoryRulesManager'
+import { listAccounts } from '@/lib/accounts'
 import FiscalProfileForm from './FiscalProfileForm'
 import ApiTokensManager from './ApiTokensManager'
 import { Card, CardHeader, CardTitle, CardDescription, PageHeader, HeroShell, Eyebrow, PAGE_SHELL } from '@/components/ui'
@@ -110,7 +111,7 @@ export default async function SettingsPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        <CategoryRulesManager rules={rules} categories={categories} />
+        <CategoryRulesManager rules={rules} categories={categories} accounts={listAccounts(user.id).map((a) => ({ id: a.id, name: a.name }))} />
       </Card>
 
       <Card id="openai">

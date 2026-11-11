@@ -8,7 +8,7 @@ import {
   setEnableBankingKey, clearEnableBankingKey,
 } from '@/lib/userSettings'
 import { addAllowedEmail, removeAllowedEmail, updateAllowedEmailRole, normalizeEmail } from '@/lib/users'
-import { createCategoryRule, deleteCategoryRule } from '@/lib/merchants'
+import { createCategoryRule, deleteCategoryRule, previewCategoryRule, type RuleDraft, type RulePreview } from '@/lib/merchants'
 import { previewRecategorization, applyRecategorization } from '@/lib/categorization'
 import { createApiToken, revokeApiToken, TooManyTokensError } from '@/lib/apiTokens'
 
@@ -130,26 +130,44 @@ function parseAmountField(raw: FormDataEntryValue | null): number | null {
   return Math.round(n * 100)  // convert € to minor units
 }
 
-export async function createCategoryRuleAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user       = await requireUser()
+function parseRuleDraft(formData: FormData): RuleDraft | { error: string } {
   const pattern    = String(formData.get('pattern') ?? '').trim().toLowerCase()
   const categoryId = parseInt(String(formData.get('category_id') ?? ''), 10)
   const amtMin     = parseAmountField(formData.get('amount_min'))
   const amtMax     = parseAmountField(formData.get('amount_max'))
+  const accountRaw = String(formData.get('bank_account_id') ?? '')
+  const accountId  = accountRaw ? parseInt(accountRaw, 10) : null
+  const dirRaw     = String(formData.get('direction') ?? '')
+  const direction  = dirRaw === 'in' || dirRaw === 'out' ? dirRaw : null
 
   if (!pattern)          return { error: 'Il pattern non può essere vuoto.' }
   if (isNaN(categoryId)) return { error: 'Seleziona una categoria.' }
+  if (accountId !== null && !Number.isSafeInteger(accountId)) return { error: 'Conto non valido.' }
   if (amtMin !== null && amtMax !== null && amtMin > amtMax) {
     return { error: 'L\'importo minimo non può essere maggiore del massimo.' }
   }
+  return { pattern, categoryId, amountMinorMin: amtMin, amountMinorMax: amtMax, bankAccountId: accountId, direction }
+}
 
-  const result = createCategoryRule(user.id, pattern, categoryId, 0, amtMin, amtMax)
+export async function createCategoryRuleAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user  = await requireUser()
+  const draft = parseRuleDraft(formData)
+  if ('error' in draft) return { error: draft.error }
+  const result = createCategoryRule(user.id, draft)
   if (!result.ok) return { error: result.error }
   revalidatePath('/dashboard/settings', 'page')
-  return { success: `Regola "${pattern}" creata.` }
+  return { success: `Regola "${draft.pattern}" creata. Per applicarla ai movimenti già importati usa «Rivedi categorie dello storico».` }
+}
+
+/** Anteprima della regola sullo storico, senza salvarla. */
+export async function previewCategoryRuleAction(formData: FormData): Promise<RulePreview | { error: string }> {
+  const user  = await requireUser()
+  const draft = parseRuleDraft(formData)
+  if ('error' in draft) return draft
+  return previewCategoryRule(user.id, draft)
 }
 
 export async function deleteCategoryRuleAction(id: number): Promise<void> {

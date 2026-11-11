@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useTransition, useState } from 'react'
+import { useActionState, useTransition, useState, useRef } from 'react'
 import {
   createCategoryRuleAction,
   deleteCategoryRuleAction,
   previewCategoriesAction, applyCategoriesAction,
+  previewCategoryRuleAction,
 } from './actions'
 import {
   Button, TableWrapper, Table, TableHead, TableBody, Th, Tr, Td, Badge,
@@ -12,7 +13,7 @@ import {
 import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
 import type { CategoryProposal } from '@/lib/categorization'
 import { formatMoney } from '@/lib/money'
-import type { CategoryRuleRow } from '@/lib/merchants'
+import type { CategoryRuleRow, RulePreview } from '@/lib/merchants'
 
 function fmtAmount(minor: number): string {
   return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR' })
@@ -32,6 +33,42 @@ interface Category { id: number; name: string; kind: string }
 interface Props {
   rules:      CategoryRuleRow[]
   categories: Category[]
+  accounts:   { id: number; name: string }[]
+}
+
+function Conditions({ rule }: { rule: CategoryRuleRow }) {
+  const parts = [
+    rule.account_name ? `solo ${rule.account_name}` : null,
+    rule.direction === 'out' ? 'solo uscite' : rule.direction === 'in' ? 'solo entrate' : null,
+  ].filter(Boolean)
+  return parts.length
+    ? <span className="text-xs text-(--muted)">{parts.join(' · ')}</span>
+    : <span className="text-(--faint) text-xs">tutti i movimenti</span>
+}
+
+function RulePreviewBox({ preview }: { preview: RulePreview }) {
+  if (preview.matches === 0) {
+    return <p className="text-sm text-(--muted)">Nessun movimento già importato soddisfa queste condizioni.</p>
+  }
+  return (
+    <div className="rounded-xl border border-(--border) bg-(--surface-2) p-3 space-y-2 text-sm">
+      <p className="text-(--ink)">
+        Corrisponde a <strong>{preview.matches}</strong> {preview.matches === 1 ? 'movimento' : 'movimenti'}
+        {preview.wouldChange > 0 && <>; <strong>{preview.wouldChange}</strong> oggi {preview.wouldChange === 1 ? 'ha' : 'hanno'} un&apos;altra categoria</>}
+        {preview.manualKept > 0 && <>; {preview.manualKept} {preview.manualKept === 1 ? 'scelta manuale resta' : 'scelte manuali restano'} com&apos;è</>}.
+      </p>
+      <ul className="space-y-1 text-xs text-(--muted)">
+        {preview.samples.map((s, i) => (
+          <li key={i} className="flex gap-2 min-w-0">
+            <span className="tabular-nums shrink-0">{s.date}</span>
+            <span className="truncate">{s.description}</span>
+            <span className="shrink-0 font-mono tabular-nums text-(--ink)">{formatMoney(s.amountMinor, s.currency)}</span>
+            <span className="shrink-0">{s.current ?? 'senza categoria'}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function RuleRow({ rule }: { rule: CategoryRuleRow }) {
@@ -51,6 +88,9 @@ function RuleRow({ rule }: { rule: CategoryRuleRow }) {
       </Td>
       <Td>
         <AmountFilter min={rule.amount_minor_min} max={rule.amount_minor_max} />
+      </Td>
+      <Td>
+        <Conditions rule={rule} />
       </Td>
       <Td>
         <Badge variant="neutral">{rule.category_name}</Badge>
@@ -113,8 +153,22 @@ function RecategorizeButton() {
   </div>
 }
 
-export default function CategoryRulesManager({ rules, categories }: Props) {
+export default function CategoryRulesManager({ rules, categories, accounts }: Props) {
   const [createState, createAction, isCreating] = useActionState(createCategoryRuleAction, undefined)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [previewing, startPreview] = useTransition()
+  const [rulePreview, setRulePreview] = useState<RulePreview | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  function runPreview() {
+    if (!formRef.current) return
+    const data = new FormData(formRef.current)
+    startPreview(async () => {
+      const result = await previewCategoryRuleAction(data).catch(() => ({ error: 'Anteprima non riuscita. Riprova.' }))
+      if ('error' in result) { setPreviewError(result.error); setRulePreview(null) }
+      else { setPreviewError(null); setRulePreview(result) }
+    })
+  }
 
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
   const incomeCategories  = categories.filter((c) => c.kind === 'income')
@@ -124,9 +178,9 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
     <div className="space-y-6">
       {/* Spiegazione */}
       <p className="text-sm text-(--muted) leading-relaxed">
-        Se la descrizione di un movimento contiene la parola chiave (ricerca case-insensitive),
-        verrà assegnata la categoria indicata. Le regole si applicano durante l&apos;import e
-        possono essere ri-applicate a tutti i movimenti esistenti.
+        Condizioni facoltative: importo, conto, solo entrate o solo uscite. A parità di
+        priorità vince la regola più specifica. Prova una regola con «Anteprima» prima di
+        aggiungerla; per i movimenti già importati usa la revisione qui sotto.
       </p>
 
       {/* Tabella regole */}
@@ -142,6 +196,7 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
               <Tr>
                 <Th>Parola chiave</Th>
                 <Th>Importo</Th>
+                <Th>Condizioni</Th>
                 <Th>Categoria</Th>
                 <Th />
               </Tr>
@@ -156,7 +211,7 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
       )}
 
       {/* Form nuova regola */}
-      <form action={createAction} className="space-y-3">
+      <form ref={formRef} action={createAction} onChange={() => setRulePreview(null)} className="space-y-3">
         <div className="flex items-end gap-3 flex-wrap">
           <div className="flex-1 min-w-40 space-y-1">
             <label htmlFor="rule-pattern" className="text-xs font-medium text-(--muted)">
@@ -235,11 +290,35 @@ export default function CategoryRulesManager({ rules, categories }: Props) {
             </select>
           </div>
 
+          <div className="space-y-1">
+            <label htmlFor="rule-account" className="block text-xs font-medium text-(--muted)">Conto</label>
+            <select id="rule-account" name="bank_account_id"
+              className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
+              <option value="">Tutti i conti</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="rule-direction" className="block text-xs font-medium text-(--muted)">Movimenti</label>
+            <select id="rule-direction" name="direction"
+              className="h-9 rounded-lg border border-(--border) bg-(--surface-2) text-(--ink) px-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--ring)">
+              <option value="">Entrate e uscite</option>
+              <option value="out">Solo uscite</option>
+              <option value="in">Solo entrate</option>
+            </select>
+          </div>
+
+          <Button type="button" variant="secondary" size="sm" loading={previewing} disabled={previewing} onClick={runPreview}>
+            Anteprima
+          </Button>
           <Button type="submit" variant="primary" size="sm" loading={isCreating} disabled={isCreating}>
             <Plus className="size-3.5" />
             Aggiungi
           </Button>
         </div>
+
+        {previewError && <p className="text-sm text-(--danger)">{previewError}</p>}
+        {rulePreview && <RulePreviewBox preview={rulePreview} />}
 
         <p className="text-xs text-(--faint)">
           I campi importo filtrano sull&apos;importo assoluto del movimento (es. Da 0 A 5 cattura

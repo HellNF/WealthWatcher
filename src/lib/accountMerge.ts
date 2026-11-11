@@ -48,6 +48,8 @@ export function mergeAccountsIn(
       .run(keepId, absorbId).changes
     sqlite.prepare(`UPDATE import_batches SET bank_account_id = ? WHERE bank_account_id = ?`).run(keepId, absorbId)
     sqlite.prepare(`UPDATE mortgages SET associated_account_id = ? WHERE associated_account_id = ?`).run(keepId, absorbId)
+    // Le regole limitate al conto assorbito valgono ora per quello che resta.
+    sqlite.prepare(`UPDATE category_rules SET bank_account_id = ? WHERE bank_account_id = ?`).run(keepId, absorbId)
     sqlite
       .prepare(`UPDATE OR IGNORE shares SET entity_id = ? WHERE entity_type = 'bank_account' AND entity_id = ?`)
       .run(keepId, absorbId)
