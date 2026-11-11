@@ -16,6 +16,7 @@ import NetWorthHero from './NetWorthHero'
 import CompositionBar from './CompositionBar'
 import RefreshNetWorthButton from './RefreshNetWorthButton'
 import { ensureTodaySnapshot, listSnapshots } from '@/lib/valuation'
+import { historyBeforeSnapshots } from '@/lib/netWorthHistory'
 import { AddSection } from '@/components/dashboard/AddSection'
 import {
   Card,
@@ -295,7 +296,12 @@ export default async function DashboardPage() {
           {/* ── Net worth hero ──────────────────────────────────────────── */}
           <NetWorthHero
             valueId="networth-value"
-            points={snapshots.map((snap) => ({ date: snap.date, value: snap.net_worth_eur_minor, stale: snap.stale === 1 }))}
+            points={[
+              ...historyBeforeSnapshots(user.id, snapshots[0]?.date ?? null).map((p) => ({
+                date: p.date, value: p.netWorthEurMinor, stale: !p.complete, reconstructed: true,
+              })),
+              ...snapshots.map((snap) => ({ date: snap.date, value: snap.net_worth_eur_minor, stale: snap.stale === 1 })),
+            ]}
             stale={latest?.stale === 1}
             refresh={<RefreshNetWorthButton />}
             aside={<CompositionBar parts={composition} className="xl:hidden" />}
