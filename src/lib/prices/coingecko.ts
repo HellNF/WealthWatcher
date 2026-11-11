@@ -76,6 +76,9 @@ export async function searchCoins(query: string): Promise<CoinSearchResult[]> {
 
 // ── Storico prezzi ─────────────────────────────────────────────────────────────
 
+/** Storico massimo concesso dall'API pubblica (keyless) di CoinGecko. */
+export const COINGECKO_MAX_DAYS = 365
+
 const PERIOD_DAYS: Record<string, number> = {
   '1m': 30,
   '3m': 90,
@@ -93,7 +96,8 @@ export async function getCoinHistory(
   coinId:  string,
   period:  string,
 ): Promise<PricePoint[]> {
-  const days = PERIOD_DAYS[period] ?? 90
+  // L'API pubblica rifiuta (HTTP 401, error_code 10012) richieste oltre 365 giorni.
+  const days = Math.min(PERIOD_DAYS[period] ?? 90, COINGECKO_MAX_DAYS)
   try {
     const url = `${BASE}/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=eur&days=${days}`
     const res = await fetchWithTimeout(url, { next: { revalidate: 1800 } })

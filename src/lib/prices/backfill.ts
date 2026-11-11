@@ -4,8 +4,10 @@
 import { sqlite } from '@/db'
 import { getInstrument } from '@/lib/instruments'
 import { appendPriceHistory } from '@/lib/priceHistory'
-import { getHistoricalPricesRange } from './yahoo'
-import { getCryptoHistoryWithSource } from '.'
+import { getHistoricalPricesRange, type PricePoint } from './yahoo'
+import { COINGECKO_MAX_DAYS, getCoinHistory } from './coingecko'
+import { getCoinHistoryCMC } from './coinmarketcap'
+import { matchesReferencePrice, yahooCryptoTicker } from '.'
 
 export interface BackfillResult {
   symbol:   string
@@ -37,10 +39,26 @@ export async function backfillInstrumentHistory(
   ).n
 
   if (instrument.price_source === 'coingecko') {
-    // CoinGecko: usa il periodo più lungo disponibile (5 anni) e filtra da fromDate.
+    // CoinGecko gratuito copre solo l'ultimo anno: per date più vecchie la fonte
+    // giornaliera è Yahoo (SYM-EUR), con CoinGecko a un anno come ripiego.
+    if (instrument.currency !== 'EUR') return { symbol: instrument.symbol, inserted: 0, error: 'Valuta dello storico diversa dallo strumento' }
     const coinId = (instrument.provider_symbol ?? instrument.symbol).toLowerCase()
-    const { points, source, currency } = await getCryptoHistoryWithSource(coinId, instrument.symbol, '5y')
-    if (currency !== instrument.currency) return { symbol: instrument.symbol, inserted: 0, error: 'Valuta dello storico diversa dallo strumento' }
+    const refPrice = instrument.last_price ? Number(instrument.last_price) : null
+    const daysBack = (Date.now() - Date.parse(fromDate)) / 86_400_000
+    let points: PricePoint[] = []
+    let source = 'yahoo'
+    if (daysBack <= COINGECKO_MAX_DAYS - 5) {
+      points = await getCoinHistory(coinId, '1y')
+      source = 'coingecko'
+      if (points.length === 0) { points = await getCoinHistoryCMC(instrument.symbol, '1y'); source = 'coinmarketcap' }
+    }
+    // Storico più lungo di un anno, oppure CoinGecko/CMC non disponibili (es. limite di
+    // richieste): serie giornaliera Yahoo.
+    if (points.length === 0) {
+      const yahoo = await getHistoricalPricesRange(yahooCryptoTicker(instrument.symbol), fromDate, today)
+      if (yahoo.currency === 'EUR' && matchesReferencePrice(yahoo.points, refPrice)) { points = yahoo.points; source = 'yahoo' }
+    }
+    if (points.length === 0) return { symbol: instrument.symbol, inserted: 0, error: 'Nessuna fonte ha restituito lo storico' }
     for (const p of points) {
       if (p.date < fromDate || p.date >= today || !Number.isFinite(p.close) || p.close <= 0) continue
       appendPriceHistory(

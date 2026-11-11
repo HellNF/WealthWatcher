@@ -44,6 +44,12 @@ export function getPortfolioPositions(
     position.priceSource = observation?.source ?? (instrument.price_source === 'manual' ? 'manual' : null)
     position.priceKind = observation?.kind ?? (instrument.price_source === 'manual' ? 'manual' : 'legacy')
     position.priceRetrievedAt = observation?.retrieved_at ?? null
+    // Costo di carico 0 su una posizione aperta = costo non indicato (es. crypto
+    // inserite senza prezzo medio): il P/L sarebbe l'intero valore, quindi è ignoto.
+    if (position.costBasisMinor === 0 && Number(position.remainingQty) > 0) {
+      position.unrealizedPlMinor = null
+      position.unrealizedPlPct = null
+    }
     positions.push(position)
   }
 
