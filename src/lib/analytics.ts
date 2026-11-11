@@ -68,15 +68,14 @@ export function netWorthStats(userId: number): NetWorthStats {
 
   if (snapshots.length < 2) {
     return {
-      growth: buildGrowthPeriods([], new Date().toISOString().slice(0, 10)),
+      growth: buildGrowthPeriods([]),
       allocationTimeSeries: [],
       volatility: { bestMonthPct: null, worstMonthPct: null, maxDrawdownPct: null, stdDevMonthlyPct: null },
       hasStaleSnapshots,
     }
   }
 
-  const today   = snapshots.at(-1)!.date
-  const growth  = buildGrowthPeriods(snapshots, today)
+  const growth  = buildGrowthPeriods(snapshots)
   const allocationTimeSeries = snapshots.map((s) => ({
     date:        s.date,
     investments: s.investments_eur_minor,
@@ -90,7 +89,6 @@ export function netWorthStats(userId: number): NetWorthStats {
 
 function buildGrowthPeriods(
   snapshots: ReturnType<typeof listSnapshots>,
-  today: string,
 ): GrowthPeriod[] {
   const periods = [
     { label: '1 mese',  days: 30 },
@@ -347,7 +345,7 @@ export function monthlyCashflow(ctx: FlowContext): MonthlyCashflow[] {
 
 const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab']
 
-export function weekdaySpending(ctx: FlowContext): WeekdaySpending[] {
+function weekdaySpending(ctx: FlowContext): WeekdaySpending[] {
   const params = { owner: ctx.userId, excluded: ctx.excludedIdsJson }
   const rows = sqlite
     .prepare(

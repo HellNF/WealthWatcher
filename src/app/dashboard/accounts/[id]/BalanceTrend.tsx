@@ -5,14 +5,9 @@ import { useId, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useReducedMotion } from 'motion/react'
 import { useTheme } from '@/components/providers/ThemeProvider'
+import { fmtIsoDay } from '@/lib/format'
 
 export interface BalancePoint { date: string; value: number }
-
-function fmtDay(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('it-IT', {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome',
-  })
-}
 
 export default function BalanceTrend({ points, currency }: { points: BalancePoint[]; currency: string }) {
   const { resolvedTheme } = useTheme()
@@ -32,7 +27,7 @@ export default function BalanceTrend({ points, currency }: { points: BalancePoin
   return (
     <div className="space-y-1.5">
       <p className="flex items-baseline justify-between gap-3 text-xs text-(--muted) min-h-4">
-        <span>{shown ? fmtDay(shown.date) : `Andamento dal ${fmtDay(first.date)}`}</span>
+        <span>{shown ? fmtIsoDay(shown.date) : `Andamento dal ${fmtIsoDay(first.date)}`}</span>
         {shown && <span className="font-mono tabular-nums text-(--ink)">{fmt(shown.value)}</span>}
       </p>
       <div className="h-24 touch-pan-y select-none [&_.recharts-surface]:outline-none">

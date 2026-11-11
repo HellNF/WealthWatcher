@@ -1,7 +1,7 @@
 // src/lib/tax/latent.ts — Latent (unrealized) capital gain tax computation.
 // For each open position, estimate the theoretical tax if sold today at the current price.
 // Result: gross net worth vs. real net worth (net of latent tax burden).
-import { dec, Decimal } from '@/lib/money'
+import { dec } from '@/lib/money'
 import { listPortfolios } from '@/lib/portfolios'
 import { getPortfolioPositions } from '@/lib/positions'
 import { convertToEur } from '@/lib/fx/convert'

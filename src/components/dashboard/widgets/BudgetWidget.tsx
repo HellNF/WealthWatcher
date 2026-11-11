@@ -4,10 +4,7 @@ import { Wallet } from 'lucide-react'
 import { ProgressBar, EmptyState } from '@/components/ui'
 import type { BudgetWidgetData, WidgetSize } from './types'
 import { FitList, plural } from './FitList'
-
-function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
+import { fmtEur } from '@/lib/format'
 
 const MONTHS_IT = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -59,9 +56,9 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
             {monthLabel(month)}
           </p>
           <p className="text-sm font-mono tabular-nums text-(--ink)">
-            <span className="font-semibold">{fmtEur(total.spentMinor)}</span>
+            <span className="font-semibold">{fmtEur(total.spentMinor, 0)}</span>
             {hasLimit && (
-              <span className="text-(--muted) font-normal"> / {fmtEur(total.limitMinor!)}</span>
+              <span className="text-(--muted) font-normal"> / {fmtEur(total.limitMinor!, 0)}</span>
             )}
           </p>
         </div>
@@ -69,7 +66,7 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
           <div className="text-right">
             <p className="text-[10px] text-(--faint) mb-0.5">Al giorno ({daysRemainingInMonth}gg)</p>
             <p className={`text-sm font-mono tabular-nums font-semibold ${dailyRemaining < 0 ? 'text-(--danger)' : 'text-(--ink)'}`}>
-              {fmtEur(Math.max(0, dailyRemaining))}
+              {fmtEur(Math.max(0, dailyRemaining), 0)}
             </p>
           </div>
         )}
@@ -99,7 +96,7 @@ export function BudgetWidget({ data, size }: { data: BudgetWidgetData; size: Wid
                   </span>
                 </div>
                 <span className="text-xs font-mono tabular-nums text-(--muted) shrink-0">
-                  {fmtEur(cat.spentMinor)} / {fmtEur(cat.limitMinor)}
+                  {fmtEur(cat.spentMinor, 0)} / {fmtEur(cat.limitMinor, 0)}
                 </span>
               </div>
               <ProgressBar value={cat.spentMinor} max={cat.limitMinor} color={barColor(cat.pct)} />

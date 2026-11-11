@@ -3,8 +3,9 @@
 import { Plus } from 'lucide-react'
 import type { DeadlineEvent } from '@/lib/calendar'
 import EventRow from './EventRow'
-import { fmtFull, fmtEur } from './eventMeta'
+import { fmtFull } from './eventMeta'
 import { Tooltip } from '@/components/ui/Tooltip'
+import { fmtEur } from '@/lib/format'
 
 interface Props {
   date:        string
@@ -32,7 +33,7 @@ export default function DayDetailPanel({ date, events, today, onAddEvent }: Prop
           <p className="text-[11px] text-(--muted) mt-0.5">
             {events.length === 0
               ? 'Nessuna scadenza'
-              : `${events.length} ${events.length === 1 ? 'voce' : 'voci'}${net !== 0 ? ` · ${net >= 0 ? '+' : '−'}${fmtEur(Math.abs(net))}` : ''}`}
+              : `${events.length} ${events.length === 1 ? 'voce' : 'voci'}${net !== 0 ? ` · ${net >= 0 ? '+' : '−'}${fmtEur(Math.abs(net), 0)}` : ''}`}
           </p>
         </div>
         <Tooltip content="Aggiungi evento">

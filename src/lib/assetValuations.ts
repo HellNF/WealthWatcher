@@ -2,10 +2,6 @@
 // One row per (asset, date). "Last write wins" within the same day — modellata
 // su src/lib/priceHistory.ts.
 import { sqlite } from '@/db'
-import { db } from '@/db'
-import { assetValuations } from '@/db/schema'
-import { desc, eq } from 'drizzle-orm'
-import type { AssetValuation } from '@/db/schema'
 
 export function appendAssetValuation(
   assetId: number,
@@ -24,12 +20,3 @@ export function appendAssetValuation(
   `).run(assetId, date, valueMinor, currency, source, sampleSize, confidence)
 }
 
-// Storico completo di un asset, più recente per primo.
-export function listAssetValuations(assetId: number): AssetValuation[] {
-  return db
-    .select()
-    .from(assetValuations)
-    .where(eq(assetValuations.asset_id, assetId))
-    .orderBy(desc(assetValuations.date))
-    .all()
-}

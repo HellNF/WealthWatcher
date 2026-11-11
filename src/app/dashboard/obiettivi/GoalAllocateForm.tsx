@@ -4,7 +4,7 @@ import { useActionState, useId, useState } from 'react'
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
 import { allocateGoalAction } from './actions'
 import { Button, Input } from '@/components/ui'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
 interface Props {

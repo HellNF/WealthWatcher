@@ -14,7 +14,7 @@ export interface TrendMetrics {
 const EMPTY: TrendMetrics = { price: null, high52: null, drawdownPct: null, pctFromMA200: null, momentumPct: null, points: [] }
 
 /** Calcola le metriche di trend da una serie di chiusure ordinate. */
-export function trendFromCloses(closes: number[], dates: string[]): TrendMetrics {
+function trendFromCloses(closes: number[], dates: string[]): TrendMetrics {
   if (closes.length < 100) return { ...EMPTY }
   const price = closes[closes.length - 1]
   const high52 = Math.max(...closes)

@@ -4,7 +4,7 @@
 // alto diventa il valore di quel giorno e la variazione si ricalcola rispetto
 // all'inizio del periodo scelto. Il numero risponde 1:1 al gesto, senza tooltip
 // da inseguire.
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import { useId, useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { motion, LayoutGroup, useReducedMotion } from 'motion/react'
@@ -59,14 +59,6 @@ function fmtDay(t: number, withYear = false): string {
     day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'Europe/Rome',
   })
 }
-
-function fmtEur(minor: number, decimals = 2): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', currency: 'EUR', useGrouping: 'always',
-    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-  })
-}
-
 
 /** Tacche "tonde" (1/2/2,5/5 × 10ⁿ) che coprono [lo, hi] con circa `count` intervalli. */
 function niceTicks(lo: number, hi: number, count = 4): number[] {
@@ -251,8 +243,6 @@ export default function NetWorthHero({ points, stale, refresh, headerAction, asi
 
         {aside}
       </div>
-
-
 
       <div className="px-3 sm:px-5 pt-2 pb-1 flex flex-col xl:flex-1">
         {hasChart ? (

@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getPortfolioForUser, updatePortfolio, deletePortfolio } from '@/lib/portfolios'
 import { backfillPortfolioHistory, type BackfillResult } from '@/lib/prices/backfill'
-import { simulateSaleFifo, type TaxSimResult } from '@/lib/taxSim'
 import { getOrCreateInstrument, updateInstrumentKidFields } from '@/lib/instruments'
 import { insertTxn, deleteTxn, updateTxn } from '@/lib/investmentTxns'
 import { refreshPortfolioPrices } from '@/lib/prices'
@@ -265,16 +264,6 @@ export async function fetchHistoryAction(symbol: string, period: string): Promis
   }
   const points = await getHistoricalPrices(symbol, period as Period, instr.currency)
   return { points, source: points.length ? 'Yahoo Finance' : null, currency: instr.currency }
-}
-
-export async function simulateSaleAction(
-  portfolioId:      number,
-  instrumentId:     number,
-  qtyToSell:        number,
-  sellPricePerUnit: number,
-): Promise<TaxSimResult> {
-  const user = await requireUser()
-  return simulateSaleFifo(user.id, portfolioId, instrumentId, qtyToSell, sellPricePerUnit)
 }
 
 export async function backfillHistoryAction(

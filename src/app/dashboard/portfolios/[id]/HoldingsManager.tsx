@@ -9,7 +9,7 @@ import {
 } from './actions'
 import type { CoinSearchResult } from '@/lib/prices/coingecko'
 import type { Position } from '@/lib/investments/fifo'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import { formatDateTimeIt } from '@/lib/formatDate'
 import {
   Button, Badge, EmptyState, Field, Input,

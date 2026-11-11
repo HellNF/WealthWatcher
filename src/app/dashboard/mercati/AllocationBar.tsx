@@ -3,10 +3,7 @@
 import type { AllocationResult } from '@/lib/marketOverview/allocation'
 import type { ExposureResult } from '@/lib/marketOverview/lookthrough'
 import { CLUSTER_LABEL, CLUSTER_COLOR, EXPOSURE_LABEL, EXPOSURE_COLOR, SECTOR_LABEL } from './meta'
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
+import { fmtEur } from '@/lib/format'
 
 export function AllocationBar({ allocation }: { allocation: AllocationResult }) {
   const { byCluster, totalEurMinor } = allocation
@@ -35,13 +32,13 @@ export function AllocationBar({ allocation }: { allocation: AllocationResult }) 
             <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
               {c.pct.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%
             </span>
-            <span className="text-xs text-(--muted) font-mono tabular-nums">{fmtEur(c.valueEurMinor)}</span>
+            <span className="text-xs text-(--muted) font-mono tabular-nums">{fmtEur(c.valueEurMinor, 0)}</span>
           </div>
         ))}
       </div>
 
       <p className="text-xs text-(--muted)">
-        Totale valorizzato: <span className="font-mono tabular-nums text-(--muted)">{fmtEur(totalEurMinor)}</span>
+        Totale valorizzato: <span className="font-mono tabular-nums text-(--muted)">{fmtEur(totalEurMinor, 0)}</span>
         {allocation.hasStalePrices && ' · alcune posizioni sono escluse perché senza prezzo aggiornato'}
       </p>
     </div>
@@ -82,7 +79,7 @@ export function ExposureBar({ exposure }: { exposure: ExposureResult }) {
             <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
               {s.pct.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%
             </span>
-            <span className="text-xs text-(--muted) font-mono tabular-nums">{fmtEur(s.valueEurMinor)}</span>
+            <span className="text-xs text-(--muted) font-mono tabular-nums">{fmtEur(s.valueEurMinor, 0)}</span>
           </div>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { useState, useTransition, useActionState, useEffect } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { Button, Field, Input } from '@/components/ui'
 import { setBalanceAction, clearBalanceAction } from './balance-actions'
+import { fmtIsoDate } from '@/lib/format'
 
 type State = { error?: string; success?: string } | undefined
 
@@ -14,11 +15,6 @@ interface Props {
   anchorDate: string | null
   /** Importo da precompilare nel campo (decimale, es. "1234.56") */
   prefillAmount: string
-}
-
-function fmtDate(iso: string): string {
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
 }
 
 export default function SetBalanceForm({
@@ -50,7 +46,7 @@ export default function SetBalanceForm({
         </Button>
         {anchorDate ? (
           <span className="text-xs text-(--muted)">
-            Saldo di riferimento al {fmtDate(anchorDate)} · i movimenti successivi lo aggiornano
+            Saldo di riferimento al {fmtIsoDate(anchorDate)} · i movimenti successivi lo aggiornano
           </span>
         ) : (
           <span className="text-xs text-(--muted)">

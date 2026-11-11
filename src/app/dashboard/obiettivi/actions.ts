@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
-import { createGoal, updateGoal, deleteGoal, allocateToGoal } from '@/lib/goals'
+import { createGoal, deleteGoal, allocateToGoal } from '@/lib/goals'
 
 type ActionState = { error?: string; success?: string } | undefined
 

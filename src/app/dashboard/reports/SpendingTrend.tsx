@@ -2,7 +2,7 @@
 
 // Andamento giornaliero del mese su calendario completo: i giorni a zero
 // esistono (il "ritmo" è reale) e la media è per giorno di calendario.
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney } from '@/lib/format'
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,

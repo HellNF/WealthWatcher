@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell, Legend,
@@ -10,14 +10,6 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
   data: DaySpendingPoint[]
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 function computeEma(values: number[], period = 5): (number | null)[] {
@@ -100,7 +92,7 @@ export default function DayOfMonthChart({ data }: Props) {
           width={80}
         />
         <Tooltip isAnimationActive={false}
-          formatter={(value, name) => [fmtEur(Number(value)), name === 'avgMinor' ? 'Spesa media' : String(name)]}
+          formatter={(value, name) => [fmtEur(Number(value), 0), name === 'avgMinor' ? 'Spesa media' : String(name)]}
           labelFormatter={(label) => `Giorno ${label} del mese`}
           contentStyle={{
             background: colors.tooltipBg,

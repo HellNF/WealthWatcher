@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -10,14 +10,6 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
   data: MonthBridge
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 /**
@@ -89,10 +81,10 @@ export default function MonthBridgeChart({ data }: Props) {
           formatter={(value, _name, entry) => {
             const p = entry?.payload as (typeof rows)[number] | undefined
             const detail = p && p.name !== 'Altre categorie'
-              ? ` (speso ${fmtEur(p.actual)} vs tipico ${fmtEur(p.typical)})`
+              ? ` (speso ${fmtEur(p.actual, 0)} vs tipico ${fmtEur(p.typical, 0)})`
               : ''
             const v = Number(value)
-            return [`${v >= 0 ? '+' : ''}${fmtEur(v)}${detail}`, 'vs mese tipico']
+            return [`${v >= 0 ? '+' : ''}${fmtEur(v, 0)}${detail}`, 'vs mese tipico']
           }}
           contentStyle={{
             background: colors.tooltipBg,

@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -10,14 +10,6 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
   data: MonthlyCashflow[]
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 function shortMonth(ym: string): string {
@@ -86,7 +78,7 @@ export default function CashflowChart({ data }: Props) {
           width={88}
         />
         <Tooltip isAnimationActive={false}
-          formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
+          formatter={(value, name) => [fmtEur(Number(value), 0), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
             border: `1px solid ${colors.tooltipBorder}`,

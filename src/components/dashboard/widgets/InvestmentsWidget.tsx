@@ -8,20 +8,17 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 import { cn } from '@/lib/cn'
 import type { InvestmentsWidgetData, PortfolioItem, SparkPoint, WidgetSize } from './types'
 import { FitList, plural } from './FitList'
+import { fmtEur } from '@/lib/format'
 
 // Palette luce / buio
 const PALETTE_LIGHT = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#ec4899']
 const PALETTE_DARK  = ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171', '#22d3ee', '#fb923c', '#f472b6']
 
-function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
-
 function fmtEurCompact(minor: number) {
   const v = minor / 100
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toLocaleString('it-IT', { maximumFractionDigits: 1 })}M €`
   if (Math.abs(v) >= 1_000)     return `${(v / 1_000).toLocaleString('it-IT',     { maximumFractionDigits: 1 })}k €`
-  return fmtEur(minor)
+  return fmtEur(minor, 0)
 }
 
 function calcPct(sparkline: SparkPoint[]): number | null {
@@ -67,7 +64,7 @@ function ChartStrip({
         </defs>
         <YAxis domain={['auto', 'auto']} hide />
         <Tooltip isAnimationActive={false}
-          formatter={(v) => [fmtEur(Number(v)), 'Valore']}
+          formatter={(v) => [fmtEur(Number(v), 0), 'Valore']}
           labelFormatter={(l) => String(l)}
           contentStyle={{
             background:   tooltipBg,
@@ -143,7 +140,7 @@ function PortfolioRow({ pf, color, isSelected, canSelect, isDark, onSelect }: Ro
 
       {/* Valore */}
       <span className="text-xs font-mono tabular-nums text-(--ink) shrink-0">
-        {pf.eurMinor !== null ? fmtEur(pf.eurMinor) : '—'}
+        {pf.eurMinor !== null ? fmtEur(pf.eurMinor, 0) : '—'}
       </span>
     </>
   )

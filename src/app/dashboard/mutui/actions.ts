@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { requireUser } from '@/lib/dal'
-import { createMortgage, updateMortgage, deleteMortgage } from '@/lib/mortgages'
+import { createMortgage, deleteMortgage } from '@/lib/mortgages'
 
 type ActionState = { error?: string } | undefined
 
@@ -63,16 +63,3 @@ export async function deleteMortgageAction(id: number): Promise<void> {
   revalidatePath('/dashboard/mutui')
 }
 
-export async function updateOutstandingAction(
-  id: number,
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user    = await requireUser()
-  const raw     = String(formData.get('outstanding') ?? '').replace(',', '.')
-  const amount  = parseFloat(raw)
-  if (isNaN(amount) || amount < 0) return { error: 'Importo non valido' }
-
-  updateMortgage(user.id, id, { currentOutstandingOverrideMinor: Math.round(amount * 100) })
-  revalidatePath(`/dashboard/mutui/${id}`)
-}

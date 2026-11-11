@@ -21,7 +21,6 @@ RUN mkdir -p /data
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/SPEC.md ./SPEC.md
 # Drizzle migration SQL files — required by migrate() at server startup
 COPY --from=builder /app/drizzle ./drizzle
 

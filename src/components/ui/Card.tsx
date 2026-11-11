@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/cn'
 
-export const cardVariants = cva(
+const cardVariants = cva(
   [
     'rounded-2xl border border-(--border) bg-(--surface)',
     'shadow-[var(--shadow-sm),var(--highlight)]',

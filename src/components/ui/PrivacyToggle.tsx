@@ -24,7 +24,7 @@ function read(): boolean {
   return document.documentElement.dataset.privacy === 'on'
 }
 
-export function setPrivacy(on: boolean) {
+function setPrivacy(on: boolean) {
   const root = document.documentElement
   if (on) root.dataset.privacy = 'on'
   else delete root.dataset.privacy
@@ -32,7 +32,7 @@ export function setPrivacy(on: boolean) {
   window.dispatchEvent(new Event(EVENT))
 }
 
-export function usePrivacy(): [boolean, (on: boolean) => void] {
+function usePrivacy(): [boolean, (on: boolean) => void] {
   const on = useSyncExternalStore(subscribe, read, () => false)
   return [on, setPrivacy]
 }

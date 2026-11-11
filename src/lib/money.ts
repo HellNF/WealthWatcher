@@ -6,32 +6,10 @@
 //   Decimal — quantities, prices, TER, FX rates stored as TEXT decimal strings.
 //             JS arithmetic via decimal.js; never use Number for these.
 import Decimal from 'decimal.js'
+import { decimalsFor } from './format'
 
 // Bank/half-even rounding, 28 significant digits (handles BTC + EUR conversions)
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_EVEN })
-
-/**
- * Minor units per major unit for supported currencies.
- * Add new ones here as WealthWatcher gains multi-currency support.
- */
-const CURRENCY_DECIMALS: Record<string, number> = {
-  EUR: 2,
-  USD: 2,
-  GBP: 2,
-  CHF: 2,
-  SEK: 2,
-  NOK: 2,
-  DKK: 2,
-  JPY: 0,
-  BTC: 8,
-  ETH: 8,
-}
-
-function decimalsFor(currency: string): number {
-  const d = CURRENCY_DECIMALS[currency.toUpperCase()]
-  if (d === undefined) throw new Error(`Unsupported currency: ${currency}`)
-  return d
-}
 
 // ── Money helpers (INTEGER minor units) ───────────────────────────────────────
 
@@ -67,28 +45,6 @@ export function fromMinor(minor: number, currency: string): string {
   return new Decimal(minor).div(Decimal.pow(10, d)).toFixed(d)
 }
 
-/**
- * Locale-formatted display string (not suitable for storage). È il formato
- * unico per ogni importo mostrato in UI: separatore delle migliaia sempre
- * presente (it-IT di default lo omette sotto 10.000 → "3818 €" accanto a
- * "11.074 €"), decimali pari a quelli della valuta.
- *
- * @example formatMoney(1250, "EUR")   → "12,50 €"
- * @example formatMoney(381806, "EUR") → "3.818,06 €"
- */
-export function formatMoney(minor: number, currency: string): string {
-  const code = currency.toUpperCase()
-  const d = decimalsFor(code)
-  const float = parseFloat(fromMinor(minor, code))
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: code,
-    useGrouping: 'always',
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(float)
-}
-
 // ── Decimal helpers (TEXT decimal strings) ────────────────────────────────────
 
 /**
@@ -106,18 +62,3 @@ export function dec(value: string | number): Decimal {
 }
 
 export { Decimal }
-
-/**
- * Importo compatto per le etichette degli assi dei grafici: lo spazio è poco e
- * un "1.234.567 €" verrebbe tagliato o accavallato. Es. 8 Mrd €, 1,5 Mln €, 12k €.
- */
-export function formatAxisMoney(minor: number, currency = 'EUR'): string {
-  const v = minor / 100
-  const abs = Math.abs(v)
-  const symbol = currency === 'EUR' ? '€' : currency
-  const n = (x: number) => x.toLocaleString('it-IT', { maximumFractionDigits: 1 })
-  if (abs >= 1e9)  return `${n(v / 1e9)} Mrd ${symbol}`
-  if (abs >= 1e6)  return `${n(v / 1e6)} Mln ${symbol}`
-  if (abs >= 1e4)  return `${n(v / 1e3)}k ${symbol}`
-  return `${Math.round(v).toLocaleString('it-IT', { useGrouping: 'always' })} ${symbol}`
-}

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
   LayoutDashboard, BarChart3, Wallet, TrendingUp,
-  Landmark, Receipt, PiggyBank, Target, BookOpen,
+  Landmark, Receipt, PiggyBank, BookOpen,
   ArrowRight, FileText,
 } from 'lucide-react'
 import { getMessages } from '@/lib/messages'

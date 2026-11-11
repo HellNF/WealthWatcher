@@ -1,6 +1,6 @@
 import { requireUser } from '@/lib/dal'
 import { listGoals, computeGoalsSummary, isGoalCompleted } from '@/lib/goals'
-import { formatMoney } from '@/lib/money'
+import { fmtEur, fmtIsoDay } from '@/lib/format'
 import GoalForm from './GoalForm'
 import GoalAllocateForm from './GoalAllocateForm'
 import { deleteGoalAction } from './actions'
@@ -10,18 +10,6 @@ import { AddSection } from '@/components/dashboard/AddSection'
 import { PiggyBank, Target, Wallet, CalendarClock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-
-function fmtEur(minor: number, decimals = 2) {
-  return decimals === 2
-    ? formatMoney(minor, 'EUR')
-    : (minor / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always', maximumFractionDigits: 0 })
-}
-
-function fmtDay(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('it-IT', {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Rome',
-  })
-}
 
 /** Mesi interi da oggi alla data obiettivo (minimo 1 se la data è futura). */
 function monthsUntil(iso: string, today: string): number {
@@ -204,8 +192,8 @@ export default async function ObiettiviPage() {
                   <ProgressBar value={g.current_allocated_minor} max={g.target_amount_minor} color={g.color_hex} />
                   <p className="text-xs text-(--muted) min-h-4">
                     {done ? 'Traguardo raggiunto.'
-                      : overdue ? <>Scadenza passata il {fmtDay(g.target_date!)}: mancano <span className="font-mono tabular-nums">{fmtEur(missing)}</span>.</>
-                      : g.target_date ? <>Entro il {fmtDay(g.target_date)}: servono <span className="font-mono tabular-nums text-(--ink)">{fmtEur(Math.ceil(missing / months))}</span> al mese per {months} {months === 1 ? 'mese' : 'mesi'}.</>
+                      : overdue ? <>Scadenza passata il {fmtIsoDay(g.target_date!)}: mancano <span className="font-mono tabular-nums">{fmtEur(missing)}</span>.</>
+                      : g.target_date ? <>Entro il {fmtIsoDay(g.target_date)}: servono <span className="font-mono tabular-nums text-(--ink)">{fmtEur(Math.ceil(missing / months))}</span> al mese per {months} {months === 1 ? 'mese' : 'mesi'}.</>
                       : <>Mancano <span className="font-mono tabular-nums">{fmtEur(missing)}</span>.</>}
                   </p>
                 </div>

@@ -3,7 +3,7 @@
 // La liquidità fisica rimane indistinta nei conti correnti reali; l'allocazione
 // agli obiettivi è solo logica (tabella financial_goals). Il saldo dei conti
 // non viene mai modificato da queste operazioni.
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db, sqlite } from '@/db'
 import { financialGoals } from '@/db/schema'
 import type { FinancialGoal } from '@/db/schema'
@@ -22,7 +22,7 @@ export function listGoals(userId: number): FinancialGoal[] {
     .all()
 }
 
-export function getGoal(userId: number, id: number): FinancialGoal | undefined {
+function getGoal(userId: number, id: number): FinancialGoal | undefined {
   return db
     .select()
     .from(financialGoals)
@@ -49,26 +49,6 @@ export function createGoal(userId: number, input: CreateGoalInput): FinancialGoa
     })
     .returning()
     .get() as FinancialGoal
-}
-
-export function updateGoal(
-  userId: number,
-  id: number,
-  input: Partial<CreateGoalInput>,
-): boolean {
-  const now = Math.floor(Date.now() / 1000)
-  const res = db
-    .update(financialGoals)
-    .set({
-      ...(input.name !== undefined && { name: input.name }),
-      ...(input.targetAmountMinor !== undefined && { target_amount_minor: input.targetAmountMinor }),
-      ...('targetDate' in input && { target_date: input.targetDate ?? null }),
-      ...(input.colorHex !== undefined && { color_hex: input.colorHex }),
-      updated_at: now,
-    })
-    .where(and(eq(financialGoals.id, id), eq(financialGoals.owner_id, userId)))
-    .run()
-  return res.changes > 0
 }
 
 export function deleteGoal(userId: number, id: number): boolean {

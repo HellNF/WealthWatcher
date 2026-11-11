@@ -144,7 +144,7 @@ export const BOLLO_SOGLIA_EUR_MINOR = 500_000 // €5.000
  * Aliquota imposta di bollo su prodotti finanziari (deposito titoli) e IVAFE su strumenti esteri.
  * 0,2% del controvalore al 31 dicembre.
  */
-export const BOLLO_TITOLI_RATE = 0.002
+const BOLLO_TITOLI_RATE = 0.002
 
 /**
  * Calcola l'imposta di bollo/IVAFE su un conto corrente, con pro-rata per i giorni di apertura.
@@ -184,14 +184,6 @@ export function isForeign(country: string | null | undefined): boolean {
 // ── Previdenza complementare (Art. 10, c. 1, lett. e-ter TUIR) ───────────────
 
 /**
- * Soglia massima di deducibilità IRPEF per i contributi a fondi pensione integrativi.
- * €5.164,57 annui (invariata dal 2007 al 2025). Aggiornata a €5.300 dal 2026:
- * usa `pensionDeductionLimitMinor(year)` per il valore corretto per anno.
- * @deprecated per anni ≥ 2026; preferisci `pensionDeductionLimitMinor(year)`.
- */
-export const MAX_PENSION_DEDUCTION_EUR_MINOR = 516_457 // €5.164,57
-
-/**
  * Massimale di deducibilità dei contributi a fondi pensione, per anno fiscale (EUR minor).
  *  - fino al 2025: €5.164,57 (Art. 10 c. 1 lett. e-bis TUIR)
  *  - dal 2026:     €5.300,00 (L. Bilancio 2026)
@@ -201,17 +193,6 @@ export function pensionDeductionLimitMinor(year: number): number {
 }
 
 // ── IRPEF (riforma 3 aliquote) ───────────────────────────────────────────────
-
-/**
- * Scaglioni IRPEF 2025 (riforma 3 aliquote — Legge di Bilancio 2025).
- * `upToMinor = Infinity` per l'ultimo scaglione aperto.
- * @deprecated per anni ≥ 2026 (2° scaglione al 33%); preferisci `irpefBrackets(year)`.
- */
-export const IRPEF_BRACKETS: { upToMinor: number; rate: number }[] = [
-  { upToMinor: 2_800_000, rate: 0.23 },   // 0–28.000 → 23%
-  { upToMinor: 5_000_000, rate: 0.35 },   // 28.001–50.000 → 35%
-  { upToMinor: Infinity,  rate: 0.43 },   // oltre 50.000 → 43%
-]
 
 /**
  * Scaglioni IRPEF per anno fiscale.

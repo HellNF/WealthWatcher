@@ -24,6 +24,7 @@ import {
 } from '@/components/ui'
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
+import { fmtEur } from '@/lib/format'
 import { Building2, ChevronRight, Wallet, AlertTriangle } from 'lucide-react'
 import { computeGoalsSummary, listGoals, isGoalCompleted } from '@/lib/goals'
 import { budgetStatus } from '@/lib/budgets'
@@ -41,21 +42,6 @@ const KIND_LABEL: Record<string, string> = {
   bank:   'Banca',
   broker: 'Broker',
   both:   'Banca · Broker',
-}
-
-function formatEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-  })
-}
-
-function formatEurCompact(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 /** Riga cliccabile delle liste di accesso rapido (conti, portafogli, istituzioni). */
@@ -247,7 +233,7 @@ export default async function DashboardPage() {
   const composition = compositionParts.map((c) => ({
     label: c.label,
     bar:   c.bar,
-    value: formatEurCompact(c.minor),
+    value: fmtEur(c.minor, 0),
     pct:   (c.minor / compositionTotal) * 100,
   }))
 
@@ -256,10 +242,10 @@ export default async function DashboardPage() {
     {latest && (
       <StickyBar watchId="networth-value">
         <span className="text-sm font-medium text-(--ink)">Patrimonio netto</span>
-        <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">{formatEur(latest.net_worth_eur_minor)}</span>
+        <span className="text-sm font-semibold font-mono tabular-nums text-(--ink)">{fmtEur(latest.net_worth_eur_minor)}</span>
         {estimatedTaxMinor > 0 && (
           <span className="text-xs text-(--muted) ml-auto font-mono tabular-nums">
-            Netto stimato {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
+            Netto stimato {fmtEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
           </span>
         )}
       </StickyBar>
@@ -278,7 +264,7 @@ export default async function DashboardPage() {
                 Rischio scoperto entro i prossimi {runway.windowDays} giorni
               </p>
               <p className="text-sm text-(--muted) mt-0.5">
-                Deficit stimato: <strong className="text-(--danger)">{formatEur(runway.deficitMinor)}</strong>.
+                Deficit stimato: <strong className="text-(--danger)">{fmtEur(runway.deficitMinor)}</strong>.
                 Considera di ridurre le allocazioni agli obiettivi o di posticipare alcune uscite.
               </p>
               <Link href="/dashboard/scadenziario" className="text-xs text-(--brand-text) hover:underline mt-1.5 inline-block">
@@ -316,13 +302,13 @@ export default async function DashboardPage() {
                     <p className="text-(--muted)">
                       Imposte stimate{' '}
                       <span className="ml-1 font-mono tabular-nums font-medium text-(--ink)">
-                        −{formatEur(estimatedTaxMinor)}
+                        −{fmtEur(estimatedTaxMinor)}
                       </span>
                     </p>
                     <p className="text-(--muted)">
                       Netto stimato{' '}
                       <span className="ml-1 font-mono tabular-nums font-medium text-(--ink)">
-                        {formatEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
+                        {fmtEur(latest.net_worth_eur_minor - estimatedTaxMinor)}
                       </span>
                     </p>
                   </>
@@ -356,7 +342,7 @@ export default async function DashboardPage() {
                     href={`/dashboard/accounts/${acc.id}`}
                     name={acc.name}
                     sub={institutionMap.get(acc.institution_id)}
-                    value={eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
+                    value={eurMinor !== undefined ? fmtEur(eurMinor, 0) : '—'}
                   />
                 )
               })}
@@ -373,7 +359,7 @@ export default async function DashboardPage() {
                     href={`/dashboard/portfolios/${pf.id}`}
                     name={pf.name}
                     sub={institutionMap.get(pf.institution_id)}
-                    value={eurMinor !== undefined ? formatEurCompact(eurMinor) : '—'}
+                    value={eurMinor !== undefined ? fmtEur(eurMinor, 0) : '—'}
                   />
                 )
               })}
@@ -411,7 +397,7 @@ export default async function DashboardPage() {
                       sub={KIND_LABEL[inst.kind] ?? inst.kind}
                       value={
                         <>
-                          {formatEurCompact(val.valueEurMinor)}
+                          {fmtEur(val.valueEurMinor, 0)}
                           {val.stale && <span className="text-(--warning-text) ml-1" title="Valore parziale">*</span>}
                         </>
                       }

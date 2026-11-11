@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
@@ -10,14 +10,6 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
   data: WeekdaySpending[]
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 export default function WeekdayChart({ data }: Props) {
@@ -81,7 +73,7 @@ export default function WeekdayChart({ data }: Props) {
             const extra = d
               ? ` · ${d.sharePct.toLocaleString('it-IT')}% del totale${d.topCategory ? ` · soprattutto ${d.topCategory}` : ''}`
               : ''
-            return [`${fmtEur(Number(value))}${extra}`, 'Spesa totale']
+            return [`${fmtEur(Number(value), 0)}${extra}`, 'Spesa totale']
           }}
           contentStyle={{
             background: colors.tooltipBg,

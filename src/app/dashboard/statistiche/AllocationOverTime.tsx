@@ -1,6 +1,6 @@
 'use client'
 
-import { formatAxisMoney } from '@/lib/money'
+import { formatAxisMoney, fmtEur } from '@/lib/format'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -10,14 +10,6 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 
 interface Props {
   data: AllocationPoint[]
-}
-
-function fmtEur(minor: number): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 }
 
 function shortDate(iso: string): string {
@@ -97,7 +89,7 @@ export default function AllocationOverTime({ data }: Props) {
           width={88}
         />
         <Tooltip isAnimationActive={false}
-          formatter={(value, name) => [fmtEur(Number(value)), String(name)]}
+          formatter={(value, name) => [fmtEur(Number(value), 0), String(name)]}
           contentStyle={{
             background: colors.tooltipBg,
             border: `1px solid ${colors.tooltipBorder}`,

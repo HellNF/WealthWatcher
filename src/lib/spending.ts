@@ -64,7 +64,7 @@ export const IS_TRANSFER_SQL = `(
 export const TRUE_EXPENSE_WHERE = `t.amount_minor < 0 AND NOT ${IS_TRANSFER_SQL}`
 
 /** WHERE per il flusso di reddito reale (entrate, trasferimenti esclusi). */
-export const TRUE_INCOME_WHERE = `t.amount_minor > 0 AND NOT ${IS_TRANSFER_SQL}`
+const TRUE_INCOME_WHERE = `t.amount_minor > 0 AND NOT ${IS_TRANSFER_SQL}`
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FETCH CONDIVISO

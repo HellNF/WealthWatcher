@@ -6,11 +6,9 @@ const createJestConfig = nextJest({ dir: './' })
 
 const config: Config = {
   setupFiles: ['<rootDir>/jest.env.ts'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'node',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^marked$': '<rootDir>/node_modules/marked/lib/marked.umd.js',
   },
   testMatch: ['<rootDir>/src/__tests__/**/*.test.ts'],
   passWithNoTests: true,

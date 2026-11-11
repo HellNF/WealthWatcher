@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/dal'
 import { getMortgage, amortizationSchedule, mortgageStatus, monthlyPaymentMinor } from '@/lib/mortgages'
-import { formatMoney } from '@/lib/money'
+import { fmtEur, fmtIsoDate } from '@/lib/format'
 import { sqlite } from '@/db'
 import ScrollToCurrent from './ScrollToCurrent'
 import {
@@ -13,15 +13,6 @@ export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ id: string }>
-}
-
-function fmtEur(minor: number) {
-  return formatMoney(minor, 'EUR')
-}
-
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
 }
 
 export default async function MortgageDetailPage({ params }: Props) {
@@ -78,7 +69,7 @@ export default async function MortgageDetailPage({ params }: Props) {
           { label: mortgage.name },
         ]}
         title={mortgage.name}
-        description={`${mortgage.duration_months} mesi al ${rateDisplay}% annuo · prima rata ${fmtDate(mortgage.start_date)}${lastRow ? ` · ultima ${fmtDate(lastRow.date)}` : ''}`}
+        description={`${mortgage.duration_months} mesi al ${rateDisplay}% annuo · prima rata ${fmtIsoDate(mortgage.start_date)}${lastRow ? ` · ultima ${fmtIsoDate(lastRow.date)}` : ''}`}
       />
 
       {/* ── Hero: quanto resta, quanto pago, come si divide la rata ──────── */}
@@ -144,7 +135,7 @@ export default async function MortgageDetailPage({ params }: Props) {
                   return (
                     <Tr key={row.monthIndex} className={isCurrent ? 'bg-(--surface-2)' : ''} aria-current={isCurrent ? 'true' : undefined}>
                       <Td className="text-(--muted) tabular-nums">{row.monthIndex}{isCurrent && <Badge variant="neutral" className="ml-2">in corso</Badge>}</Td>
-                      <Td className="tabular-nums">{fmtDate(row.date)}</Td>
+                      <Td className="tabular-nums">{fmtIsoDate(row.date)}</Td>
                       <Td className="text-right font-mono tabular-nums">{fmtEur(row.paymentMinor)}</Td>
                       <Td className="text-right font-mono tabular-nums">{fmtEur(row.interestMinor)}</Td>
                       <Td className="text-right font-mono tabular-nums">{fmtEur(row.principalMinor)}</Td>
@@ -164,7 +155,7 @@ export default async function MortgageDetailPage({ params }: Props) {
             return (
               <DataCard key={row.monthIndex} className={isCurrent ? 'bg-(--surface-2)' : ''}>
                 <DataCardHeader
-                  title={`Rata ${row.monthIndex} — ${fmtDate(row.date)}`}
+                  title={`Rata ${row.monthIndex} — ${fmtIsoDate(row.date)}`}
                   subtitle={fmtEur(row.paymentMinor)}
                 />
                 <DataRow label="Interessi">{fmtEur(row.interestMinor)}</DataRow>
@@ -202,7 +193,7 @@ export default async function MortgageDetailPage({ params }: Props) {
                     const schedRow = schedule.find(r => r.date.slice(0, 7) === t.booked_date.slice(0, 7))
                     return (
                       <Tr key={i}>
-                        <Td className="tabular-nums">{fmtDate(t.booked_date)}</Td>
+                        <Td className="tabular-nums">{fmtIsoDate(t.booked_date)}</Td>
                         <Td className="text-(--muted) whitespace-normal min-w-40 [overflow-wrap:anywhere]">{t.description_raw}</Td>
                         <Td className="text-right tabular-nums">{fmtEur(Math.abs(t.amount_minor))}</Td>
                         <Td className="text-right font-mono tabular-nums">{schedRow ? fmtEur(schedRow.interestMinor) : '—'}</Td>
@@ -219,7 +210,7 @@ export default async function MortgageDetailPage({ params }: Props) {
               const schedRow = schedule.find(r => r.date.slice(0, 7) === t.booked_date.slice(0, 7))
               return (
                 <DataCard key={i}>
-                  <DataCardHeader title={fmtDate(t.booked_date)} subtitle={fmtEur(Math.abs(t.amount_minor))} />
+                  <DataCardHeader title={fmtIsoDate(t.booked_date)} subtitle={fmtEur(Math.abs(t.amount_minor))} />
                   <DataRow label="Interessi (teor.)">{schedRow ? fmtEur(schedRow.interestMinor) : '—'}</DataRow>
                   <DataRow label="Capitale (teor.)">{schedRow ? fmtEur(schedRow.principalMinor) : '—'}</DataRow>
                 </DataCard>

@@ -1,5 +1,5 @@
 // src/lib/investmentTxns.ts — InvestmentTxn repository.
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { investmentTxns } from '@/db/schema'
 import type { InvestmentTxn } from '@/db/schema'

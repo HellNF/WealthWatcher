@@ -12,7 +12,7 @@ import {
 } from '@/components/ui'
 import { Plus, Trash2, RefreshCw, Tag, Euro } from 'lucide-react'
 import type { CategoryProposal } from '@/lib/categorization'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import type { CategoryRuleRow, RulePreview } from '@/lib/merchants'
 
 function fmtAmount(minor: number): string {

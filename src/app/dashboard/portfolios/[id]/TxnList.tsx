@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { deleteTxnAction } from './actions'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import type { InvestmentTxn } from '@/db/schema'
 import {
   Badge,

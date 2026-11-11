@@ -15,7 +15,7 @@ export interface BackfillResult {
   error?:   string
 }
 
-export async function backfillInstrumentHistory(
+async function backfillInstrumentHistory(
   instrumentId: number,
   fromDate: string,  // ISO YYYY-MM-DD — prima data da scaricare
 ): Promise<BackfillResult> {

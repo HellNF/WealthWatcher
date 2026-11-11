@@ -18,7 +18,7 @@ import BalanceTrend, { type BalancePoint } from './BalanceTrend'
 import RenameForm from '@/components/dashboard/RenameForm'
 import { renameAccountAction, deleteAccountAction } from './manage-actions'
 import { Card, Stat, ConfirmDelete, PageHeader, HeroShell, Eyebrow, StickyBar, PAGE_SHELL, HeroFigure } from '@/components/ui'
-import { formatMoney } from '@/lib/money'
+import { formatMoney } from '@/lib/format'
 import { Upload, BarChart3 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'

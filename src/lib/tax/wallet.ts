@@ -8,9 +8,8 @@
 //  • Plusvalenze da ETF → "Redditi di Capitale" → NON consumano crediti
 //  • Plusvalenze da azioni/bond/cripto → "Redditi Diversi" → consumano crediti FIFO per expiry_date ASC
 //  • Crediti scaduti (expiry_date < oggi) → ignorati
-import { dec, Decimal } from '@/lib/money'
 import { sqlite } from '@/db'
-import { syntheticRate, expiryDate, incomeType } from './rates'
+import { expiryDate, incomeType } from './rates'
 import { realizedSaleEvents } from './realized'
 import type { RealizedSaleEvent } from './realized'
 import type { InvestmentTxn } from '@/db/schema'

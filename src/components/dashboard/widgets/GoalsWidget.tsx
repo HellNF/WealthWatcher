@@ -4,10 +4,7 @@ import { Target } from 'lucide-react'
 import { ProgressBar, EmptyState } from '@/components/ui'
 import type { GoalsWidgetData, WidgetSize } from './types'
 import { FitList, plural } from './FitList'
-
-function fmtEur(minor: number) {
-  return (minor / 100).toLocaleString('it-IT', { style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits: 0 })
-}
+import { fmtEur } from '@/lib/format'
 
 // Massimo di righe; quante se ne vedono davvero lo decide FitList (spazio del widget)
 const GOALS_VISIBLE: Record<WidgetSize, number> = { sm: 8, md: 8, lg: 12 }
@@ -36,7 +33,7 @@ export function GoalsWidget({ data, size }: { data: GoalsWidgetData; size: Widge
         <div className="rounded-xl bg-(--surface-2) px-3 py-2.5">
           <p className="text-[10px] font-medium text-(--faint) uppercase tracking-wider mb-0.5">Liquidità libera</p>
           <p className="text-sm font-semibold font-mono tabular-nums text-(--ink)">
-            {fmtEur(summary.freeOperatingCashMinor)}
+            {fmtEur(summary.freeOperatingCashMinor, 0)}
           </p>
         </div>
         <div className="rounded-xl bg-(--surface-2) px-3 py-2.5">

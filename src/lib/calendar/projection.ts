@@ -21,7 +21,7 @@ import type { CashProjectionPoint, DeadlineEvent } from './types'
 const DAY_MS = 86_400_000
 
 /** Fonti sovrapposte al saldo proiettato (movimenti non presenti nello storico bancario). */
-export const OVERLAY_SOURCES: ReadonlySet<string> = new Set([
+const OVERLAY_SOURCES: ReadonlySet<string> = new Set([
   'bollo', 'ivafe', 'rata_mutuo', 'custom', 'dividendo_atteso', 'interessi_conto',
 ])
 

@@ -17,7 +17,7 @@ export interface SourceMeta {
   badge: BadgeVariant
 }
 
-export const SOURCE_META: Record<DeadlineSource, SourceMeta> = {
+const SOURCE_META: Record<DeadlineSource, SourceMeta> = {
   bollo:            { label: 'Bollo',        dot: 'var(--muted)',   icon: Stamp,        badge: 'neutral' },
   ivafe:            { label: 'IVAFE',        dot: 'var(--muted)',   icon: Landmark,     badge: 'neutral' },
   credito_fiscale:  { label: 'Credito',      dot: 'var(--warning)', icon: PiggyBank,    badge: 'warning' },
@@ -38,12 +38,6 @@ export function metaFor(source: DeadlineSource): SourceMeta {
 }
 
 // ── Formattazione ────────────────────────────────────────────────────────────
-
-export function fmtEur(minor: number, maximumFractionDigits = 0): string {
-  return (minor / 100).toLocaleString('it-IT', {
-    style: 'currency', useGrouping: 'always', currency: 'EUR', maximumFractionDigits,
-  })
-}
 
 const MONTHS_IT = [
   'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
