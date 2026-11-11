@@ -7,6 +7,7 @@ import { PARSERS } from '@/lib/import/registry'
 import { normalizeDescription, resolveMerchant, resolveCategoryRule, resolveIntesaCategory } from '@/lib/merchants'
 import { previewRows, insertBatch, type InsertableTransaction, type PreviewRow } from '@/lib/transactions'
 import { refreshNetWorth } from '@/lib/valuation'
+import { fillLearnedCategories } from '@/lib/learnedCategories'
 import { assertUploadOk, IMPORT_STATEMENT_UPLOAD } from '@/lib/uploads'
 
 // ── Shared: parse XLSX + resolve merchants ────────────────────────────────────
@@ -32,7 +33,7 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
   const buffer = Buffer.from(await file.arrayBuffer())
   const parsed = parse(buffer)
 
-  const rows: InsertableTransaction[] = parsed.map((p) => {
+  const mapped: InsertableTransaction[] = parsed.map((p) => {
     const normalized   = normalizeDescription(p.descriptionRaw + ' ' + p.counterpartyRaw)
     const ruleCategory = resolveCategoryRule(normalized, userId, Math.abs(p.amountMinor))
     const merchant    = resolveMerchant(normalized)
@@ -56,6 +57,8 @@ async function parsedRowsForAccount(userId: number, accountId: number, file: Fil
     }
   })
 
+  // Quello che regole, alias e categorie della banca non coprono, lo prova lo storico.
+  const rows = fillLearnedCategories(userId, mapped)
   return { account, rows, parserKey }
 }
 

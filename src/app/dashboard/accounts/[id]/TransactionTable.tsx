@@ -23,16 +23,30 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
+// Da dove viene la categoria: l'utente deve poter distinguere una sua scelta
+// da un'assegnazione automatica o da un suggerimento dello storico.
+function sourceLabel(source: string | undefined, short = false): string {
+  switch (source) {
+    case 'manual':    return 'Manuale · protetta'
+    case 'rule':      return 'Regola'
+    case 'automatic': return 'Automatica'
+    case 'learned':   return 'Suggerita dallo storico · da verificare'
+    default:          return short ? 'Storica' : 'Storica · origine non registrata'
+  }
+}
+
 function CategorySelect({
   txnId,
   currentCategoryId,
   descriptionRaw,
   categories,
+  source,
 }: {
   txnId:             number
   currentCategoryId: number | null
   descriptionRaw:    string
   categories:        Category[]
+  source?:           string
 }) {
   const [isPending,  startTransition]  = useTransition()
   const [isCreating, startCreating]    = useTransition()
@@ -40,11 +54,13 @@ function CategorySelect({
   const [showRule,   setShowRule]      = useState(false)
   const [keyword,    setKeyword]       = useState('')
   const [ruleMsg,    setRuleMsg]       = useState<string | null>(null)
+  const [confirmed,  setConfirmed]     = useState(false)
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const val   = e.target.value
     const catId = val === '' ? null : parseInt(val, 10)
     setSelectedId(catId)
+    setConfirmed(true)
     setShowRule(false)
     setRuleMsg(null)
     startTransition(() => updateCategoryAction(txnId, catId))
@@ -88,6 +104,17 @@ function CategorySelect({
           <option key={cat.id} value={cat.id}>{cat.name}</option>
         ))}
       </select>
+
+      {source === 'learned' && selectedId !== null && !confirmed && (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => { setConfirmed(true); startTransition(() => updateCategoryAction(txnId, selectedId)) }}
+          className="inline-flex items-center gap-1 text-xs text-(--brand-text) hover:underline disabled:opacity-50"
+        >
+          <Check className="size-3" aria-hidden /> Conferma suggerimento
+        </button>
+      )}
 
       {showRule && (
         <div className="flex items-center gap-1 w-full">
@@ -295,12 +322,13 @@ export default function TransactionTable({
                     />
                   </Td>
                   <Td>
-                    <p className="text-xs text-(--muted) mb-1">{txn.category_source === 'manual' ? 'Manuale · protetta' : txn.category_source === 'rule' ? 'Regola' : txn.category_source === 'automatic' ? 'Automatica' : 'Storica · origine non registrata'}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</p>
+                    <p className="text-xs text-(--muted) mb-1">{sourceLabel(txn.category_source)}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</p>
                     <CategorySelect
                       txnId={txn.id}
                       currentCategoryId={txn.category_id}
                       descriptionRaw={txn.description_raw}
                       categories={categories}
+                      source={txn.category_source}
                     />
                   </Td>
                   <Td numeric>
@@ -339,12 +367,13 @@ export default function TransactionTable({
                 <span className="tabular-nums">{formatDate(txn.booked_date)}</span>
               </DataRow>
               <div className="py-2 space-y-1.5">
-                <span className="text-xs text-(--muted)">Categoria · {txn.category_source === 'manual' ? 'Manuale · protetta' : txn.category_source === 'rule' ? 'Regola' : txn.category_source === 'automatic' ? 'Automatica' : 'Storica'}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</span>
+                <span className="text-xs text-(--muted)">Categoria · {sourceLabel(txn.category_source, true)}{txn.possible_duplicate ? ' · Possibile duplicato' : ''}</span>
                 <CategorySelect
                   txnId={txn.id}
                   currentCategoryId={txn.category_id}
                   descriptionRaw={txn.description_raw}
                   categories={categories}
+                  source={txn.category_source}
                 />
               </div>
               <DataRow label="">

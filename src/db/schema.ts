@@ -248,7 +248,7 @@ export const transactions = sqliteTable(
     // carta (Open Banking). Persistito — oltre a derivarne category_id al sync
     // — così la ricategorizzazione bulk (src/lib/categorization.ts) può
     // riapplicarlo allo storico senza dover ri-sincronizzare dalla banca.
-    category_source:  text('category_source', { enum: ['legacy', 'manual', 'rule', 'automatic'] }).notNull().default('legacy'),
+    category_source:  text('category_source', { enum: ['legacy', 'manual', 'rule', 'automatic', 'learned'] }).notNull().default('legacy'),
     mcc:              text('mcc'),
     // Sotto-codice ISO 20022 (bank_transaction_code.sub_code) fornito
     // dall'ASPSP per le transazioni senza carta (bonifici, stipendi, SDD,

@@ -2,17 +2,21 @@
 import { createHash } from 'node:crypto'
 import { sqlite } from '@/db'
 import { normalizeDescription, resolveCategoryRule, resolveMerchant, resolveMccCategory, resolveBankTransactionCategory } from './merchants'
+import { learnedCategory, trainCategoryModel } from './learnedCategories'
 
 interface TxnStub {
   id: number; description_raw: string; counterparty_raw: string | null
   amount_minor: number; currency: string; booked_date: string
   mcc: string | null; btc_sub_code: string | null
   category_id: number | null; merchant_id: number | null; category_source: string
+  bank_account_id: number
 }
 export interface CategoryProposal {
   id: number; description: string; date: string; amountMinor: number; currency: string
   before: string | null; after: string | null; categoryId: number | null
   merchantId: number | null; source: string; fingerprint: string
+  /** Solo per le proposte apprese dallo storico (source = 'learned'). */
+  confidence?: number
 }
 
 export function previewRecategorization(ownerId: number, bankAccountId?: number): CategoryProposal[] {
@@ -20,19 +24,29 @@ export function previewRecategorization(ownerId: number, bankAccountId?: number)
     AND category_source != 'manual' ${bankAccountId ? 'AND bank_account_id = ?' : ''}
     ORDER BY booked_date DESC, id DESC`).all(...(bankAccountId ? [ownerId, bankAccountId] : [ownerId])) as TxnStub[]
   const names = new Map((sqlite.prepare('SELECT id, name FROM categories').all() as { id: number; name: string }[]).map(c => [c.id, c.name]))
+  // Addestrato solo se c'è qualcosa senza categoria da proporre.
+  let model: ReturnType<typeof trainCategoryModel> | undefined
   return txns.flatMap(txn => {
     const normalized = normalizeDescription(txn.description_raw + ' ' + (txn.counterparty_raw ?? ''))
     const rule = resolveCategoryRule(normalized, ownerId, Math.abs(txn.amount_minor))
     const merchant = resolveMerchant(normalized)
-    const categoryId = rule ?? merchant?.categoryId ?? resolveMccCategory(txn.mcc)
-      ?? resolveBankTransactionCategory(undefined, txn.btc_sub_code) ?? txn.category_id
+    const deterministic = rule ?? merchant?.categoryId ?? resolveMccCategory(txn.mcc)
+      ?? resolveBankTransactionCategory(undefined, txn.btc_sub_code)
     const merchantId = merchant?.merchantId ?? txn.merchant_id
+    // Lo storico propone solo dove la catena deterministica tace e il movimento
+    // è ancora senza categoria: non sostituisce mai una categoria esistente.
+    if (model === undefined && deterministic === null && txn.category_id === null) model = trainCategoryModel(ownerId)
+    const learned = deterministic === null && txn.category_id === null
+      ? learnedCategory(model ?? null, txn) : null
+    const categoryId = deterministic ?? learned?.categoryId ?? txn.category_id
     if (categoryId === txn.category_id && merchantId === txn.merchant_id) return []
-    const source = categoryId === txn.category_id ? txn.category_source : rule !== null ? 'rule' : 'automatic'
+    const source = categoryId === txn.category_id ? txn.category_source
+      : rule !== null ? 'rule' : learned ? 'learned' : 'automatic'
     return [{ id: txn.id, description: txn.description_raw, date: txn.booked_date,
       amountMinor: txn.amount_minor, currency: txn.currency,
       before: names.get(txn.category_id!) ?? null, after: names.get(categoryId!) ?? null,
       categoryId, merchantId, source,
+      ...(learned && source === 'learned' ? { confidence: Math.round(learned.confidence * 100) / 100 } : {}),
       fingerprint: createHash('sha256').update(JSON.stringify([txn, categoryId, merchantId, source])).digest('hex'),
     }]
   })

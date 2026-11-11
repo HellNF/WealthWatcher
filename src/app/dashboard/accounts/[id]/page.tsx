@@ -37,7 +37,7 @@ export default async function AccountPage({ params, searchParams }: Props) {
   const sp   = await searchParams
   const from = /^\d{4}-\d{2}-\d{2}$/.test(sp.from ?? '') ? sp.from : undefined
   const to   = /^\d{4}-\d{2}-\d{2}$/.test(sp.to   ?? '') ? sp.to   : undefined
-  const review = sp.review === 'uncategorized' || sp.review === 'duplicates' ? sp.review : undefined
+  const review = sp.review === 'uncategorized' || sp.review === 'duplicates' || sp.review === 'learned' ? sp.review : undefined
   const all  = sp.all === '1'
   const limit = all ? 99_999 : 50
 
@@ -175,11 +175,12 @@ export default async function AccountPage({ params, searchParams }: Props) {
           <div className="flex items-end justify-between gap-x-6 gap-y-3 flex-wrap">
             <h2 className="text-base font-semibold text-(--ink)">Movimenti</h2>
 <nav aria-label="Revisione movimenti" className="flex flex-wrap gap-3 text-sm mb-3">
-              {([['', 'Tutte'], ['uncategorized', 'Da categorizzare'], ['duplicates', 'Possibili duplicati']] as const).map(([value, label]) => {
+              {([['', 'Tutte'], ['uncategorized', 'Da categorizzare'], ['learned', 'Suggerite da verificare'], ['duplicates', 'Possibili duplicati']] as const).map(([value, label]) => {
                 const query = new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}), ...(value ? { review: value } : {}) })
                 return <Link key={value} href={`?${query}`} aria-current={(review ?? '') === value ? 'page' : undefined} className={(review ?? '') === value ? 'font-semibold underline' : 'text-(--muted)'}>{label}</Link>
               })}
             </nav>
+            {review === 'learned' && <p className="text-xs text-(--muted) mb-3">Categorie proposte dallo storico dove regole, merchant e codici della banca non bastavano. Conferma quelle giuste o correggile: ogni scelta manuale insegna al modello.</p>}
             {review === 'duplicates' && <p className="text-xs text-(--muted) mb-3">Movimenti dello stesso conto con data, importo e valuta uguali. Possono essere pagamenti legittimi: confronta descrizioni e categorie prima di intervenire. Nessuna eliminazione automatica.</p>}
             <TxnFilters from={from} to={to} review={review} shown={transactions.length} total={totalCount} />
           </div>
