@@ -76,6 +76,11 @@ export function setConnectionStatus(id: number, status: ConnectionStatus): void 
   db.update(ebConnections).set({ status }).where(eq(ebConnections.id, id)).run()
 }
 
+/** Allinea la scadenza locale al valore autorevole restituito da Enable Banking. */
+export function setConnectionValidUntil(id: number, validUntil: number): void {
+  db.update(ebConnections).set({ valid_until: validUntil }).where(eq(ebConnections.id, id)).run()
+}
+
 export function markConnectionSynced(id: number): void {
   db
     .update(ebConnections)

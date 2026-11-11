@@ -293,3 +293,19 @@ test('unstable transaction_id does not duplicate repeated bank imports; identica
   expect(first.map(p => p.dedup_hash)).toEqual(second.map(p => p.dedup_hash))
   expect(new Set(first.map(p => p.dedup_hash)).size).toBe(2)
 })
+
+test('pickBalance: solo la valuta del conto, mai saldi futuri o informativi, importi validi', () => {
+  const eur = { balance_type: 'ITAV', balance_amount: { amount: '80.00', currency: 'EUR' } }
+  const usd = { balance_type: 'CLBD', balance_amount: { amount: '500.00', currency: 'USD' } }
+  expect(pickBalance([usd, eur], 'EUR')).toBe(eur)
+  expect(pickBalance([usd], 'EUR')).toBeNull()
+  const info = { balance_type: 'INFO', balance_amount: { amount: '1', currency: 'EUR' } }
+  const forward = { balance_type: 'FWAV', balance_amount: { amount: '2', currency: 'EUR' } }
+  expect(pickBalance([info, forward], 'EUR')).toBeNull()
+  const broken = { balance_type: 'CLBD', balance_amount: { amount: 'n/a', currency: 'EUR' } }
+  const overdraft = { balance_type: 'ITBD', balance_amount: { amount: '-25.40', currency: 'EUR' } }
+  expect(pickBalance([broken, overdraft], 'EUR')).toBe(overdraft)
+  const previous = { balance_type: 'PRCD', balance_amount: { amount: '10', currency: 'EUR' } }
+  const valueDate = { balance_type: 'VALU', balance_amount: { amount: '11', currency: 'EUR' } }
+  expect(pickBalance([valueDate, previous], 'EUR')).toBe(previous)
+})
